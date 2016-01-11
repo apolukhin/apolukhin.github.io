@@ -1,0 +1,101 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+		<title>A Proposal to Relax Constexpr Restrictions for some Reinterpret Casts</title>
+		<meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+		<meta http-equiv="Content-Language" content="en-us">
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+		<style type="text/css">
+			.addition { color: green; text-decoration: underline; }
+		</style>
+
+	</head>
+	<body bgcolor="#ffffff">
+		<address>Document number: P?????R0</address>
+		<address>Project: Programming Language C++, Core Working Group</address>
+		<address>&nbsp;</address>
+		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;</address>
+		<address>&nbsp;</address>
+		<address>Date: 2016-01-11</address>
+		<h1>A Proposal to Relax Constexpr Restrictions for some Reinterpret Casts</h1>
+
+		<h2>I. Introduction and Motivation</h2>
+		<p>The Standard Library provides a great collection of containers and algorithms, many of which currently lack constexpr support.
+			Even a simple <code>constexpr</code> usage requires reimplementing a big bunch of the Standard Library. Consider the simple example:</p>
+		<p></p><blockquote><pre>#include &lt;array&gt;
+#include &lt;cstring&gt;
+
+template &lt;std::size_t N&gt;
+constexpr auto copy_some(const char* begin) {
+    std::array&lt;char, N&gt; result = {};
+
+    // ERROR: non-constexpr function 'memcpy' cannot be used in a constant expression
+    std::memcpy(result.begin(), begin, N);
+    return result;
+}
+
+int main () {
+    constexpr char a[] = { 'H', 'e', 'l', 'l', 'o' };
+    constexpr auto res = copy_some&lt;sizeof(a)&gt;(a);
+}
+</pre></blockquote><p></p>
+		<p>This proposal concentrates on simplification of <code>constexpr</code> algorithms development, deferring the <code>constexpr</code> modifications of the standard headers to a separate proposals.</p>
+
+		<h2>II. Impact on the Standard</h2>
+		<p>This proposal is a core extension. It proposes no changes to
+			existing headers. The changes do not break existing code
+			and do not degrade performance.
+		</p>
+
+		<h2>III. Design Decisions</h2>
+		<h3>A. Allow conversions from <code>void*</code> to pointers to <code>char</code>, <code>unsigned char</code></h3>
+		<p>Existing implementations of the functions in <code>&lt;algorithm&gt;</code> header usually rely on functions from <code>&lt;cstring&gt;</code>.
+			For example <code>std::copy</code> usually takes advantage of <code>std::memmove</code> for POD types. This makes the memory copying functions
+			widely used all around the Standard Library.</p>
+		<p>Many of the memory copying functions accept parameters by pointers to <code>void</code>. This proposal relaxes only those conversions that do not
+		affect aliasing, because some of the existing compilers rely heavily on aliasing rules.</p>
+		<h3>B. Allow <code>reinterpret_cast</code>ing pointers to pointers to <code>char</code>, <code>unsigned char</code></h3>
+		<p>This is a generalization of a previous bulletin. Having the ability to cast to <code>void</code> pointers and from <code>void</code> pointers to single byte types
+			it is possible to implement <code>reinterpret_cast</code> from scratch, so there's no reason for keeping the <code>reinterpret_cast</code> restriction any more.</p>
+		<h3>C. No need to describe all the <code>reinterpret_cast</code> restrictions</h3>
+		<p> N4567 contains restrictions on constant expressions, that make any UB code not a constant expression: [expr.const] "(2.5) — an operation that would have
+		undefined behavior as specified in Clauses 1 through 16". So any attempt to make <code>reinterpret_cast</code> that results in UB will make the expression non-constant.</p>
+		<p> N4567 describes all the conversions from a function pointer to an object pointer type or vice versa as conditionally-supported, so there's no need
+		to describe that restriction in [expr.const]: it's up to the compiler vendors to allow or disallow such conversions.</p>
+
+		<h2>IV. Proposed modifications for N4567</h2>
+		<p>All the additions to the Standard are marked with <span class="addition">underlined green</span>.</p>
+		<h3>A. Modifications to "5.20 Constant expressions" [expr.const]</h3>
+		<pre>(2.11) — a conversion from type cv void * to a pointer-to-object type<span class="addition">, other than cv char* or cv unsigned char*</span>;
+(2.12) — a dynamic cast (5.2.7);
+(2.13) — a reinterpret_cast<span class="addition">, other than a cast from cv pointer type to cv char* or cv unsigned char*</span> (5.2.10);
+		</pre>
+
+
+		<h3>B. Feature-testing macro</h3>
+		<p>For the purposes of SG10, we recommend the feature-testing macro name <code>__cpp_constexpr_to_char_casts</code>.</p>
+
+
+		<h2>V. Revision History</h2>
+		<p>Revision 1:</p>
+		<ul>
+			<li>
+				Initial proposal
+			</li>
+		</ul>
+
+
+		<h2>VI. References</h2>
+		<p>[<a name="N4567">N4567</a>] Working Draft, Standard for Programming Language C++. Available online at
+					<a href="http://apolukhin.github.io/constexpr_algorithms/www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4567.pdf">www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4567.pdf</a></p>
+		<p>[<a name="Discussion">Discussion</a>] A call to discuss asm in constexpr and constexpr &lt;algorithm&gt;. Available online at
+			<a href="https://groups.google.com/a/isocpp.org/forum/#%21topic/std-proposals/9sTJWsOpptE">https://groups.google.com/a/isocpp.org/forum/#!topic/std-proposals/9sTJWsOpptE</a></p>
+		<p>&nbsp;</p>
+
+		<h2>VII. Acknowledgements</h2>
+		<p>Walter E. Brown provided numerous comments, corrections, and suggestions for this proposal.</p>
+
+
+
+
+</body></html>
