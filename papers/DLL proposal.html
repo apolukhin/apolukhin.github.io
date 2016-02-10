@@ -8,6 +8,9 @@
 		<style type="text/css">
 			.addition { color: green; }
 			.right { float:right; }
+            pre { line-height: 1.2; font-size: 10pt; margin-top: 25px;}
+            .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; }
+            body {max-width: 1024px; margin-left: 25px;}
 		</style>
 
 	</head>
@@ -72,7 +75,7 @@
 
 <h4>31.2 Error reporting <span class="right">[dll.errors]</span></h4>
 <p>
-    Functions not having an argument of type error_code& report errors as follows, unless otherwise specified:
+    Functions not having an argument of type error_code& report errors as follows, unless otherwise specified:</p>
     <ul>
     <li>When a call by the implementation to an operating system or other underlying API results in an error that
     prevents the function from meeting its specifications, an exception of type system_error is thrown.</li>
@@ -91,7 +94,7 @@
 
     <li>Failure to allocate storage is reported by throwing an exception as described in the C++ standard, 17.6.4.10 [res.on.exception.handling].</li>
     </ul>
-</p>
+
 
 <h4>31.3 Header &lt;experimental/dll&gt; <span class="right">[dll.dll]</span></h4>
 <pre>
@@ -108,8 +111,8 @@ namespace std {
         rtld_global,                    // RTLD_GLOBAL
         rtld_local,                     // RTLD_LOCAL
         rtld_deepbind,                  // RTLD_DEEPBIND
-        append_decorations,             // Any value that can not be received by applying binary OR to any set of the previous modes
-        search_system_folders           // Any value that can not be received by applying binary OR to any set of the previous modes
+        append_decorations,             // See [dll.dll_mode]
+        search_system_folders           // See [dll.dll_mode]
     };
 
     constexpr dll_mode operator|(dll_mode left, dll_mode right) noexcept;
@@ -160,43 +163,50 @@ The value of each enum dll_mode constant shall be the same as the value of the m
 </p>
 
 <pre>
-append_decorations
-    <i>Effects:</i> Appends a platform specific extensions and prefixes to shared library filename before trying to load it. If load attempts fails, tries to load with exactly specified name.
-    <i>Platforms:</i> Windows, POSIX
-    <i>Example:</i>
+append_decorations</pre>
+    <div class="desc"><i>Effects:</i> Appends a platform specific extensions and prefixes to shared library filename before trying to load it.
+    If load attempts fails, tries to load with exactly specified name.</div>
+    <div class="desc"><i>Platforms:</i> Windows, POSIX</div>
+    <div class="desc"><i>Value:</i> Any value that can not be received by applying binary OR to any set of modes from dll_mode</div>
+    <div class="desc"><i>Example:</i></div>
+<pre>
         // Tries to open
         //      `./my_plugins/plugin1.dll` and `./my_plugins/libplugin1.dll` on Windows
         //      `./my_plugins/libplugin1.so` on Linux
         //      `./my_plugins/libplugin1.dylib` and `./my_plugins/libplugin1.so` on MacOS.
         // If that fails, loads `./my_plugins/plugin1`
         shared_library lib("./my_plugins/plugin1", dll_mode::append_decorations);
-
-default_mode
-    Default open mode for a particular platform.
-
-search_system_folders
-    <i>Effects:</i> Allows loading an object from system specific library folders.
 </pre>
+
+<pre>
+default_mode</pre>
+    <div class="desc"><i>Effects:</i> Default open mode for a particular platform.</div>
+
+<pre>
+search_system_folders</pre>
+    <div class="desc"><i>Value:</i> Any value that can not be received by applying binary OR to any set of modes from dll_mode</div>
+    <div class="desc"><i>Effects:</i> Allows loading an object from system specific library folders.</div>
+
 
 <h4>31.3.1.1 dll_mode operators <span class="right">[dll.dll_mode.operators]</span></h4>
 <pre>
-    constexpr dll_mode operator|(dll_mode lhs, dll_mode rhs) noexcept;
-    constexpr dll_mode&amp; operator|=(dll_mode&amp; lhs, dll_mode rhs) noexcept;
-    constexpr dll_mode operator&(dll_mode lhs, dll_mode rhs) noexcept;
-    constexpr dll_mode&amp; operator&=(dll_mode&amp; lhs, dll_mode rhs) noexcept;
-    constexpr dll_mode operator^(dll_mode lhs, dll_mode rhs) noexcept;
-    constexpr dll_mode&amp; operator^=(dll_mode&amp; lhs, dll_mode rhs) noexcept;
-    constexpr dll_mode&amp; operator~(dll_mode&amp; lhs) noexcept;
-
-    <i>Effects:</i> Converts parameters to unsigned integral type capable of storing them, applies a corresponding
-    binary operator and returns the result as dll_mode.
-</pre>
+constexpr dll_mode operator|(dll_mode lhs, dll_mode rhs) noexcept;
+constexpr dll_mode&amp; operator|=(dll_mode&amp; lhs, dll_mode rhs) noexcept;
+constexpr dll_mode operator&(dll_mode lhs, dll_mode rhs) noexcept;
+constexpr dll_mode&amp; operator&=(dll_mode&amp; lhs, dll_mode rhs) noexcept;
+constexpr dll_mode operator^(dll_mode lhs, dll_mode rhs) noexcept;
+constexpr dll_mode&amp; operator^=(dll_mode&amp; lhs, dll_mode rhs) noexcept;
+constexpr dll_mode&amp; operator~(dll_mode&amp; lhs) noexcept;</pre>
+    <div class="desc"><i>Effects:</i> Converts parameters to unsigned integral type capable of storing them, applies a corresponding
+    binary operator and returns the result as dll_mode.</div>
 
 <h4>31.3.1.2 dll_mode hash support<span class="right">[dll.dll_mode.hash]</span></h4>
 <pre>
 template &lt;&gt; struct hash&lt;experimental::dll_mode&gt;;
-    The template specialization shall meet the requirements of class template hash (20.9.13).
 </pre>
+<p>
+    The template specialization shall meet the requirements of class template hash (20.9.13).
+</p>
 
 
 <h4>31.3.2 Class shared_library <span class="right">[dll.shared_library]</span></h4>
@@ -268,168 +278,185 @@ namespace std {
 
 <h4>31.3.3.1 shared_library constructors <span class="right">[dll.shared_library.constr]</span></h4>
 <pre>
-shared_library() noexcept;
-    <i>Effects:</i> Creates shared_library that does not reference any object.
-    <i>Postconditions:</i> is_loaded() returns false. 
+shared_library() noexcept;</pre>
+    <div class="desc"><i>Effects:</i> Creates shared_library that does not reference any object.</div>
+    <div class="desc"><i>Postconditions:</i> is_loaded() returns false.</div>
 
+<pre>
 shared_library(const shared_library&amp; lib);
-shared_library(const shared_library&amp; lib, error_code&amp; ec);
-    <i>Effects:</i> *this loads the same library that was loaded in lib or if lib is not loaded sets this* 
-    to default constructed state.
-    <i>Postconditions:</i> lib == *this
-    <i>Throws:</i> As specified in [dll.errors]
+shared_library(const shared_library&amp; lib, error_code&amp; ec);</pre>
+    <div class="desc"><i>Effects:</i> *this loads the same library that was loaded in lib or if lib is not loaded sets this* 
+    to default constructed state.</div>
+    <div class="desc"><i>Postconditions:</i> lib == *this</div>
+    <div class="desc"><i>Throws:</i> As specified in [dll.errors]</div>
 
-shared_library(shared_library&amp;&amp; lib) noexcept;
-    <i>Effects:</i> Assigns the state of lib to *this and sets lib to a default constructed state.
-    <i>Remarks:</i> Does not invalidate existing symbols and functions loaded from lib.
-    <i>Postconditions:</i> lib.is_loaded() returns false, this->is_loaded() return true.
+<pre>
+shared_library(shared_library&amp;&amp; lib) noexcept;</pre>
+    <div class="desc"><i>Effects:</i> Assigns the state of lib to *this and sets lib to a default constructed state.</div>
+    <div class="desc"><i>Remarks:</i> Does not invalidate existing symbols and functions loaded from lib.</div>
+    <div class="desc"><i>Postconditions:</i> lib.is_loaded() returns false, this->is_loaded() return true.</div>
 
+<pre>
 explicit shared_library(const filesystem::path&amp; library_path, dll_mode mode = dll_mode::default_mode);
-shared_library(const filesystem::path&amp; library_path, error_code&amp; ec, dll_mode mode= dll_mode::default_mode);
-shared_library(const filesystem::path&amp; library_path, dll_mode mode, error_code&amp; ec);
-    <i>Effects:</i> Same as calling shared_library::load() with same parameters.
-    <i>Throws:</i> As specified in [dll.errors].
-</pre>
+shared_library(const filesystem::path&amp; library_path, error_code&amp; ec, dll_mode mode = dll_mode::default_mode);
+shared_library(const filesystem::path&amp; library_path, dll_mode mode, error_code&amp; ec);</pre>
+    <div class="desc"><i>Effects:</i> Same as calling shared_library::load() with same parameters.</div>
+    <div class="desc"><i>Throws:</i> As specified in [dll.errors].</div>
+
 
 
 <h4>31.3.3.2 shared_library destructor <span class="right">[dll.shared_library.destr]</span></h4>
 <pre>
-~shared_library();
+~shared_library();</pre>
+<div class="desc">
     <i>Effects:</i> Destroys the shared_library by calling unload(). If the actual library was loaded multiple times by different instances of shared_library,
     the actual library won't be unloaded until there is at least one instance of shared_library referencing it.
-</pre>
+</div>
 
 
 <h4>31.3.3.3 shared_library assignment <span class="right">[dll.shared_library.assign]</span></h4>
 <pre>
-shared_library&amp; operator=(const shared_library&amp; lib);
-    <i>Effects:</i> Same as calling this->assign(lib)
+shared_library&amp; operator=(const shared_library&amp; lib);</pre>
+    <div class="desc"><i>Effects:</i> Same as calling this->assign(lib)</div>
 
-shared_library&amp; operator=(shared_library&amp;&amp; lib) noexcept;
-    <i>Effects:</i> If this->is_loaded() then calls this->unload(), then assigns the state of lib to *this and sets lib to a default constructed state.
-    <i>Remarks:</i> Does not invalidate existing symbols and functions loaded from lib.
-    <i>Postconditions:</i> lib.is_loaded() returns false, this->is_loaded() return true.
-</pre>
+<pre>
+shared_library&amp; operator=(shared_library&amp;&amp; lib) noexcept;</pre>
+    <div class="desc"><i>Effects:</i> If this->is_loaded() then calls this->unload(), then assigns the state of lib to *this and sets lib to a default constructed state.</div>
+    <div class="desc"><i>Remarks:</i> Does not invalidate existing symbols and functions loaded from lib.</div>
+    <div class="desc"><i>Postconditions:</i> lib.is_loaded() returns false, this->is_loaded() return true.</div>
 
 
 <h4>31.3.3.4 shared_library members<span class="right">[dll.shared_library.member]</span></h4>
 <pre>
 shared_library&amp; assign(const shared_library&amp; lib, error_code&amp; ec);
-shared_library&amp; assign(const shared_library&amp; lib);
-    <i>Effects:</i> If *this is loaded, then unloads it. Makes *this share the same shared object as lib. 
-    <i>Postconditions:</i> lib.location() == this->location(), lib == *this
-    <i>Throws:</i> As specified in [dll.errors]
+shared_library&amp; assign(const shared_library&amp; lib);</pre>
+    <div class="desc"><i>Effects:</i> If *this is loaded, then unloads it. Makes *this share the same shared object as lib.</div>
+    <div class="desc"><i>Postconditions:</i> lib.location() == this->location(), lib == *this</div>
+    <div class="desc"><i>Throws:</i> As specified in [dll.errors]</div>
 
+<pre>
 void load(const filesystem::path&amp; library_path, dll_mode mode = dll_mode::default_mode);
 void load(const filesystem::path&amp; library_path, error_code&amp; ec, dll_mode mode = dll_mode::default_mode);
-void load(const filesystem::path&amp; library_path, dll_mode mode, error_code&amp; ec);
-    Loads a library by specified path with a specified mode. If some library is already loaded in this instance,
-    load will call unload() first.
+void load(const filesystem::path&amp; library_path, dll_mode mode, error_code&amp; ec);</pre>
+    <div class="desc"><i>Effects:</i> Loads a library by specified path with a specified mode. If some library is already loaded in this instance,
+    load will call unload() first.</div>
 
-    Must be capable of loading current executable if absolute or relative path to the executable was provided as library_path. Must try to load
+    <div class="desc">Must be capable of loading current executable if absolute or relative path to the executable was provided as library_path. Must try to load
     library with changed name and applied extension only if (mode & dll_mode::append_decorations) is not 0. Must
     attempt to load a library from system specific shared library directories only if library_path contains only file name and
     (mode & dll_mode::search_system_folders) is not 0. During loads from system
     specific folders file name modification rules from above apply. If with dll_mode::search_system_folders more than one
     loaded module has the same base name and extension, the function loads any first matching module.
     If (mode & dll_mode::search_system_folders) is 0, then any relative path or path that contains only filename must be treated as a
-    path in current working directory.
+    path in current working directory.</div>
 
-    Library open mode is equal to (mode & ~dll_mode::search_system_folders & ~dll_mode::append_decorations) converted to a platform specific
+    <div class="desc">Library open mode is equal to (mode & ~dll_mode::search_system_folders & ~dll_mode::append_decorations) converted to a platform specific
     type representing library load modes and adjusted to satisfy the dll_mode::search_system_folders requirements from above. If mode is
     invalid for current platform, attempts to adjust the mode by applying dll_mode::rtld_lazy
     and throws if resulting mode is invalid. <i>Example:</i> If mode on POSIX was set to rtld_local, then it will be adjusted
-    to rtld_lazy | rtld_local.
+    to rtld_lazy | rtld_local.</div>
 
-    <i>Throws:</i> As specified in [dll.errors]
+    <div class="desc"><i>Throws:</i> As specified in [dll.errors]</div>
 
-void unload() noexcept;
-    <i>Effects:</i> Unloads a shared library.
-    <i>Remarks:</i> If library was loaded multiple times by different instances of shared_library, the actual library object won't
-    be unloaded until there is at least one instance of shared_library holding a reference to it.
-    <i>Postconditions:</i> this->is_loaded() returns false.
+<pre>
+void unload() noexcept;</pre>
+    <div class="desc"><i>Effects:</i> Unloads a shared library.</div>
+    <div class="desc"><i>Remarks:</i> If library was loaded multiple times by different instances of shared_library, the actual library object won't
+    be unloaded until there is at least one instance of shared_library holding a reference to it.</div>
+    <div class="desc"><i>Postconditions:</i> this->is_loaded() returns false.</div>
 
-bool is_loaded() const noexcept;
-    <i>Returns:</i> true if *this references a library object.
+<pre>
+bool is_loaded() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> true if *this references a library object.</div>
 
-explicit operator bool() const noexcept;
-    <i>Returns:</i> true if *this references a library object.
+<pre>
+explicit operator bool() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> true if *this references a library object.</div>
 
+<pre>
 bool has(const char* symbol_name) const noexcept;
-bool has(const string&amp; symbol_name) const noexcept;
-    <i>Returns:</i> true if *this references a library object and symbol with symbol_name could be loaded from it.
+bool has(const string&amp; symbol_name) const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> true if *this references a library object and symbol with symbol_name could be loaded from it.</div>
 
+<pre>
 template &lt;typename SymbolT&gt;
 decltype(auto) get(const char* symbol_name) const;
+
 template &lt;typename SymbolT&gt;
-decltype(auto) get(const string&amp; symbol_name) const;
-    <i>Returns:</i> Imported from library symbol, throws if symbol does not exist or if the library was not loaded.
-    <i>Return type:</i> SymbolT&amp; if SymbolT is a type, function signature of function pointer; SymbolT if SymbolT is a member function pointer.
-    <i>Remarks:</i> It's the user responsibility to provide valid SymbolT for imported symbol. However implementations may provide additional checks for
+decltype(auto) get(const string&amp; symbol_name) const;</pre>
+    <div class="desc"><i>Returns:</i> Imported from library symbol, throws if symbol does not exist or if the library was not loaded.</div>
+    <div class="desc"><i>Return type:</i> SymbolT&amp; if SymbolT is a type, function signature of function pointer; SymbolT if SymbolT is a member function pointer.</div>
+    <div class="desc"><i>Remarks:</i> It's the user responsibility to provide valid SymbolT for imported symbol. However implementations may provide additional checks for
     matching SymbolT type and actually imported symbol. [Note: For example implementations
-    may check that SymbolT is a function pointer and that imported symbol allows execution (imported from a section with execute permissions). ]
+    may check that SymbolT is a function pointer and that imported symbol allows execution (imported from a section with execute permissions). ]</div>
+    <div class="desc"><i>Throws:</i> As specified in [dll.errors]</div>
 
-    <i>Throws:</i> As specified in [dll.errors]
+<pre>
+native_handle_t native() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> Native handler of the loaded library or default constructed native_handle_t if library is not loaded.</div>
 
-native_handle_t native() const noexcept;
-    <i>Returns:</i> Native handler of the loaded library or default constructed native_handle_t if library is not loaded.
-
+<pre>
 filesystem::path location() const;
-filesystem::path location(error_code&amp; ec) const;
-    <i>Returns:</i> Full path and name to library object currently loaded, throws if library was not loaded.
-    <i>Throws:</i> As specified in [dll.errors]
-</pre>
+filesystem::path location(error_code&amp; ec) const;</pre>
+    <div class="desc"><i>Returns:</i> Full path and name to library object currently loaded, throws if library was not loaded.</div>
+    <div class="desc"><i>Throws:</i> As specified in [dll.errors]</div>
 
 <h4>31.3.3.5 shared_library free operators<span class="right">[dll.shared_library.operators]</span></h4>
-<pre>
 <p>
     shared_library provides fast comparison operators that compare the referenced library objects.
 </p>
-bool operator==(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;
-    <i>Returns:</i> lhs.native() == rhs.native()
+<pre>
+bool operator==(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;</pre>
+    <div class="desc"><i>Returns:</i> lhs.native() == rhs.native()</div>
 
-bool operator!=(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;
-    <i>Returns:</i> lhs.native() != rhs.native()
+<pre>
+bool operator!=(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;</pre>
+    <div class="desc"><i>Returns:</i> lhs.native() != rhs.native()</div>
 
-bool operator&lt;(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;
-    <i>Returns:</i> lhs.native() &lt; rhs.native()
+<pre>
+bool operator&lt;(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;</pre>
+    <div class="desc"><i>Returns:</i> lhs.native() &lt; rhs.native()</div>
 
-bool operator&gt;(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;
-    <i>Returns:</i> lhs.native() &gt; rhs.native()
+<pre>
+bool operator&gt;(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;</pre>
+    <div class="desc"><i>Returns:</i> lhs.native() &gt; rhs.native()</div>
 
-bool operator&lt;=(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;
-    <i>Returns:</i> lhs.native() &lt;= rhs.native()
+<pre>
+bool operator&lt;=(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;</pre>
+    <div class="desc"><i>Returns:</i> lhs.native() &lt;= rhs.native()</div>
 
-bool operator&gt;=(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;
-    <i>Returns:</i> lhs.native() &gt;= rhs.native()
+<pre>
+bool operator&gt;=(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;</pre>
+    <div class="desc"><i>Returns:</i> lhs.native() &gt;= rhs.native()</div>
 
-</pre>
 
 <h4>31.3.3.6 shared_library hash support<span class="right">[dll.shared_library.hash]</span></h4>
 <pre>
-template &lt;&gt; struct hash&lt;experimental::shared_library&gt;;
-    The template specialization shall meet the requirements of class template hash (20.9.13).
-</pre>
+template &lt;&gt; struct hash&lt;experimental::shared_library&gt;;</pre>
+    <div class="desc">The template specialization shall meet the requirements of class template hash (20.9.13).</div>
+
 
 <h4>31.3.4 Runtime path functions<span class="right">[dll.location]</span></h4>
 <pre>
 template&lt;class T&gt;
 filesystem::path symbol_location(const T&amp; symbol, error_code&amp; ec);
 template&lt;class T&gt;
-boost::filesystem::path symbol_location(const T&amp; symbol);
-    <i>Returns:</i> Full path and name of library or executable that contains symbol
-    <i>Throws:</i> As specified in [dll.errors]
+boost::filesystem::path symbol_location(const T&amp; symbol);</pre>
+    <div class="desc"><i>Returns:</i> Full path and name of library or executable that contains symbol</div>
+    <div class="desc"><i>Throws:</i> As specified in [dll.errors]</div>
 
+<pre>
 filesystem::path this_line_location(error_code&amp; ec);
-filesystem::path this_line_location();
-    <i>Returns:</i> Full path and name of library or executable that contains line of source code in which this_line_location was called
-    <i>Throws:</i> As specified in [dll.errors]
+filesystem::path this_line_location();</pre>
+    <div class="desc"><i>Returns:</i> Full path and name of library or executable that contains line of source code in which this_line_location was called</div>
+    <div class="desc"><i>Throws:</i> As specified in [dll.errors]</div>
 
+<pre>
 filesystem::path program_location(error_code&amp; ec);
-filesystem::path program_location();
-    <i>Returns:</i> Full path and name of the executable.
-    <i>Throws:</i> As specified in [dll.errors]
-</pre>
+filesystem::path program_location();</pre>
+    <div class="desc"><i>Returns:</i> Full path and name of the executable.</div>
+    <div class="desc"><i>Throws:</i> As specified in [dll.errors]</div>
+
 
 <h4>31.4 Header &lt;experimental/import&gt; <span class="right">[dll.import.header]</span></h4>
 <pre>
@@ -464,14 +491,15 @@ namespace std {
     imported_t&lt;SymbolT&gt; import(shared_library&amp;&amp; library, const string&amp; symbol_name);
   }
 }
+</pre>
 
-import functions are meant to simplify dynamic library loads of symbols by keeping library loaded while imported symbol is in scope:
+<p>import functions are meant to simplify dynamic library loads of symbols by keeping library loaded while imported symbol is in scope:</p>
+<pre>
 [Example:
     auto foo_function = import&lt;void(string&amp;&amp;)&gt;("/plugin_directory/libplugin.so", "foo_function");
     foo_function("Test");
-]
+]</pre>
 
-</pre>
 
 <h4>31.4.1 import functions <span class="right">[dll.import.func]</span></h4>
 <pre>
@@ -491,16 +519,15 @@ template &lt;typename SymbolT&gt;
 imported_t&lt;SymbolT&gt; import(shared_library&amp;&amp; library, const char* symbol_name);
 
 template &lt;typename SymbolT&gt;
-imported_t&lt;SymbolT&gt; import(shared_library&amp;&amp; library, const string&amp; symbol_name);
-    <i>Effects:</i> Loads a symbol with name symbol_name from library and returns it wrapped in class that implements semantics
+imported_t&lt;SymbolT&gt; import(shared_library&amp;&amp; library, const string&amp; symbol_name);</pre>
+    <div class="desc"><i>Effects:</i> Loads a symbol with name symbol_name from library and returns it wrapped in class that implements semantics
     of shared ownership of library; the last remaining owner is responsible for releasing the resources associated with the
-    library. mode must be passed to shared_library constructor or shared_library::load function.
-    <i>Remarks:</i> It's the user responsibility to provide valid SymbolT for imported symbol.
-    <i>Return type:</i> imported_t&lt;SymbolT&gt; that keeps instance an of shared_library internally
-    <i>Returns:</i> variable that keeps shared_library and imported symbol and provides access to the symbol only.
-    <i>Throws:</i> As specified in [dll.errors]
+    library. mode must be passed to shared_library constructor or shared_library::load function.</div>
+    <div class="desc"><i>Remarks:</i> It's the user responsibility to provide valid SymbolT for imported symbol.</div>
+    <div class="desc"><i>Return type:</i> imported_t&lt;SymbolT&gt; that keeps instance an of shared_library internally</div>
+    <div class="desc"><i>Returns:</i> variable that keeps shared_library and imported symbol and provides access to the symbol only.</div>
+    <div class="desc"><i>Throws:</i> As specified in [dll.errors]</div>
 
-</pre>
 
 		<h2>V. Feature-testing macro</h2>
 		<p>For the purposes of SG10 it is sufficient to check for header &lt;experimental/dll&gt; or &lt;experimental/import&gt; using __has_include.</p>
