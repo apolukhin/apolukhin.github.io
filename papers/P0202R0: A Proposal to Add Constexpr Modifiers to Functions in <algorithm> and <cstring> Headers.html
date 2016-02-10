@@ -11,12 +11,13 @@
 
 	</head>
 	<body bgcolor="#ffffff">
-		<address>Document number: P????R0</address>
-		<address>Project: Programming Language C++, Library Evolution Working Group</address>
+		<address>Document number: P0202R0</address>
+		<address>Project: Programming Language C++</address>
+		<address>Audience: Library Evolution Working Group</address>
 		<address>&nbsp;</address>
 		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;</address>
 		<address>&nbsp;</address>
-		<address>Date: 2016-01-11</address>
+		<address>Date: 2016-01-31</address>
 		<h1>Add Constexpr Modifiers to Functions in &lt;algorithm&gt; and &lt;cstring&gt; Headers</h1>
 
 		<h2>I. Introduction and Motivation</h2>
@@ -38,7 +39,8 @@ int main() {
 </pre></blockquote><p></p>
 		<p>This proposal concentrates on <code>constexpr</code> algorithms, deferring simple containers and iterators to a separate proposal.</p>
 		<p>A proof of concept implementation for some algorithms, is available at:
-				<a href="https://bitbucket.org/rhalbersma/xstd/src/42553df6107623c71163f104b6f3cc550c245b4b/include/xstd/algorithm.hpp?at=default&amp;fileviewer=file-view-default">rhalbersma</a>.
+				<a href="https://bitbucket.org/rhalbersma/xstd/src/42553df6107623c71163f104b6f3cc550c245b4b/include/xstd/algorithm.hpp?at=default&amp;fileviewer=file-view-default">rhalbersma</a>
+				and <a href="https://github.com/boostorg/algorithm/pull/13">Boost.Algorithm</a>.
 		</p>
 
 
@@ -50,6 +52,7 @@ int main() {
 			the <code>memcpy</code> and <code>memmove</code> functions.
 		</p>
 		<p>Depending on the Standard Library implementation this proposal may rely on <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/p0031r0.html">P0031R0</a>.
+			P0031R0 has been approved by LEWG and is on LWG’s agenda for the next meeting.
 			P0031R0 provides constexpr additions to <code>std::advance</code>, <code>std::distance</code>, <code>std::move_iterator</code>
 			and other functions and classes. Those may be used by some implementations of <code>&lt;algorithm&gt;</code> header.
 		</p>
@@ -76,10 +79,17 @@ int main() {
 				<li>Modern compilers are good in code optimization, so a decently small amount of algorithms use assembly or intrinsics.</li>
 			</ul><p></p>
 
-		<h2>IV. Proposed modifications for N4567</h2>
+		<h2>IV. Proposed wording relative to N4567</h2>
 		<p>All the additions to the Standard are marked with <span class="addition">underlined green</span>.</p>
 		<h3>A. Modifications to "21.8 Null-terminated sequence utilities" [c.strings]</h3>
-		<pre>The headers shall not define the types char16_t, char32_t, and wchar_t (2.11).
+		<pre>Tables 73, 74, 75, 76, 77, and 78 describe headers &lt;cctype&gt;, &lt;cwctype&gt;, &lt;cstring&gt;, &lt;cwchar&gt;, &lt;cstdlib&gt;
+(character conversions), and &lt;cuchar&gt;, respectively.
+
+The contents of these headers shall be the same as the Standard C Library headers &lt;ctype.h&gt;, &lt;wctype.h&gt;,
+&lt;string.h&gt;, &lt;wchar.h&gt;, and &lt;stdlib.h&gt; and the C Unicode TR header &lt;uchar.h&gt;, respectively, with the
+following modifications:
+
+The headers shall not define the types char16_t, char32_t, and wchar_t (2.11).
 
 <span class="addition">All the functions from &lt;cstring&gt; header must be marked with constexpr, except the strcoll, strxfrm, strerror functions.</span>
 
@@ -560,7 +570,7 @@ template&lt;class BidirectionalIterator, class Compare&gt;
 
 
 		<h3>C. Modifications to remaining parts of "25 Algorithms library" [algorithms] (all sections except "Header &lt;algorithm&gt; synopsis" and "25.5 C library algorithms" [alg.c.library]) </h3>
-		<p>All the functions marked with <code>constexpr</code> in previous paragraph of this document must be accordingly marked with <code>constexpr</code> in detailed algorithm description.
+		<p><b>Note for editor:</b> All the functions marked with <code>constexpr</code> in previous paragraph of this document must be accordingly marked with <code>constexpr</code> in detailed algorithm description.
 			For shortness only modifications to "25.2.1 All of" [alg.all_of] are shown in this paper.
 		</p>
 		<pre>
@@ -623,7 +633,7 @@ Effects: Equivalent to:
 
 
 		<h2>V. Revision History</h2>
-		<p>Revision 1:</p>
+		<p>Revision 0:</p>
 		<ul>
 			<li>
 				Initial proposal
@@ -633,7 +643,7 @@ Effects: Equivalent to:
 
 		<h2>VI. References</h2>
 		<p>[<a name="N4567">N4567</a>] Working Draft, Standard for Programming Language C++. Available online at
-					<a href="http://apolukhin.github.io/constexpr_algorithms/www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4567.pdf">www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4567.pdf</a></p>
+					<a href="http:///www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4567.pdf">www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4567.pdf</a></p>
 		<p>[<a name="P0031R0">P0031R0</a>] A Proposal to Add Constexpr Modifiers to reverse_iterator, move_iterator, array and Range Access. Available online at
 					<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/p0031r0.html">www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/p0031r0.html</a></p>
 		<p>[<a name="rhalbersma">rhalbersma</a><a>] Proof of concept for some functions.
@@ -641,6 +651,8 @@ Effects: Equivalent to:
 				https://bitbucket.org/rhalbersma/xstd/src/42553df6107623c71163f104b6f3cc550c245b4b/include/xstd/algorithm.hpp</a>
 			and <a href="https://bitbucket.org/rhalbersma/xstd/src/42553df6107623c71163f104b6f3cc550c245b4b/include/xstd/utility.hpp">
 				https://bitbucket.org/rhalbersma/xstd/src/42553df6107623c71163f104b6f3cc550c245b4b/include/xstd/utility.hpp</a></p>
+		<p>[<a name="Boost.Algorithm">Boost.Algorithm</a>] Constexpr modifiers for Boost Algorithm library.
+			Available online at <a href="https://github.com/boostorg/algorithm/pull/13">https://github.com/boostorg/algorithm/pull/13</a></p>
 		<p>[<a name="Discussion">Discussion</a>] A call to discuss asm in constexpr and constexpr &lt;algorithm&gt;. Available online at
 			<a href="https://groups.google.com/a/isocpp.org/forum/#%21topic/std-proposals/9sTJWsOpptE">https://groups.google.com/a/isocpp.org/forum/#!topic/std-proposals/9sTJWsOpptE</a></p>
 		<p>&nbsp;</p>
