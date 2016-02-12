@@ -343,7 +343,7 @@ void load(const filesystem::path&amp; library_path, dll_mode mode, error_code&am
 
     <div class="desc">Must be capable of loading current executable if absolute or relative path to the executable was provided as library_path. Must try to load
     library with changed name and applied extension only if (mode & dll_mode::append_decorations) is not 0. Must
-    attempt to load a library from system specific shared library directories only if library_path contains only file name and
+    attempt to load a library from system specific shared library directories only if library_path contains only library name and
     (mode & dll_mode::search_system_folders) is not 0. During loads from system
     specific folders file name modification rules from above apply. If with dll_mode::search_system_folders more than one
     loaded module has the same base name and extension, the function loads any first matching module.
