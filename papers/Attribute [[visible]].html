@@ -1,0 +1,156 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+		<title>A Proposal to add Attribute [[visible]]</title>
+		<meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+		<meta http-equiv="Content-Language" content="en-us">
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+		<style type="text/css">
+			.addition { color: green; }
+			.right { float:right; }
+            pre { line-height: 1.2; font-size: 10pt; margin-top: 25px;}
+            .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; }
+            body {max-width: 1024px; margin-left: 25px;}
+		</style>
+
+	</head>
+	<body bgcolor="#ffffff">
+		<address>Document number: P???R0</address>
+		<address>Project: Programming Language C++</address>
+		<address>Audience: Core Working Group</address>
+		<address>&nbsp;</address>
+		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;</address>
+		<address>&nbsp;</address>
+		<address>Date: 2016-01-31</address>
+		<h1>A Proposal to add Attribute [[visible]]</h1>
+
+		<h2>I. Introduction and Motivation</h2>
+		<p>Consider the following library source code:</p>
+        <pre>
+    // libgrph.so
+
+    // Public interface
+    bool grph_is_tree(graph* g);
+    bool grph_is_directed(graph* g);
+
+    // For internal usage
+    void in_depth_visitor(graph* g, function&lt;void(graph::node*)&gt;);
+    void in_breadth_visitor(graph* g, function&lt;void(graph::node*)&gt;);
+        </pre>
+		<p>Current C++ Standard lacks an ability to specify, which symbols will be exported by dynamic libraries. Different compilers add extensions to do so, which forces the user to write macro:</p>
+
+        <pre>
+    // libgrph.so
+
+    #if MSVC
+    #   define EXPORT __declspec(dllexport)
+    #else
+    #   define EXPORT __attribute__((visibility("default")))
+    #endif
+
+    // Public interface
+    EXPORT bool grph_is_tree(graph* g);
+    EXPORT bool grph_is_directed(graph* g);
+
+    // For internal usage
+    void in_depth_visitor(graph* g, function&lt;void(graph::node*)&gt;);
+    void in_breadth_visitor(graph* g, function&lt;void(graph::node*)&gt;);
+        </pre>
+		<p>Things are getting even worse if same header file with function declarations is used during library compilation and as header that declares user interface:</p>
+
+        <pre>
+    // grph.h
+
+    #if EXPORTING
+    #   if MSVC
+    #       define API __declspec(dllexport)
+    #   else
+    #       define API __attribute__((visibility("default")))
+    #   endif
+    #else
+    #   if MSVC
+    #       define API __declspec(dllimport)
+    #   else
+    #       define API
+    #   endif
+    #endif
+
+    // Public interface
+    API bool grph_is_tree(graph* g);
+    API bool grph_is_directed(graph* g);
+        </pre>
+		<p>This wording attempts to fix issues mentioned above by providing a single <code>[[visible]]</code> attribute:</p>
+        <pre>
+    // grph.h
+
+    // Public interface
+    [[visible]] bool grph_is_tree(graph* g);
+    [[visible]] bool grph_is_directed(graph* g);
+        </pre>
+
+		<h2>II. Impact on the Standard</h2>
+		<p>This proposal does not propose changes to
+			existing headers. It does require change in the core 
+			language by adding a new <code>[[visible]]</code> attribute.
+		</p>
+
+		<h2>III. Design Decisions</h2>
+		<h3>A. Single attribute for import and export.</h3>
+		<p>It has been publicly mentioned that with the modules feature, having two attributes is no longer the case for MSVC. Symbols need to merely be marked as being available for DLL linkage (using __declspec(dllexport) only) and then the linker automatically exports symbols in modules linked into the library and imports symbols otherwise.</p>
+		<p>Two attributes must not be the case for GCC too, where it is allowed to use <code>__attribute__((visibility("default")))</code> on import and export.</p>
+        <p>Having a single attribute will simplify user's code and all the macros related to import and export will be gone.</p>
+
+		<h3>B. Attribute name.</h3>
+		<p>To avoid user's confusion and with modules attribute name is nether [[import]], nor [[export]]. Name of the attribute is based on GCC's attribute name <code>visibility</code>.</p>
+
+		<h2>IV. Proposed wording relative to N4567</h2>
+
+<h4 class="addition">7.6.6 Visible attribute <span class="right">[dcl.attr.visible]</span></h4>
+<p class="addition">
+    The <i>attribute-token</i> <code>visible</code> specifies that a function, variable or class is visible in binary object and can be imported or exported.
+    It shall appear at most once in
+    each <i>attribute-list</i> and no <i>attribute-argument-clause</i> shall be present. The attribute may be applied to
+    the <i>declarator-id</i> in a function, object or variable declaration. The first declaration shall specify the <code>visible</code>
+    attribute if any other declaration specifies the <code>visible</code> attribute. If an entity is declared with
+    the <code>visible</code> attribute in one translation unit and the same entity is declared without the <code>visible</code>
+    attribute in another translation unit, the program is ill-formed; no diagnostic required.
+</p>
+<p class="addition">
+    If an entity is declared with
+    the <code>visible</code> attribute has no definition in any translation unit, then the entity must be treated as an entity to import from executable, dynamic or static library.
+</p>
+<p class="addition">
+    If an entity is declared with
+    the <code>visible</code> attribute has definition in any translation unit, then the entity must be treated as an entity to export from executable, dynamic or static library.
+</p>
+
+		<h2>V. Feature-testing macro</h2>
+		<p>For the purposes of SG10 it is sufficient to check for attribute <code>[[visible]]</code> using <code>__has_cpp_attribute</code>.</p>
+
+
+		<h2>V. Revision History</h2>
+		<p>Revision 0:</p>
+		<ul>
+			<li>
+				Initial proposal
+			</li>
+		</ul>
+
+
+		<h2>VI. References</h2>
+		<p>[<a name="DISCUSSION">DISCUSSION</a>] "[std-proposals] Attributes useful for shared objects (import, export, symbol locations)" discussion.
+			Available online at <a href="https://groups.google.com/a/isocpp.org/forum/?fromgroups#!topic/std-proposals/jzc7d_MQUZg">https://groups.google.com/a/isocpp.org/forum/?fromgroups#!topic/std-proposals/jzc7d_MQUZg</a></p>
+		<p>[<a name="N4567">N4567</a>] Working Draft, Standard for Programming Language C++.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4567.pdf">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4567.pdf</a></p>
+		<p>&nbsp;</p>
+		<p>&nbsp;</p>
+
+		<h2>VII. Acknowledgements</h2>
+		<p>Walter E. Brown provided numerous comments, corrections, and suggestions for this proposal.
+        Sean Middleditch gave very useful comments and suggestions about using a single attribute name for import and export.</p>
+
+
+
+
+
+</body></html>
