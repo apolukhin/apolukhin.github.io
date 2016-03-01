@@ -21,72 +21,73 @@
 		<address>&nbsp;</address>
 		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;</address>
 		<address>&nbsp;</address>
-		<address>Date: 2016-01-31</address>
+		<address>Date: 2016-03-01</address>
 		<h1>A Proposal to add Attribute [[visible]]</h1>
 
 		<h2>I. Introduction and Motivation</h2>
 		<p>Consider the following library source code:</p>
-        <pre>
-    // libgrph.so
+<pre style='color:#000000;background:#ffffff;'><span style='color:#008000; '>    // libgrph.so</span>
 
-    // Public interface
-    bool grph_is_tree(graph* g);
-    bool grph_is_directed(graph* g);
+    <span style='color:#008000; '>// Public interface</span>
+    <span style='color:#0000ff; font-weight:bold; '>bool</span> grph_is_tree<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; font-weight:bold; '>bool</span> grph_is_directed<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
 
-    // For internal usage
-    void in_depth_visitor(graph* g, function&lt;void(graph::node*)&gt;);
-    void in_breadth_visitor(graph* g, function&lt;void(graph::node*)&gt;);
-        </pre>
-		<p>Current C++ Standard lacks an ability to specify, which symbols will be exported by dynamic libraries. Different compilers add extensions to do so, which forces the user to write macro:</p>
+    <span style='color:#008000; '>// For internal usage</span>
+    <span style='color:#0000ff; font-weight:bold; '>void</span> in_depth_visitor<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>,</span> function<span style='color:#0000ff; '>&lt;</span><span style='color:#0000ff; font-weight:bold; '>void</span><span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>::</span>node<span style='color:#0000ff; '>*</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>></span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; font-weight:bold; '>void</span> in_breadth_visitor<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>,</span> function<span style='color:#0000ff; '>&lt;</span><span style='color:#0000ff; font-weight:bold; '>void</span><span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>::</span>node<span style='color:#0000ff; '>*</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>></span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+</pre>
 
-        <pre>
-    // libgrph.so
+		<p>Current C++ Standard lacks an ability to specify, which entities 
+will be exported by shared libraries. Different compilers add 
+extensions to do so, which forces the user to write macro:</p>
 
-    #if MSVC
-    #   define EXPORT __declspec(dllexport)
-    #else
-    #   define EXPORT __attribute__((visibility("default")))
-    #endif
+<pre style='color:#000000;background:#ffffff;'><span style='color:#008000; '>    // libgrph.so</span>
 
-    // Public interface
-    EXPORT bool grph_is_tree(graph* g);
-    EXPORT bool grph_is_directed(graph* g);
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>if</span><span style='color:#004a43; '> MSVC</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>   </span><span style='color:#004a43; '>define</span><span style='color:#004a43; '> EXPORT __declspec</span><span style='color:#0000ff; '>(</span><span style='color:#004a43; '>dllexport</span><span style='color:#0000ff; '>)</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>else</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>   </span><span style='color:#004a43; '>define</span><span style='color:#004a43; '> EXPORT __attribute__</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>(</span><span style='color:#004a43; '>visibility</span><span style='color:#0000ff; '>(</span><span style='color:#0000e6; '>"</span><span style='color:#0000e6; '>default</span><span style='color:#0000e6; '>"</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>)</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>endif</span>
 
-    // For internal usage
-    void in_depth_visitor(graph* g, function&lt;void(graph::node*)&gt;);
-    void in_breadth_visitor(graph* g, function&lt;void(graph::node*)&gt;);
-        </pre>
-		<p>Things are getting even worse if same header file with function declarations is used during library compilation and as header that declares user interface:</p>
+    <span style='color:#008000; '>// Public interface</span>
+    EXPORT <span style='color:#0000ff; font-weight:bold; '>bool</span> grph_is_tree<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    EXPORT <span style='color:#0000ff; font-weight:bold; '>bool</span> grph_is_directed<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
 
-        <pre>
-    // grph.h
+    <span style='color:#008000; '>// For internal usage</span>
+    <span style='color:#0000ff; font-weight:bold; '>void</span> in_depth_visitor<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>,</span> function<span style='color:#0000ff; '>&lt;</span><span style='color:#0000ff; font-weight:bold; '>void</span><span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>::</span>node<span style='color:#0000ff; '>*</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>></span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; font-weight:bold; '>void</span> in_breadth_visitor<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>,</span> function<span style='color:#0000ff; '>&lt;</span><span style='color:#0000ff; font-weight:bold; '>void</span><span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>::</span>node<span style='color:#0000ff; '>*</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>></span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+</pre>
+		<p>Things are getting even worse if same header file with function 
+declarations is used during library compilation and as header that 
+declares user interface:</p>
 
-    #if EXPORTING
-    #   if MSVC
-    #       define API __declspec(dllexport)
-    #   else
-    #       define API __attribute__((visibility("default")))
-    #   endif
-    #else
-    #   if MSVC
-    #       define API __declspec(dllimport)
-    #   else
-    #       define API
-    #   endif
-    #endif
+<pre style='color:#000000;background:#ffffff;'><span style='color:#008000; '>    // grph.h</span>
 
-    // Public interface
-    API bool grph_is_tree(graph* g);
-    API bool grph_is_directed(graph* g);
-        </pre>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>if</span><span style='color:#004a43; '> EXPORTING</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>   </span><span style='color:#004a43; '>if</span><span style='color:#004a43; '> MSVC</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>       </span><span style='color:#004a43; '>define</span><span style='color:#004a43; '> API __declspec</span><span style='color:#0000ff; '>(</span><span style='color:#004a43; '>dllexport</span><span style='color:#0000ff; '>)</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>   </span><span style='color:#004a43; '>else</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>       </span><span style='color:#004a43; '>define</span><span style='color:#004a43; '> API __attribute__</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>(</span><span style='color:#004a43; '>visibility</span><span style='color:#0000ff; '>(</span><span style='color:#0000e6; '>"</span><span style='color:#0000e6; '>default</span><span style='color:#0000e6; '>"</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>)</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>   </span><span style='color:#004a43; '>endif</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>else</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>   </span><span style='color:#004a43; '>if</span><span style='color:#004a43; '> MSVC</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>       </span><span style='color:#004a43; '>define</span><span style='color:#004a43; '> API __declspec</span><span style='color:#0000ff; '>(</span><span style='color:#004a43; '>dllimport</span><span style='color:#0000ff; '>)</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>   </span><span style='color:#004a43; '>else</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>       </span><span style='color:#004a43; '>define</span><span style='color:#004a43; '> API</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>   </span><span style='color:#004a43; '>endif</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>endif</span>
+
+    <span style='color:#008000; '>// Public interface</span>
+    API <span style='color:#0000ff; font-weight:bold; '>bool</span> grph_is_tree<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    API <span style='color:#0000ff; font-weight:bold; '>bool</span> grph_is_directed<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+</pre>
 		<p>This wording attempts to fix issues mentioned above by providing a single <code>[[visible]]</code> attribute:</p>
-        <pre>
-    // grph.h
+<pre style='color:#000000;background:#ffffff;'><span style='color:#008000; '>    2// grph.h</span>
 
-    // Public interface
-    [[visible]] bool grph_is_tree(graph* g);
-    [[visible]] bool grph_is_directed(graph* g);
-        </pre>
+    <span style='color:#008000; '>// Public interface</span>
+    <span style='color:#0000ff; '>[</span><span style='color:#0000ff; '>[</span>visible<span style='color:#0000ff; '>]</span><span style='color:#0000ff; '>]</span> <span style='color:#0000ff; font-weight:bold; '>bool</span> grph_is_tree<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; '>[</span><span style='color:#0000ff; '>[</span>visible<span style='color:#0000ff; '>]</span><span style='color:#0000ff; '>]</span> <span style='color:#0000ff; font-weight:bold; '>bool</span> grph_is_directed<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+</pre>
 
 		<h2>II. Impact on the Standard</h2>
 		<p>This proposal does not propose changes to
@@ -96,32 +97,97 @@
 
 		<h2>III. Design Decisions</h2>
 		<h3>A. Single attribute for import and export.</h3>
-		<p>It has been publicly mentioned that with the modules feature, having two attributes is no longer the case for MSVC. Symbols need to merely be marked as being available for DLL linkage (using __declspec(dllexport) only) and then the linker automatically exports symbols in modules linked into the library and imports symbols otherwise.</p>
+		<p>It has been publicly mentioned that with the modules feature, 
+        having two attributes is no longer the case for MSVC. Entities need to 
+        merely be marked as being available for DLL linkage (using 
+        __declspec(dllexport) only) and then the linker automatically exports 
+        entitiess in modules linked into the library and imports entities 
+        otherwise.</p>
 		<p>Two attributes must not be the case for GCC too, where it is allowed to use <code>__attribute__((visibility("default")))</code> on import and export.</p>
         <p>Having a single attribute will simplify user's code and all the macros related to import and export will be gone.</p>
 
 		<h3>B. Attribute name.</h3>
-		<p>To avoid user's confusion and with modules attribute name is nether [[import]], nor [[export]]. Name of the attribute is based on GCC's attribute name <code>visibility</code>.</p>
+		<p>To avoid user's confusion and with modules attribute name is nether
+         [[import]], nor [[export]]. Name of the attribute is based on GCC's 
+        attribute name <code>visibility</code>.</p>
+
+		<h3>C. Analysis of existing practices.</h3>
+		<p>Some of the existing compilers export entities from shared libraries if the entity has external linkage, not an inline function
+		and marked with compiler specific visibility attribute (See <a href="#vistable">A. Visibility of entities depending on __visible__, linkage and inline</a>
+		for list of entities and their visibility for import depending on the compiler). If class has compiler specific visibility attribute, then all it's member functions and static variables
+		become visible. Compiler specific visibility attribute does not affect base or derived classes.</p>
+
+        <p>This proposal attempts to standartize existing practice. Existing practice is reasonable and well thought trough:</p>
+        <ul>
+            <li>Entity with internal linkage must not become visible: making it visible changes entity's linkage, entity becomes visible by other translation units, resulting in external linkage;
+            such behavior affects optimizer and program performance and must be avoided.</li>
+            <li>Inline functions must not become visible. Let's asume that we have a header with following code:
+            <pre style='color:#000000;background:#ffffff;'><span style='color:#0000ff; font-weight:bold; '>class</span> __visible__ foo <span style='color:#0000ff; '>{</span>
+    <span style='color:#0000ff; font-weight:bold; '>void</span> do_something<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+
+<span style='color:#0000ff; font-weight:bold; '>public</span><span style='color:#e34adc; '>:</span>
+    <span style='color:#0000ff; font-weight:bold; '>void</span> do1<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span>
+        do_something<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; '>}</span>
+<span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+</pre>
+            Usually the same header is used by shared library and program that uses shared library. So if the do1() function will be made visible in shared library,
+            do1() in shared library won't be used by program as it will be inlined in program directly.
+            </li>
+            <li>Visibility of class members must not depend on access modifiers. Let's asume that we have a header with following code:
+            <pre style='color:#000000;background:#ffffff;'><span style='color:#0000ff; font-weight:bold; '>class</span> __visible__ foo <span style='color:#0000ff; '>{</span>
+    <span style='color:#0000ff; font-weight:bold; '>void</span> do_something<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+
+<span style='color:#0000ff; font-weight:bold; '>public</span><span style='color:#e34adc; '>:</span>
+    <span style='color:#0000ff; font-weight:bold; '>void</span> do1<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span>
+        do_something<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; '>}</span>
+<span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+</pre>
+            Call to inlined function do1() results in calling the private do_something() function, so do_something() function must be visible in shared library.
+            </li>
+        </ul>
+
+
+
 
 		<h2>IV. Proposed wording relative to N4567</h2>
 
 <h4 class="addition">7.6.6 Visible attribute <span class="right">[dcl.attr.visible]</span></h4>
 <p class="addition">
-    The <i>attribute-token</i> <code>visible</code> specifies that a function, variable or class is visible in binary object and can be imported or exported.
-    It shall appear at most once in
+    The <i>attribute-token</i> <code>visible</code> specifies that an entity
+    with external linkage [basic.link] could be obtained:
+</p>
+    <ul class="addition">
+        <li>by current translation unit at program startup from a library file if the entity has no definition in current translation unit</li>
+        <li>by other translation units at runtime or at program startup if the entity has definition in current translation unit.</li>
+    </ul>
+<p class="addition">
+    On the platforms that do not support obtaining external references at program startup from library files the <code>visible</code> attribute may be silently ignored.
+    [Note: This will be deteceted during linkage, as an attempt to create such library or link with the library will fail. - end note]
+</p>
+<p class="addition">
+    <code>visible</code> shall appear at most once in
     each <i>attribute-list</i> and no <i>attribute-argument-clause</i> shall be present. The attribute may be applied to
-    the <i>declarator-id</i> in a function, object or variable declaration. The first declaration shall specify the <code>visible</code>
+    following entities with external linkage: 
+</p>
+    <ul class="addition">
+        <li>to the <i>declarator-id</i> in a non-inline function, </li>
+        <li>to the <i>declarator-id</i> in a non-inline static member function, </li>
+        <li>to a variable, </li>
+        <li>to a static class data member, </li>
+        <li>to the declaration or definition of a class (in an elaborated-type-specifier (7.1.6.3) or class-head (Clause 9), respectively) </li>
+        <li>to the declaration or definition of an enumeration with type-specifier-seq (in an opaque-enum-declaration or enum-head, respectively (7.2)). </li>
+    </ul>
+<p class="addition">
+    If class is decalred or defined with <code>visible</code> attribute, then all the static class data members and non-inline member functions
+    of the class shall be implicitly decalred with <code>visible</code> attribute if they have external linkage.
+</p>
+<p class="addition">
+    The first declaration shall specify the <code>visible</code>
     attribute if any other declaration specifies the <code>visible</code> attribute. If an entity is declared with
     the <code>visible</code> attribute in one translation unit and the same entity is declared without the <code>visible</code>
     attribute in another translation unit, the program is ill-formed; no diagnostic required.
-</p>
-<p class="addition">
-    If an entity is declared with
-    the <code>visible</code> attribute has no definition in any translation unit, then the entity must be treated as an entity to import from executable, dynamic or static library.
-</p>
-<p class="addition">
-    If an entity is declared with
-    the <code>visible</code> attribute has definition in any translation unit, then the entity must be treated as an entity to export from executable, dynamic or static library.
 </p>
 
 		<h2>V. Feature-testing macro</h2>
@@ -139,7 +205,7 @@
 
 		<h2>VI. References</h2>
 		<p>[<a name="DISCUSSION">DISCUSSION</a>] "[std-proposals] Attributes useful for shared objects (import, export, symbol locations)" discussion.
-			Available online at <a href="https://groups.google.com/a/isocpp.org/forum/?fromgroups#!topic/std-proposals/jzc7d_MQUZg">https://groups.google.com/a/isocpp.org/forum/?fromgroups#!topic/std-proposals/jzc7d_MQUZg</a></p>
+			Available online at <a href="https://groups.google.com/a/isocpp.org/forum/?fromgroups#%21topic/std-proposals/jzc7d_MQUZg">https://groups.google.com/a/isocpp.org/forum/?fromgroups#!topic/std-proposals/jzc7d_MQUZg</a></p>
 		<p>[<a name="N4567">N4567</a>] Working Draft, Standard for Programming Language C++.
 			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4567.pdf">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4567.pdf</a></p>
 		<p>&nbsp;</p>
@@ -149,7 +215,304 @@
 		<p>Sean Middleditch gave very useful comments and suggestions about using a single attribute name for import and export.</p>
 
 
+		<h2>VIII. Appendix</h2>
+        <h3 id="vistable">A. Visibility of entities depending on __visible__, linkage and inline</h3>
+        <p>Table was generated by program from <a href="#visscript">C. Program to generate visibility table</a>, from <a href="#vissource">B. Library source file</a></p>
+        <table border="1px">
+<tr> <td>Name</td> <td>GCC-4.6 Import Visibility</td> <td>GCC-4.8 Import Visibility</td> <td>GCC-5.3 Import Visibility</td> <td>Clang-3.5 Import Visibility</td> <td>Calculated Import Visibility</td> <td>=</td> <td>External Linkage</td> <td>Not Inline function</td> <td>__visible__ or Member of __visible__ class</td> </tr><tr>
 
 
+<tr> <td>cpp_anonymous_ns_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_anonymous_ns_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_anonymous_ns_function_static</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_anonymous_ns_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_anonymous_ns_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_anonymous_ns_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_anonymous_ns_static_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_anonymous_ns_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_anonymous_ns_static_member_variable</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_anonymous_ns_variable_extern</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_anonymous_ns_variable_noextern</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_anonymous_ns_variable_static</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_base_nonvis_member_function</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_base_nonvis_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_base_nonvis_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_base_nonvis_private_member_function</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_base_nonvis_private_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_base_nonvis_private_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_base_nonvis_private_static_member_function</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_base_nonvis_private_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_base_nonvis_private_static_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_base_nonvis_static_member_function</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_base_nonvis_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_base_nonvis_static_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_derived_nonvis_member_function</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_derived_nonvis_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_derived_nonvis_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_derived_nonvis_private_member_function</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_derived_nonvis_private_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_derived_nonvis_private_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_derived_nonvis_private_static_member_function</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_derived_nonvis_private_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_derived_nonvis_private_static_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_derived_nonvis_static_member_function</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_derived_nonvis_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_derived_nonvis_static_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>cpp_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_function_static</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_private_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_private_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_private_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_private_static_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_private_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_private_static_member_variable</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_static_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_static_member_variable</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_variable_extern</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_variable_noextern</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_variable_noextern_const</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>cpp_variable_static</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> </tr>
+
+        </table>
+
+        <h3 id="vissource">B. Library source file</h3>
+<pre style='color:#000000;background:#ffffff;'><span style='color:#008000; '>// main.cpp</span>
+<span style='color:#004a43; '>#</span><span style='color:#004a43; '>define</span><span style='color:#004a43; '> __visible__ __attribute__</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>(</span><span style='color:#004a43; '>visibility</span><span style='color:#0000ff; '>(</span><span style='color:#0000e6; '>"</span><span style='color:#0000e6; '>default</span><span style='color:#0000e6; '>"</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>)</span>
+
+<span style='color:#0000ff; font-weight:bold; '>static</span> __visible__ <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_variable_static <span style='color:#0000ff; '>=</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span>
+__visible__ <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_variable_noextern <span style='color:#0000ff; '>=</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span>
+__visible__ <span style='color:#0000ff; font-weight:bold; '>const</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_variable_noextern_const <span style='color:#0000ff; '>=</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span>
+
+<span style='color:#0000ff; font-weight:bold; '>extern</span> __visible__ <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_variable_extern<span style='color:#0000ff; '>;</span>
+<span style='color:#0000ff; font-weight:bold; '>int</span> cpp_variable_extern <span style='color:#0000ff; '>=</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span>
+
+__visible__ <span style='color:#0000ff; font-weight:bold; '>inline</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_function_inline<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+__visible__ <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_function_static<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+__visible__ <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+
+
+
+<span style='color:#0000ff; font-weight:bold; '>struct</span> base_nonvis_class_impl <span style='color:#0000ff; '>{</span>
+    <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_base_nonvis_static_member_function_inline<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+    <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_base_nonvis_static_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_base_nonvis_static_member_variable<span style='color:#0000ff; '>;</span>
+
+    <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_base_nonvis_member_function_inline<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+    <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_base_nonvis_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_base_nonvis_member_variable<span style='color:#0000ff; '>;</span>
+
+    <span style='color:#0000ff; font-weight:bold; '>virtual</span> <span style='color:#0000ff; '>~</span>base_nonvis_class_impl<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>{</span><span style='color:#0000ff; '>}</span>
+
+<span style='color:#0000ff; font-weight:bold; '>private</span><span style='color:#e34adc; '>:</span>
+    <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_base_nonvis_private_static_member_function_inline<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+    <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_base_nonvis_private_static_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_base_nonvis_private_static_member_variable<span style='color:#0000ff; '>;</span>
+
+    <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_base_nonvis_private_member_function_inline<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+    <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_base_nonvis_private_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_base_nonvis_private_member_variable<span style='color:#0000ff; '>;</span>
+<span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+<span style='color:#0000ff; font-weight:bold; '>int</span> base_nonvis_class_impl<span style='color:#0000ff; '>::</span>cpp_base_nonvis_static_member_variable <span style='color:#0000ff; '>=</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span>
+<span style='color:#0000ff; font-weight:bold; '>int</span> base_nonvis_class_impl<span style='color:#0000ff; '>::</span>cpp_base_nonvis_static_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+<span style='color:#0000ff; font-weight:bold; '>int</span> base_nonvis_class_impl<span style='color:#0000ff; '>::</span>cpp_base_nonvis_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+
+<span style='color:#0000ff; font-weight:bold; '>int</span> base_nonvis_class_impl<span style='color:#0000ff; '>::</span>cpp_base_nonvis_private_static_member_variable <span style='color:#0000ff; '>=</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span>
+<span style='color:#0000ff; font-weight:bold; '>int</span> base_nonvis_class_impl<span style='color:#0000ff; '>::</span>cpp_base_nonvis_private_static_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+<span style='color:#0000ff; font-weight:bold; '>int</span> base_nonvis_class_impl<span style='color:#0000ff; '>::</span>cpp_base_nonvis_private_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+
+
+
+<span style='color:#0000ff; font-weight:bold; '>struct</span> __visible__ class_impl<span style='color:#0000ff; '>:</span> base_nonvis_class_impl <span style='color:#0000ff; '>{</span>
+    <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_static_member_function_inline<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+    <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_static_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_static_member_variable<span style='color:#0000ff; '>;</span>
+
+    <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_member_function_inline<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+    <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_member_variable<span style='color:#0000ff; '>;</span>
+
+<span style='color:#0000ff; font-weight:bold; '>private</span><span style='color:#e34adc; '>:</span>
+    <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_private_static_member_function_inline<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+    <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_private_static_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_private_static_member_variable<span style='color:#0000ff; '>;</span>
+
+    <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_private_member_function_inline<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+    <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_private_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_private_member_variable<span style='color:#0000ff; '>;</span>
+<span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+<span style='color:#0000ff; font-weight:bold; '>int</span> class_impl<span style='color:#0000ff; '>::</span>cpp_static_member_variable <span style='color:#0000ff; '>=</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span>
+<span style='color:#0000ff; font-weight:bold; '>int</span> class_impl<span style='color:#0000ff; '>::</span>cpp_static_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+<span style='color:#0000ff; font-weight:bold; '>int</span> class_impl<span style='color:#0000ff; '>::</span>cpp_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+
+<span style='color:#0000ff; font-weight:bold; '>int</span> class_impl<span style='color:#0000ff; '>::</span>cpp_private_static_member_variable <span style='color:#0000ff; '>=</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span>
+<span style='color:#0000ff; font-weight:bold; '>int</span> class_impl<span style='color:#0000ff; '>::</span>cpp_private_static_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+<span style='color:#0000ff; font-weight:bold; '>int</span> class_impl<span style='color:#0000ff; '>::</span>cpp_private_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+
+
+
+<span style='color:#0000ff; font-weight:bold; '>struct</span> derived_nonvis_class_impl<span style='color:#0000ff; '>:</span> class_impl <span style='color:#0000ff; '>{</span>
+    <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_derived_nonvis_static_member_function_inline<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+    <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_derived_nonvis_static_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_derived_nonvis_static_member_variable<span style='color:#0000ff; '>;</span>
+
+    <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_derived_nonvis_member_function_inline<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+    <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_derived_nonvis_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_derived_nonvis_member_variable<span style='color:#0000ff; '>;</span>
+
+<span style='color:#0000ff; font-weight:bold; '>private</span><span style='color:#e34adc; '>:</span>
+    <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_derived_nonvis_private_static_member_function_inline<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+    <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_derived_nonvis_private_static_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_derived_nonvis_private_static_member_variable<span style='color:#0000ff; '>;</span>
+
+    <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_derived_nonvis_private_member_function_inline<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+    <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_derived_nonvis_private_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_derived_nonvis_private_member_variable<span style='color:#0000ff; '>;</span>
+<span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+<span style='color:#0000ff; font-weight:bold; '>int</span> derived_nonvis_class_impl<span style='color:#0000ff; '>::</span>cpp_derived_nonvis_static_member_variable <span style='color:#0000ff; '>=</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span>
+<span style='color:#0000ff; font-weight:bold; '>int</span> derived_nonvis_class_impl<span style='color:#0000ff; '>::</span>cpp_derived_nonvis_static_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+<span style='color:#0000ff; font-weight:bold; '>int</span> derived_nonvis_class_impl<span style='color:#0000ff; '>::</span>cpp_derived_nonvis_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+
+<span style='color:#0000ff; font-weight:bold; '>int</span> derived_nonvis_class_impl<span style='color:#0000ff; '>::</span>cpp_derived_nonvis_private_static_member_variable <span style='color:#0000ff; '>=</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span>
+<span style='color:#0000ff; font-weight:bold; '>int</span> derived_nonvis_class_impl<span style='color:#0000ff; '>::</span>cpp_derived_nonvis_private_static_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+<span style='color:#0000ff; font-weight:bold; '>int</span> derived_nonvis_class_impl<span style='color:#0000ff; '>::</span>cpp_derived_nonvis_private_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+
+<span style='color:#0000ff; font-weight:bold; '>namespace</span> <span style='color:#008000; '>/*anonymous_ns*/</span> <span style='color:#0000ff; '>{</span>
+
+<span style='color:#0000ff; font-weight:bold; '>static</span> __visible__ <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_anonymous_ns_variable_static <span style='color:#0000ff; '>=</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span>
+__visible__ <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_anonymous_ns_variable_noextern <span style='color:#0000ff; '>=</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span>
+<span style='color:#0000ff; font-weight:bold; '>extern</span> __visible__ <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_anonymous_ns_variable_extern<span style='color:#0000ff; '>;</span>
+__visible__ <span style='color:#0000ff; font-weight:bold; '>inline</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_anonymous_ns_function_inline<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+__visible__ <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_anonymous_ns_function_static<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+__visible__ <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_anonymous_ns_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+
+<span style='color:#0000ff; font-weight:bold; '>struct</span> __visible__ class_impl <span style='color:#0000ff; '>{</span>
+    <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_anonymous_ns_static_member_function_inline<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+    <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_anonymous_ns_static_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; font-weight:bold; '>static</span> <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_anonymous_ns_static_member_variable<span style='color:#0000ff; '>;</span>
+
+    <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_anonymous_ns_member_function_inline<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+    <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_anonymous_ns_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; font-weight:bold; '>int</span> cpp_anonymous_ns_member_variable<span style='color:#0000ff; '>;</span>
+<span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+
+<span style='color:#0000ff; font-weight:bold; '>int</span> cpp_anonymous_ns_variable_extern <span style='color:#0000ff; '>=</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span>
+<span style='color:#0000ff; font-weight:bold; '>int</span> class_impl<span style='color:#0000ff; '>::</span>cpp_anonymous_ns_static_member_variable <span style='color:#0000ff; '>=</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span>
+<span style='color:#0000ff; font-weight:bold; '>int</span> class_impl<span style='color:#0000ff; '>::</span>cpp_anonymous_ns_static_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+<span style='color:#0000ff; font-weight:bold; '>int</span> class_impl<span style='color:#0000ff; '>::</span>cpp_anonymous_ns_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span> <span style='color:#0000ff; font-weight:bold; '>return</span> <span style='color:#800000; '>0</span><span style='color:#0000ff; '>;</span> <span style='color:#0000ff; '>}</span>
+
+<span style='color:#0000ff; '>}</span>
+</pre>
+
+        <h3 id="visscript">C. Program to generate visibility table</h3>
+<pre style='color:#000000;background:#ffffff;'><span style='color:#696969; '>#!/usr/bin/python</span>
+
+<span style='color:#800000; font-weight:bold; '>import</span> re
+<span style='color:#800000; font-weight:bold; '>import</span> subprocess
+
+<span style='color:#800000; font-weight:bold; '>def</span> get_visible<span style='color:#808030; '>(</span>compiler<span style='color:#808030; '>)</span><span style='color:#808030; '>:</span>
+    output <span style='color:#808030; '>=</span> subprocess<span style='color:#808030; '>.</span>Popen<span style='color:#808030; '>(</span>compiler <span style='color:#44aadd; '>+</span> <span style='color:#0000e6; '>' -g -fvisibility=hidden -shared main.cpp -o libmain.so &amp;&amp; readelf -sW libmain.so |grep "GLOBAL" | less'</span><span style='color:#808030; '>,</span>
+        shell<span style='color:#808030; '>=</span><span style='color:#074726; '>True</span><span style='color:#808030; '>,</span>
+        stdout<span style='color:#808030; '>=</span>subprocess<span style='color:#808030; '>.</span>PIPE<span style='color:#808030; '>,</span>
+        stderr<span style='color:#808030; '>=</span>subprocess<span style='color:#808030; '>.</span>PIPE<span style='color:#808030; '>)</span><span style='color:#808030; '>.</span>stdout
+
+    visible <span style='color:#808030; '>=</span> <span style='color:#400000; '>set</span><span style='color:#808030; '>(</span><span style='color:#808030; '>)</span>
+    <span style='color:#800000; font-weight:bold; '>while</span> <span style='color:#074726; '>True</span><span style='color:#808030; '>:</span>
+        symbol <span style='color:#808030; '>=</span> output<span style='color:#808030; '>.</span>readline<span style='color:#808030; '>(</span><span style='color:#808030; '>)</span>
+        <span style='color:#800000; font-weight:bold; '>if</span> <span style='color:#800000; font-weight:bold; '>not</span> symbol<span style='color:#808030; '>:</span>
+            <span style='color:#800000; font-weight:bold; '>break</span>
+
+        visible<span style='color:#808030; '>.</span>update<span style='color:#808030; '>(</span><span style='color:#808030; '>[</span>vis <span style='color:#800000; font-weight:bold; '>for</span> vis <span style='color:#800000; font-weight:bold; '>in</span> parsed <span style='color:#800000; font-weight:bold; '>if</span> vis <span style='color:#800000; font-weight:bold; '>in</span> symbol<span style='color:#808030; '>]</span><span style='color:#808030; '>)</span>
+
+    <span style='color:#800000; font-weight:bold; '>return</span> visible
+
+<span style='color:#800000; font-weight:bold; '>def</span> extend_with_colors<span style='color:#808030; '>(</span>items<span style='color:#808030; '>)</span><span style='color:#808030; '>:</span>
+    ext <span style='color:#808030; '>=</span> <span style='color:#800080; '>{</span><span style='color:#800080; '>}</span>
+    <span style='color:#800000; font-weight:bold; '>for</span> key<span style='color:#808030; '>,</span> value <span style='color:#800000; font-weight:bold; '>in</span> items<span style='color:#808030; '>.</span>iteritems<span style='color:#808030; '>(</span><span style='color:#808030; '>)</span><span style='color:#808030; '>:</span>
+        ext<span style='color:#808030; '>[</span>key <span style='color:#44aadd; '>+</span> <span style='color:#0000e6; '>"_color"</span><span style='color:#808030; '>]</span> <span style='color:#808030; '>=</span> <span style='color:#0000e6; '>'green'</span> <span style='color:#800000; font-weight:bold; '>if</span> value <span style='color:#800000; font-weight:bold; '>else</span> <span style='color:#0000e6; '>'red'</span>
+        
+    items<span style='color:#808030; '>.</span>update<span style='color:#808030; '>(</span>ext<span style='color:#808030; '>)</span>
+
+
+parsed <span style='color:#808030; '>=</span> <span style='color:#400000; '>set</span><span style='color:#808030; '>(</span><span style='color:#808030; '>)</span>
+<span style='color:#800000; font-weight:bold; '>with</span> <span style='color:#400000; '>open</span><span style='color:#808030; '>(</span><span style='color:#0000e6; '>"main.cpp"</span><span style='color:#808030; '>)</span> <span style='color:#800000; font-weight:bold; '>as</span> f<span style='color:#808030; '>:</span>
+    <span style='color:#800000; font-weight:bold; '>for</span> line <span style='color:#800000; font-weight:bold; '>in</span> f<span style='color:#808030; '>:</span>
+        m <span style='color:#808030; '>=</span> re<span style='color:#808030; '>.</span>search<span style='color:#808030; '>(</span><span style='color:#0000e6; '>"(cpp_[_a-z]+)"</span><span style='color:#808030; '>,</span> line<span style='color:#808030; '>)</span>
+        <span style='color:#800000; font-weight:bold; '>if</span> m<span style='color:#808030; '>:</span>
+            parsed<span style='color:#808030; '>.</span>add<span style='color:#808030; '>(</span>m<span style='color:#808030; '>.</span>group<span style='color:#808030; '>(</span><span style='color:#008c00; '>1</span><span style='color:#808030; '>)</span><span style='color:#808030; '>)</span>
+
+extern_linkage <span style='color:#808030; '>=</span> <span style='color:#400000; '>set</span><span style='color:#808030; '>(</span><span style='color:#808030; '>[</span>
+    <span style='color:#0000e6; '>'cpp_member_function'</span><span style='color:#808030; '>,</span>
+    <span style='color:#0000e6; '>'cpp_function_inline'</span><span style='color:#808030; '>,</span>
+    <span style='color:#0000e6; '>'cpp_static_member_function'</span><span style='color:#808030; '>,</span>
+    <span style='color:#0000e6; '>'cpp_variable_noextern'</span><span style='color:#808030; '>,</span>
+    <span style='color:#0000e6; '>'cpp_variable_extern'</span><span style='color:#808030; '>,</span>
+    <span style='color:#0000e6; '>'cpp_member_function_inline'</span><span style='color:#808030; '>,</span>
+    <span style='color:#0000e6; '>'cpp_function'</span><span style='color:#808030; '>,</span>
+    <span style='color:#0000e6; '>'cpp_static_member_function_inline'</span><span style='color:#808030; '>,</span>
+    <span style='color:#0000e6; '>'cpp_static_member_variable'</span><span style='color:#808030; '>,</span>
+<span style='color:#808030; '>]</span><span style='color:#808030; '>)</span>
+
+more_extern <span style='color:#808030; '>=</span> <span style='color:#400000; '>set</span><span style='color:#808030; '>(</span><span style='color:#808030; '>)</span>
+<span style='color:#800000; font-weight:bold; '>for</span> i <span style='color:#800000; font-weight:bold; '>in</span> extern_linkage<span style='color:#808030; '>:</span>
+    <span style='color:#800000; font-weight:bold; '>if</span> <span style='color:#0000e6; '>"member"</span> <span style='color:#800000; font-weight:bold; '>in</span> i<span style='color:#808030; '>:</span>
+        more_extern<span style='color:#808030; '>.</span>add<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'cpp_derived_nonvis_'</span> <span style='color:#44aadd; '>+</span> i<span style='color:#808030; '>[</span><span style='color:#008c00; '>4</span><span style='color:#808030; '>:</span><span style='color:#808030; '>]</span><span style='color:#808030; '>)</span>
+        more_extern<span style='color:#808030; '>.</span>add<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'cpp_base_nonvis_'</span> <span style='color:#44aadd; '>+</span> i<span style='color:#808030; '>[</span><span style='color:#008c00; '>4</span><span style='color:#808030; '>:</span><span style='color:#808030; '>]</span><span style='color:#808030; '>)</span>
+        more_extern<span style='color:#808030; '>.</span>add<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'cpp_derived_nonvis_private_'</span> <span style='color:#44aadd; '>+</span> i<span style='color:#808030; '>[</span><span style='color:#008c00; '>4</span><span style='color:#808030; '>:</span><span style='color:#808030; '>]</span><span style='color:#808030; '>)</span>
+        more_extern<span style='color:#808030; '>.</span>add<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'cpp_base_nonvis_private_'</span> <span style='color:#44aadd; '>+</span> i<span style='color:#808030; '>[</span><span style='color:#008c00; '>4</span><span style='color:#808030; '>:</span><span style='color:#808030; '>]</span><span style='color:#808030; '>)</span>
+        more_extern<span style='color:#808030; '>.</span>add<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'cpp_private_'</span> <span style='color:#44aadd; '>+</span> i<span style='color:#808030; '>[</span><span style='color:#008c00; '>4</span><span style='color:#808030; '>:</span><span style='color:#808030; '>]</span><span style='color:#808030; '>)</span>
+
+extern_linkage<span style='color:#808030; '>.</span>update<span style='color:#808030; '>(</span>more_extern<span style='color:#808030; '>)</span>
+
+gcc46_symbols <span style='color:#808030; '>=</span> get_visible<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'g++-4.6'</span><span style='color:#808030; '>)</span>
+gcc48_symbols <span style='color:#808030; '>=</span> get_visible<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'g++-4.8'</span><span style='color:#808030; '>)</span>
+gcc53_symbols <span style='color:#808030; '>=</span> get_visible<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'g++-5'</span><span style='color:#808030; '>)</span>
+clang34_symbols <span style='color:#808030; '>=</span> get_visible<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'clang++'</span><span style='color:#808030; '>)</span>
+
+
+result <span style='color:#808030; '>=</span> <span style='color:#808030; '>[</span><span style='color:#808030; '>]</span>
+
+pattern <span style='color:#808030; '>=</span> <span style='color:#808030; '>(</span>
+    <span style='color:#0000e6; '>"&lt;tr> "</span>
+        <span style='color:#0000e6; '>"&lt;td>{name}&lt;/td> "</span>
+        <span style='color:#0000e6; '>"&lt;td bgcolor='{gcc46_color}'>{gcc46}&lt;/td> "</span>
+        <span style='color:#0000e6; '>"&lt;td bgcolor='{gcc48_color}'>{gcc48}&lt;/td> "</span>
+        <span style='color:#0000e6; '>"&lt;td bgcolor='{gcc53_color}'>{gcc53}&lt;/td> "</span>
+        <span style='color:#0000e6; '>"&lt;td bgcolor='{clang34_color}'>{clang34}&lt;/td> "</span>
+        <span style='color:#0000e6; '>"&lt;td bgcolor='{computed_color}'>{computed}&lt;/td> "</span>
+        <span style='color:#0000e6; '>"&lt;td>=&lt;/td> "</span>
+        <span style='color:#0000e6; '>"&lt;td bgcolor='{linkage_color}'>{linkage}&lt;/td> "</span>
+        <span style='color:#0000e6; '>"&lt;td bgcolor='{noinline_color}'>{noinline}&lt;/td> "</span>
+        <span style='color:#0000e6; '>"&lt;td bgcolor='{visible_color}'>{visible}&lt;/td> "</span>
+    <span style='color:#0000e6; '>"&lt;/tr>"</span>
+<span style='color:#808030; '>)</span>
+
+<span style='color:#800000; font-weight:bold; '>for</span> symbol <span style='color:#800000; font-weight:bold; '>in</span> parsed<span style='color:#808030; '>:</span>
+    not_base_or_derived <span style='color:#808030; '>=</span> <span style='color:#800000; font-weight:bold; '>not</span> <span style='color:#0000e6; '>"derived"</span> <span style='color:#800000; font-weight:bold; '>in</span> symbol <span style='color:#800000; font-weight:bold; '>and</span> <span style='color:#800000; font-weight:bold; '>not</span> <span style='color:#0000e6; '>"base"</span> <span style='color:#800000; font-weight:bold; '>in</span> symbol
+    is_extern <span style='color:#808030; '>=</span> symbol <span style='color:#800000; font-weight:bold; '>in</span> extern_linkage <span style='color:#800000; font-weight:bold; '>and</span> <span style='color:#800000; font-weight:bold; '>not</span> <span style='color:#0000e6; '>"anonymous_ns"</span> <span style='color:#800000; font-weight:bold; '>in</span> symbol
+    not_inline <span style='color:#808030; '>=</span> <span style='color:#800000; font-weight:bold; '>not</span> <span style='color:#0000e6; '>"inline"</span> <span style='color:#800000; font-weight:bold; '>in</span> symbol
+    computed_vis <span style='color:#808030; '>=</span> not_base_or_derived <span style='color:#800000; font-weight:bold; '>and</span> not_inline <span style='color:#800000; font-weight:bold; '>and</span> is_extern
+    
+    s <span style='color:#808030; '>=</span> <span style='color:#800080; '>{</span>
+        <span style='color:#0000e6; '>'name'</span><span style='color:#808030; '>:</span> symbol<span style='color:#808030; '>,</span>
+        <span style='color:#0000e6; '>'gcc46'</span><span style='color:#808030; '>:</span> symbol <span style='color:#800000; font-weight:bold; '>in</span> gcc46_symbols<span style='color:#808030; '>,</span>
+        <span style='color:#0000e6; '>'gcc48'</span><span style='color:#808030; '>:</span> symbol <span style='color:#800000; font-weight:bold; '>in</span> gcc48_symbols<span style='color:#808030; '>,</span>
+        <span style='color:#0000e6; '>'gcc53'</span><span style='color:#808030; '>:</span> symbol <span style='color:#800000; font-weight:bold; '>in</span> gcc53_symbols<span style='color:#808030; '>,</span>
+        <span style='color:#0000e6; '>'clang34'</span><span style='color:#808030; '>:</span> symbol <span style='color:#800000; font-weight:bold; '>in</span> clang34_symbols<span style='color:#808030; '>,</span>
+        <span style='color:#0000e6; '>'computed'</span><span style='color:#808030; '>:</span> computed_vis<span style='color:#808030; '>,</span>
+        <span style='color:#0000e6; '>'linkage'</span><span style='color:#808030; '>:</span> is_extern<span style='color:#808030; '>,</span>
+        <span style='color:#0000e6; '>'noinline'</span><span style='color:#808030; '>:</span> not_inline<span style='color:#808030; '>,</span>
+        <span style='color:#0000e6; '>'visible'</span><span style='color:#808030; '>:</span> not_base_or_derived<span style='color:#808030; '>,</span>
+    <span style='color:#800080; '>}</span>
+    extend_with_colors<span style='color:#808030; '>(</span>s<span style='color:#808030; '>)</span> 
+    result<span style='color:#808030; '>.</span>append<span style='color:#808030; '>(</span> pattern<span style='color:#808030; '>.</span>format<span style='color:#808030; '>(</span><span style='color:#44aadd; '>**</span>s<span style='color:#808030; '>)</span> <span style='color:#808030; '>)</span>    
+
+<span style='color:#800000; font-weight:bold; '>for</span> l <span style='color:#800000; font-weight:bold; '>in</span> <span style='color:#400000; '>sorted</span><span style='color:#808030; '>(</span>result<span style='color:#808030; '>)</span><span style='color:#808030; '>:</span>
+    <span style='color:#800000; font-weight:bold; '>print</span> l
+</pre>
 
 </body></html>
