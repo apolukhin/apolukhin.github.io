@@ -71,6 +71,7 @@ def get_extern_linkage_entities():
 
         '__public_member_function',
         '__public_member_function_inline',
+        '__public_member_function_inline_not_in_body',
         '__public_static_member_function',
         '__public_static_member_function_inline',
 
