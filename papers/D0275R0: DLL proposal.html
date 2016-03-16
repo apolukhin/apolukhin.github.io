@@ -11,6 +11,10 @@
             pre { line-height: 1.2; font-size: 10pt; margin-top: 25px;}
             .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; }
             body {max-width: 1024px; margin-left: 25px;}
+            .cppkeyword { color: blue; }
+            .cppcomment { color: green; }
+            .cppcomment > .cppkeyword{ color: green; }
+            .cpptext { color: #2E8B57; }
 		</style>
 
 	</head>
@@ -21,7 +25,7 @@
 		<address>&nbsp;</address>
 		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;</address>
 		<address>&nbsp;</address>
-		<address>Date: 2016-02-17</address>
+		<address>Date: 2016-03-15</address>
 		<h1>A Proposal to add Classes and Functions Required for Dynamic Library Load</h1>
 
 		<h2>I. Introduction and Motivation</h2>
@@ -114,12 +118,12 @@
     Headers &lt;experimental/dll&gt; and &lt;experimental/import&gt;
     define classes and functions suitable for dynamic library load. For
     those headers term 'symbol' relates to a
-    function or object that can be obtained from shared library file at runtime.
+    function, reference, class member or object that can be obtained from shared library file at runtime.
     Term 'symbol name' relates to a character identifier of a symbol, using
     which symbol can be obtained from shared library file. For symbols declared with extern
     "C" in code of shared library file, 'symbol name' is the name of the
-    variable or function. 'symbol name' without extern "C" in C++ code of shared library file
-    is the mangled name of the variable of function.
+    entity. 'symbol name' without extern "C" in C++ code of shared library file
+    is the mangled name of the entity.
 </p>
 
 <h4>31.2 Error reporting <span class="right">[dll.errors]</span></h4>
@@ -165,21 +169,21 @@
         search_system_directories       // See [dll.dll_mode]
     };
 
-    constexpr dll_mode operator|(dll_mode left, dll_mode right) noexcept;
-    constexpr dll_mode&amp; operator|=(dll_mode&amp; left, dll_mode right) noexcept;
-    constexpr dll_mode operator&amp;(dll_mode left, dll_mode right) noexcept;
-    constexpr dll_mode&amp; operator&amp;=(dll_mode&amp; left, dll_mode right) noexcept;
-    constexpr dll_mode operator^(dll_mode left, dll_mode right) noexcept;
-    constexpr dll_mode&amp; operator^=(dll_mode&amp; left, dll_mode right) noexcept;
-    constexpr dll_mode&amp; operator~(dll_mode&amp; lhs) noexcept;
+    constexpr dll_mode  operator| (dll_mode lhs, dll_mode rhs) noexcept;
+    constexpr dll_mode&amp; operator|=(dll_mode&amp; lhs, dll_mode rhs) noexcept;
+    constexpr dll_mode  operator&amp; (dll_mode lhs, dll_mode rhs) noexcept;
+    constexpr dll_mode&amp; operator&amp;=(dll_mode&amp; lhs, dll_mode rhs) noexcept;
+    constexpr dll_mode  operator^ (dll_mode lhs, dll_mode rhs) noexcept;
+    constexpr dll_mode&amp; operator^=(dll_mode&amp; lhs, dll_mode rhs) noexcept;
+    constexpr dll_mode&amp; operator~ (dll_mode&amp; lhs) noexcept;
 
     // shared library file holder class
     class shared_library;
 
     bool operator==(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;
     bool operator!=(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;
-    bool operator&lt;(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;
-    bool operator&gt;(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;
+    bool operator&lt; (const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;
+    bool operator&gt; (const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;
     bool operator&lt;=(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;
     bool operator&gt;=(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;
 
@@ -213,7 +217,7 @@ the platform or 0 otherwise.
 <p>
     Enum dll_mode provides modes for searching the shared library file and platform specific modes for loading the shared library file in memory of program.
     [Note: library users may extend available modes by
-    casting the required platform specific mode to dll_mode: <i>[Example:</i> static_cast&lt;dll_mode&gt;(RTLD_NODELETE); <i>- end example] -end note]</i></p>
+    casting the required platform specific mode to dll_mode: <i>[ Example:</i> static_cast&lt;dll_mode&gt;(RTLD_NODELETE); <i> — end example ] — end note ]</i></p>
 
 <p>
     Each of system family 
@@ -245,13 +249,13 @@ the platform or 0 otherwise.
 
 
 <h4>31.3.1.1 dll_mode operators <span class="right">[dll.dll_mode.operators]</span></h4>
-<pre>constexpr dll_mode operator|(dll_mode lhs, dll_mode rhs) noexcept;
+<pre>constexpr dll_mode  operator| (dll_mode lhs, dll_mode rhs) noexcept;
 constexpr dll_mode&amp; operator|=(dll_mode&amp; lhs, dll_mode rhs) noexcept;
-constexpr dll_mode operator&amp;(dll_mode lhs, dll_mode rhs) noexcept;
+constexpr dll_mode  operator&amp; (dll_mode lhs, dll_mode rhs) noexcept;
 constexpr dll_mode&amp; operator&amp;=(dll_mode&amp; lhs, dll_mode rhs) noexcept;
-constexpr dll_mode operator^(dll_mode lhs, dll_mode rhs) noexcept;
+constexpr dll_mode  operator^ (dll_mode lhs, dll_mode rhs) noexcept;
 constexpr dll_mode&amp; operator^=(dll_mode&amp; lhs, dll_mode rhs) noexcept;
-constexpr dll_mode&amp; operator~(dll_mode&amp; lhs) noexcept;</pre>
+constexpr dll_mode&amp; operator~ (dll_mode&amp; lhs) noexcept;</pre>
     <div class="desc"><i>Effects:</i> Converts parameters to unsigned integral type capable of storing them, applies a corresponding
     binary operator and returns the result as dll_mode.</div>
 
@@ -284,15 +288,15 @@ constexpr dll_mode&amp; operator~(dll_mode&amp; lhs) noexcept;</pre>
     be serialized by shared_library implementation.
 </p>
 <p>
-    [Note: Constructors, comparisons and reset() functions that accept nullptr_t are not provided because that may cause confusion:
-    some of the platforms provide interfaces for shared library files that accept nullptr_t to get a handler to the current program. - end note]
+    [ Note: Constructors, comparisons and reset() functions that accept nullptr_t are not provided because that may cause confusion:
+    some of the platforms provide interfaces for shared library files that accept nullptr_t to get a handler to the current program. — end note ]
 </p>
 <pre>namespace std {
   namespace experimental {
 
     class shared_library {
     public:
-      typedef platform_specific native_handle_t;
+      typedef platform_specific native_handle_type;
 
       // construct/copy/destruct
       shared_library() noexcept;
@@ -302,13 +306,14 @@ constexpr dll_mode&amp; operator~(dll_mode&amp; lhs) noexcept;</pre>
       explicit shared_library(const filesystem::path&amp; library_path, dll_mode mode = dll_mode::default_mode);
       shared_library(const filesystem::path&amp; library_path, error_code&amp; ec, dll_mode mode = dll_mode::default_mode);
       shared_library(const filesystem::path&amp; library_path, dll_mode mode, error_code&amp; ec);
-      shared_library&amp; operator=(const shared_library&amp; lib);
-      shared_library&amp; operator=(shared_library&amp;&amp; lib) noexcept;
       ~shared_library();
 
       // public member functions
       shared_library&amp; assign(const shared_library&amp; lib, error_code&amp; ec);
       shared_library&amp; assign(const shared_library&amp; lib);
+      
+      shared_library&amp; operator=(const shared_library&amp; lib);
+      shared_library&amp; operator=(shared_library&amp;&amp; lib) noexcept;
 
       void load(const filesystem::path&amp; library_path, dll_mode mode = dll_mode::default_mode);
       void load(const filesystem::path&amp; library_path, error_code&amp; ec, dll_mode mode = dll_mode::default_mode);
@@ -328,7 +333,7 @@ constexpr dll_mode&amp; operator~(dll_mode&amp; lhs) noexcept;</pre>
       template &lt;typename SymbolT&gt;
       auto get(const string&amp; symbol_name) const -&gt; conditional_t&lt;is_member_pointer_v&lt;SymbolT&gt;, SymbolT, SymbolT&&gt;&gt;;
 
-      native_handle_t handle() const noexcept;
+      native_handle_type native_handle() const noexcept;
 
       filesystem::path location() const;
       filesystem::path location(error_code&amp; ec) const;
@@ -373,7 +378,16 @@ shared_library(const filesystem::path&amp; library_path, dll_mode mode, error_co
 </div>
 
 
-<h4>31.3.3.3 shared_library assignment <span class="right">[dll.shared_library.assign]</span></h4>
+
+<h4>31.3.3.3 shared_library members<span class="right">[dll.shared_library.member]</span></h4>
+<pre>shared_library&amp; assign(const shared_library&amp; lib, error_code&amp; ec);
+shared_library&amp; assign(const shared_library&amp; lib);</pre>
+    <div class="desc"><i>Effects:</i> If *this, then calls reset().
+    Makes *this reference the same shared library file as lib.</div>
+    <div class="desc"><i>Postconditions:</i> lib.location() == this-&gt;location(), lib == *this</div>
+    <div class="desc"><i>Throws:</i> As specified in [dll.errors]</div>
+    
+<h4>31.3.3.4 shared_library assignment <span class="right">[dll.shared_library.assign]</span></h4>
 <pre>shared_library&amp; operator=(const shared_library&amp; lib);</pre>
     <div class="desc"><i>Effects:</i> Same as calling this-&gt;assign(lib)</div>
 
@@ -384,14 +398,6 @@ to a default constructed state.</div>
     <div class="desc"><i>Remarks:</i> Does not invalidate symbols previously obtained from lib.</div>
     <div class="desc"><i>Postconditions:</i> lib is false, *this is true.</div>
 
-
-<h4>31.3.3.4 shared_library members<span class="right">[dll.shared_library.member]</span></h4>
-<pre>shared_library&amp; assign(const shared_library&amp; lib, error_code&amp; ec);
-shared_library&amp; assign(const shared_library&amp; lib);</pre>
-    <div class="desc"><i>Effects:</i> If *this, then calls reset().
-    Makes *this reference the same shared library file as lib.</div>
-    <div class="desc"><i>Postconditions:</i> lib.location() == this-&gt;location(), lib == *this</div>
-    <div class="desc"><i>Throws:</i> As specified in [dll.errors]</div>
 
 <pre>void load(const filesystem::path&amp; library_path, dll_mode mode = dll_mode::default_mode);
 void load(const filesystem::path&amp; library_path, error_code&amp; ec, dll_mode mode = dll_mode::default_mode);
@@ -455,14 +461,16 @@ auto get(const string&amp; symbol_name) const;</pre>
     <div class="desc"><i>Remarks:</i> It's the user responsibility to 
     provide valid SymbolT type for symbol. However implementations may 
     provide additional checks for
-    matching SymbolT type and actual symbol type. [Note: For
+    matching SymbolT type and actual symbol type. [ Note: For
     example implementations
     may check that SymbolT is a function pointer and that
-    symbol with symbol_name allows execution. ]</div>
+    symbol with symbol_name allows execution. — end note ]</div>
     <div class="desc"><i>Throws:</i> system_error if symbol does not exist or if the shared library file was not loaded.</div>
 
-<pre>native_handle_t handle() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> Native handler of the loaded in memory shared library file or default constructed native_handle_t if *this does not reference a shared library file.</div>
+<pre>native_handle_type native_handle() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> Native handler of the loaded in memory shared library file or default constructed native_handle_type if *this does not reference a shared library file.
+    [ Note: This member allow implementations to provide access to implementation details. Actual use of these members is inherently non-portable. — end note ]
+</div>
 
 <pre>filesystem::path location() const;
 filesystem::path location(error_code&amp; ec) const;</pre>
@@ -620,7 +628,16 @@ imported_t&lt;SymbolT&gt; import(shared_library&amp;&amp; library, const string&
 
 
 
-
+        <script type="text/javascript">
+            var texts = document.getElementsByTagName("pre");
+            for (var i = 0; i < texts.length; ++i) {
+                var text = texts[i].innerHTML;
+                text = text.replace(/namespace|enum|void|constexpr|noexcept|bool|template|class|struct|auto|const|typename|explicit|public|private|operator|#include|char/g,"<span class='cppkeyword'>$&</span>");
+                text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&</span>");
+                text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&</span>");
+                texts[i].innerHTML = text;
+            }
+        </script>
 
 
 </body></html>
