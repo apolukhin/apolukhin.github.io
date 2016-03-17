@@ -21,7 +21,7 @@
 		<address>&nbsp;</address>
 		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
 		<address>&nbsp;</address>
-		<address>Date: 2016-03-16</address>
+		<address>Date: 2016-03-17</address>
 		<h1>A Proposal to add Attribute [[visible]]</h1>
 
 		<h2>I. Introduction and Motivation</h2>
@@ -164,7 +164,25 @@ extensions to do so, which forces the user to write macro:</p>
         shared libraries we must not break the build of static libraries, so the visibility attribute must be silently ignored in that case.</p>
 
 
+		<h3>E. Minimal modifications for the N4567 wording.</h3>
+        <p>There have been a lot of shared library related proposals:</p>
+        <ul>
+        <li><a href="http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2002/n1400.html">N1400: Toward standardization of dynamic libraries</a></li>
+        <li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2002/n1418.html">N1418: Dynamic Libraries in C++</a></li>
+        <li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1428.html">N1428: Draft Proposal for Dynamic Libraries in C++</a></li>
+        <li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1496.html">N1496: Draft Proposal for Dynamic Libraries in C++ (Revision 1)</a></li>
+        <li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n1976.html">N1976: Dynamic Shared Objects: Survey and Issues</a></li>
+        <li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n2015.pdf" >N2015: Plugins in C++</a></li>
+        <li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2407.html">N2407: C++ Dynamic Library Support</a></li>
+        </ul>
 
+        <p>The proposal you're reading attempts to avoid issues of the proposals from above, minifying the changes to the N4567 wording. The proposal you're reading:</p>
+        <ul>
+        <li>does not modify Basic Concepts [basic]</li>
+        <li>does not add new keywords or terms</li>
+        <li>attemts to standardize existing practice by unifying vendor specific extensions</li>
+        <li>does not add platform requiremnt for shared libraries suport</li>
+        </ul>
 
 		<h2>IV. Proposed wording relative to N4567</h2>
 
@@ -231,6 +249,22 @@ extensions to do so, which forces the user to write macro:</p>
 			Available online at <a href="https://groups.google.com/a/isocpp.org/forum/?fromgroups#%21topic/std-proposals/jzc7d_MQUZg">https://groups.google.com/a/isocpp.org/forum/?fromgroups#!topic/std-proposals/jzc7d_MQUZg</a></p>
 		<p>[<a name="N4567">N4567</a>] Working Draft, Standard for Programming Language C++.
 			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4567.pdf">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4567.pdf</a></p>
+
+		<p>[<a name="N1400">N1400</a>] Toward standardization of dynamic libraries.
+			Available online at <a href="http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2002/n1400.html">http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2002/n1400.html</a></p>
+		<p>[<a name="N1418">N1418</a>] Dynamic Libraries in C++.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2002/n1418.html">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2002/n1418.html</a></p>
+		<p>[<a name="N1428">N1428</a>] Draft Proposal for Dynamic Libraries in C++.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1428.html">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1428.html</a></p>
+		<p>[<a name="N1496">N1496</a>] Draft Proposal for Dynamic Libraries in C++ (Revision 1).
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1496.html">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1496.html</a></p>
+		<p>[<a name="N1976">N1976</a>] Dynamic Shared Objects: Survey and Issues.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n1976.html">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n1976.html</a></p>
+		<p>[<a name="N2015">N2015</a>] Plugins in C++.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n2015.pdf">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n2015.pdf</a></p>
+		<p>[<a name="N2407">N2407</a>] C++ Dynamic Library Support.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2407.html">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2407.html</a></p>
+
 		<p>&nbsp;</p>
 		<p>&nbsp;</p>
 
