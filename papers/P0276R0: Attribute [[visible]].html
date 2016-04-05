@@ -1,0 +1,761 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+		<title>A Proposal to add Attribute [[visible]]</title>
+		<meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+		<meta http-equiv="Content-Language" content="en-us">
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+		<style type="text/css">
+			.addition { color: green; }
+			.right { float:right; }
+            pre { line-height: 1.2; font-size: 10pt; margin-top: 25px;}
+            .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; }
+            body {max-width: 1024px; margin-left: 25px;}
+		</style>
+
+	</head>
+	<body bgcolor="#ffffff">
+		<address>Document number: P0276R0</address>
+		<address>Project: Programming Language C++</address>
+		<address>Audience: Core Evolution Working Group</address>
+		<address>&nbsp;</address>
+		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+		<address>&nbsp;</address>
+		<address>Date: 2016-03-20</address>
+		<h1>A Proposal to add Attribute [[visible]]</h1>
+
+		<h2>I. Introduction and Motivation</h2>
+		<p>Consider the following shared library source code:</p>
+<pre style='color:#000000;background:#ffffff;'><span style='color:#008000; '>    // libgrph.so</span>
+
+    <span style='color:#008000; '>// Public interface</span>
+    <span style='color:#0000ff; font-weight:bold; '>bool</span> grph_is_tree<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; font-weight:bold; '>bool</span> grph_is_directed<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+
+    <span style='color:#008000; '>// For internal usage</span>
+    <span style='color:#0000ff; font-weight:bold; '>void</span> in_depth_visitor<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>,</span> function<span style='color:#0000ff; '>&lt;</span><span style='color:#0000ff; font-weight:bold; '>void</span><span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>::</span>node<span style='color:#0000ff; '>*</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>></span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; font-weight:bold; '>void</span> in_breadth_visitor<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>,</span> function<span style='color:#0000ff; '>&lt;</span><span style='color:#0000ff; font-weight:bold; '>void</span><span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>::</span>node<span style='color:#0000ff; '>*</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>></span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+</pre>
+
+		<p>Current C++ Standard lacks an ability to specify, which entities 
+will be exported by shared libraries. Different compilers add 
+extensions to do so, which forces the user to write macro:</p>
+
+<pre style='color:#000000;background:#ffffff;'><span style='color:#008000; '>    // libgrph.so</span>
+
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>if</span><span style='color:#004a43; '> MSVC</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>   </span><span style='color:#004a43; '>define</span><span style='color:#004a43; '> EXPORT __declspec</span><span style='color:#0000ff; '>(</span><span style='color:#004a43; '>dllexport</span><span style='color:#0000ff; '>)</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>else</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>   </span><span style='color:#004a43; '>define</span><span style='color:#004a43; '> EXPORT __attribute__</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>(</span><span style='color:#004a43; '>visibility</span><span style='color:#0000ff; '>(</span><span style='color:#0000e6; '>"</span><span style='color:#0000e6; '>default</span><span style='color:#0000e6; '>"</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>)</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>endif</span>
+
+    <span style='color:#008000; '>// Public interface</span>
+    EXPORT <span style='color:#0000ff; font-weight:bold; '>bool</span> grph_is_tree<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    EXPORT <span style='color:#0000ff; font-weight:bold; '>bool</span> grph_is_directed<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+
+    <span style='color:#008000; '>// For internal usage</span>
+    <span style='color:#0000ff; font-weight:bold; '>void</span> in_depth_visitor<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>,</span> function<span style='color:#0000ff; '>&lt;</span><span style='color:#0000ff; font-weight:bold; '>void</span><span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>::</span>node<span style='color:#0000ff; '>*</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>></span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; font-weight:bold; '>void</span> in_breadth_visitor<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>,</span> function<span style='color:#0000ff; '>&lt;</span><span style='color:#0000ff; font-weight:bold; '>void</span><span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>::</span>node<span style='color:#0000ff; '>*</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>></span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+</pre>
+		<p>Things are getting even worse if the same header file is used during library compilation and as the header that declares user interface:</p>
+
+<pre style='color:#000000;background:#ffffff;'><span style='color:#008000; '>    // grph.h</span>
+
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>if</span><span style='color:#004a43; '> EXPORTING</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>   </span><span style='color:#004a43; '>if</span><span style='color:#004a43; '> MSVC</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>       </span><span style='color:#004a43; '>define</span><span style='color:#004a43; '> API __declspec</span><span style='color:#0000ff; '>(</span><span style='color:#004a43; '>dllexport</span><span style='color:#0000ff; '>)</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>   </span><span style='color:#004a43; '>else</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>       </span><span style='color:#004a43; '>define</span><span style='color:#004a43; '> API __attribute__</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>(</span><span style='color:#004a43; '>visibility</span><span style='color:#0000ff; '>(</span><span style='color:#0000e6; '>"</span><span style='color:#0000e6; '>default</span><span style='color:#0000e6; '>"</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>)</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>   </span><span style='color:#004a43; '>endif</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>else</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>   </span><span style='color:#004a43; '>if</span><span style='color:#004a43; '> MSVC</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>       </span><span style='color:#004a43; '>define</span><span style='color:#004a43; '> API __declspec</span><span style='color:#0000ff; '>(</span><span style='color:#004a43; '>dllimport</span><span style='color:#0000ff; '>)</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>   </span><span style='color:#004a43; '>else</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>       </span><span style='color:#004a43; '>define</span><span style='color:#004a43; '> API</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>   </span><span style='color:#004a43; '>endif</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#004a43; '>#</span><span style='color:#004a43; '>endif</span>
+
+    <span style='color:#008000; '>// Public interface</span>
+    API <span style='color:#0000ff; font-weight:bold; '>bool</span> grph_is_tree<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    API <span style='color:#0000ff; font-weight:bold; '>bool</span> grph_is_directed<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+</pre>
+		<p>This wording attempts to fix issues mentioned above by providing a single <code>[[visible]]</code> attribute:</p>
+<pre style='color:#000000;background:#ffffff;'><span style='color:#008000; '>    // grph.h</span>
+
+    <span style='color:#008000; '>// Public interface</span>
+    <span style='color:#0000ff; '>[</span><span style='color:#0000ff; '>[</span>visible<span style='color:#0000ff; '>]</span><span style='color:#0000ff; '>]</span> <span style='color:#0000ff; font-weight:bold; '>bool</span> grph_is_tree<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; '>[</span><span style='color:#0000ff; '>[</span>visible<span style='color:#0000ff; '>]</span><span style='color:#0000ff; '>]</span> <span style='color:#0000ff; font-weight:bold; '>bool</span> grph_is_directed<span style='color:#0000ff; '>(</span>graph<span style='color:#0000ff; '>*</span> g<span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+</pre>
+
+		<h2>II. Impact on the Standard</h2>
+		<p>This proposal does not propose changes to
+			existing headers. It does require change in the core 
+			language by adding a new <code>[[visible]]</code> attribute.
+		</p>
+
+		<h2>III. Design Decisions</h2>
+		<h3>A. Single attribute for import and export.</h3>
+        <p>Having a single attribute will simplify user's code, all the import and export related macro will be gone.</p>
+		<p>It has been publicly mentioned that with the modules feature, 
+        having two attributes (<code>__declspec(dllexport)</code> and <code>__declspec(dllimport)</code>) is no longer the case for MSVC. Entities need to 
+        be marked as being available for DLL linkage using single attribute
+        and then the linker automatically exports 
+        entitiess in modules linked into the library and imports entities 
+        otherwise.</p>
+		<p>Two attributes must not be the case for GCC too, where it is allowed to use <code>__attribute__((visibility("default")))</code> on import and export.</p>
+
+		<h3>B. Attribute name.</h3>
+		<p>Attribute name in this proposal is nether
+         [[import]] nor [[export]]. Such names may cause confusion with keywords from modules proposal. Name of the attribute in this proposal is based on GCC's 
+        attribute name <code>visibility</code>.</p>
+
+		<h3>C. Analysis of existing practices.</h3>
+		<p>According to <a href="#vistable">A. Visibility of entities depending on __visible__, linkage and inline</a> existing practice is following:
+        <ul>
+            <li>export entity from shared libraries if the entity has external linkage, not an inline function and marked with compiler specific visibility attribute</li>
+            <li>apply visibility attribute to all the entities of the namespace if namespace has compiler specific visibility attribute</li>
+            <li>export all the class member functions, nested classes, static variables and vtable if class has compiler specific visibility attribute</li>
+            <li>do not export base (or derived) class of a class with compiler specific visibility attribute if base (or derived) class does not have compiler specific visibility attribute</li>
+        </ul>
+
+        <p>This proposal attempts to standardize existing practice which is reasonable and well thought trough:</p>
+        <ul>
+                    <li>Entity with internal linkage must not become visible. Making it visible change entity's linkage, entity becomes visible by other translation units, resulting in external linkage;
+                such behavior affects optimizer and program performance.</li>
+                    <li>Inline functions must not become visible. Let's assume that we have a header file with following code:
+            <pre style='color:#000000;background:#ffffff;'><span style='color:#0000ff; font-weight:bold; '>class</span> __visible__ foo <span style='color:#0000ff; '>{</span>
+    <span style='color:#0000ff; font-weight:bold; '>void</span> do_something<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+
+<span style='color:#0000ff; font-weight:bold; '>public</span><span style='color:#e34adc; '>:</span>
+    <span style='color:#0000ff; font-weight:bold; '>void</span> do1<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span>
+        do_something<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; '>}</span>
+<span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+</pre>
+                    Usually the same header is used by the shared library and by the program that uses the shared library. In that case program that uses shared library
+                    will have the <code>do1()</code> function inlined.
+                    It means that <code>do1()</code> from shared library won't be used by program and there's no need to keep that function in shared library.
+                    </li>
+                    <li>Visibility of class members must not depend on access modifiers. Let's assume that we have a header file with following code:
+            <pre style='color:#000000;background:#ffffff;'><span style='color:#0000ff; font-weight:bold; '>class</span> __visible__ foo <span style='color:#0000ff; '>{</span>
+    <span style='color:#0000ff; font-weight:bold; '>void</span> do_something<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+
+<span style='color:#0000ff; font-weight:bold; '>public</span><span style='color:#e34adc; '>:</span>
+    <span style='color:#0000ff; font-weight:bold; '>void</span> do1<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span>
+        do_something<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; '>}</span>
+<span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+</pre>
+                        Call to inlined function do1() results in calling the private do_something() function, so do_something() function must be visible in shared library.
+                    </li>
+                    <li>Nested classes of visible class become visible. Here <code>class</code> behaves as a namespace, this is an expected behavior.
+                    </li>
+            <li>Keeping minimal amount of entities exported positively affects shared library load times and compiler optimizations. (If entity with external linkage is not exported
+            and user is building a shared library, then the entity may be assumed as internal for the shared library and more aggressive optimizations may be applied, including removal of unreferenced entity.)</li>
+        </ul>
+		<h3>D. Silently ignore visibility attribute on platforms that do not support it.</h3>
+        <p>Silent ignorance of visibility attribute does not cause hard detectable errors on the platforms that do not support
+        obtaining external references at program startup from library file:</p>
+        <ul>
+            <li>attempt to make runtime loadable library will result in error, as platform incapable of handling such libraries</li>
+            <li>attempt to make a program that relates on a runtime loadable library will result in linkage error, as external references won't be satisfied</li>
+        </ul>
+        <p>Also consider the case, when we have a source file that is used for producing shared and static libraries. If platform has no support for 
+        shared libraries we must not break the build of static libraries, so the visibility attribute must be silently ignored in that case.</p>
+
+
+		<h3>E. Minimal modifications for the N4567 wording.</h3>
+        <p>There have been a lot of shared library related proposals:</p>
+        <ul>
+        <li><a href="http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2002/n1400.html">N1400: Toward standardization of dynamic libraries</a></li>
+        <li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2002/n1418.html">N1418: Dynamic Libraries in C++</a></li>
+        <li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1428.html">N1428: Draft Proposal for Dynamic Libraries in C++</a></li>
+        <li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1496.html">N1496: Draft Proposal for Dynamic Libraries in C++ (Revision 1)</a></li>
+        <li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n1976.html">N1976: Dynamic Shared Objects: Survey and Issues</a></li>
+        <li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n2015.pdf" >N2015: Plugins in C++</a></li>
+        <li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2407.html">N2407: C++ Dynamic Library Support</a></li>
+        </ul>
+
+        <p>The proposal you're reading attempts to avoid issues of the proposals from above, minifying the changes to the N4567 wording. The proposal you're reading:</p>
+        <ul>
+        <li>does not modify Basic Concepts [basic]</li>
+        <li>does not add new keywords or terms</li>
+        <li>attemts to standardize existing practice by unifying vendor specific extensions</li>
+        <li>does not add platform requiremnt for shared libraries suport</li>
+        </ul>
+
+		<h2>IV. Proposed wording relative to N4567</h2>
+
+<h4 class="addition">7.6.6 Visible attribute <span class="right">[dcl.attr.visible]</span></h4>
+<p class="addition">
+    The <i>attribute-token</i> <code>visible</code> specifies that an entity
+    with external linkage [basic.link] may be obtained:
+</p>
+    <ul class="addition">
+        <li>by current translation unit at program startup from a library file if the entity has no definition in current translation unit.
+        [<i>Note:</i> Attribute <code>visible</code> does not satisfy external reference to entity, only provides information that the entity
+        is available to obtain at runtime from library file. <i>- end note</i>]</li>
+        <li>by other translation units at runtime or at program startup if the entity has definition in current translation unit.
+        [<i>Note:</i> In that case <code>visible</code> attribute prevents optimizing compilers from removing entity from program and from changing entity type or signature. <i>- end note</i>]</li>
+    </ul>
+<p class="addition">
+    On the platforms that do not support obtaining external references at program startup from library files the <code>visible</code> attribute may be silently ignored.
+    [<i>Note:</i> Program that relies on that attribute shall fail to link because of unsatisfied external references. <i>- end note</i>]
+</p>
+<p class="addition">
+    <code>visible</code> shall appear at most once in
+    each <i>attribute-list</i> and no <i>attribute-argument-clause</i> shall be present. The attribute may be applied to
+    following entities with external linkage: 
+</p>
+    <ul class="addition">
+        <li>to the <i>declarator-id</i> in a non-inline function, </li>
+        <li>to the <i>declarator-id</i> in a non-inline static member function, </li>
+        <li>to a variable, </li>
+        <li>to a non-anonymous namespace, </li>
+        <li>to a static class data member, </li>
+        <li>to the declaration or definition of a class (in an elaborated-type-specifier (7.1.6.3) or class-head (Clause 9), respectively) </li>
+        <li>to the declaration or definition of an enumeration with type-specifier-seq (in an opaque-enum-declaration or enum-head, respectively (7.2)). </li>
+    </ul>
+<p class="addition">
+    If namespace has the <code>visible</code> attribute, then all the entities with external linkage (except inline functions)
+    of the nemaspace shall be implicitly declared with <code>visible</code> attribute.
+</p>
+<p class="addition">
+    If class is declared or defined with <code>visible</code> attribute, then the all the static class data members, non-inline member functions,
+    nested classes and implementation generated type information of the class shall be implicitly declared with <code>visible</code> attribute.
+</p>
+<p class="addition">
+    The first declaration shall specify the <code>visible</code>
+    attribute if any other declaration specifies the <code>visible</code> attribute. If an entity is declared with
+    the <code>visible</code> attribute in one translation unit and the same entity is declared without the <code>visible</code>
+    attribute in another translation unit, the program is ill-formed; no diagnostic required.
+</p>
+
+		<h2>V. Feature-testing macro</h2>
+		<p>For the purposes of SG10 it is sufficient to check for attribute <code>[[visible]]</code> using <code>__has_cpp_attribute</code>.</p>
+
+
+		<h2>V. Revision History</h2>
+		<p>Revision 0:</p>
+		<ul>
+			<li>
+				Initial proposal
+			</li>
+		</ul>
+
+
+		<h2>VI. References</h2>
+		<p>[<a name="DISCUSSION">DISCUSSION</a>] "[std-proposals] Attributes useful for shared objects (import, export, symbol locations)" discussion.
+			Available online at <a href="https://groups.google.com/a/isocpp.org/forum/?fromgroups#%21topic/std-proposals/jzc7d_MQUZg">https://groups.google.com/a/isocpp.org/forum/?fromgroups#!topic/std-proposals/jzc7d_MQUZg</a></p>
+		<p>[<a name="N4567">N4567</a>] Working Draft, Standard for Programming Language C++.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4567.pdf">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4567.pdf</a></p>
+
+		<p>[<a name="N1400">N1400</a>] Toward standardization of dynamic libraries.
+			Available online at <a href="http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2002/n1400.html">http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2002/n1400.html</a></p>
+		<p>[<a name="N1418">N1418</a>] Dynamic Libraries in C++.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2002/n1418.html">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2002/n1418.html</a></p>
+		<p>[<a name="N1428">N1428</a>] Draft Proposal for Dynamic Libraries in C++.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1428.html">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1428.html</a></p>
+		<p>[<a name="N1496">N1496</a>] Draft Proposal for Dynamic Libraries in C++ (Revision 1).
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1496.html">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1496.html</a></p>
+		<p>[<a name="N1976">N1976</a>] Dynamic Shared Objects: Survey and Issues.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n1976.html">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n1976.html</a></p>
+		<p>[<a name="N2015">N2015</a>] Plugins in C++.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n2015.pdf">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n2015.pdf</a></p>
+		<p>[<a name="N2407">N2407</a>] C++ Dynamic Library Support.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2407.html">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2407.html</a></p>
+
+		<p>&nbsp;</p>
+		<p>&nbsp;</p>
+
+		<h2>VII. Acknowledgements</h2>
+		<p>Sean Middleditch gave very useful comments and suggestions about using a single attribute name for import and export.</p>
+
+
+		<h2>VIII. Appendix</h2>
+        <h3 id="vistable">A. Visibility of entities depending on __visible__, linkage and inline</h3>
+        <p>Table was generated by program from <a href="#visscript">C. Program to generate visibility table</a>, from <a href="#vissource">B. Library source file</a></p>
+        <table border="1px">
+<tr> <td>Entity Name</td> <td>GCC-4.6 Import Visibility</td> <td>GCC-4.8 Import Visibility</td> <td>GCC-5.3 Import Visibility</td> <td>Clang-3.5 Import Visibility</td> <td style="border:none"><pre>    </pre></td> <td>Calculated Import Visibility</td> <td>=</td> <td>External Linkage</td> <td>&amp;&amp;</td> <td>Not Inline function</td> <td>&amp;&amp;</td> <td>__visible__ or in __visible__ class</td> </tr>
+
+
+<tr> <td>&lt;anonymous&gt;::function</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>&lt;anonymous&gt;::function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>&lt;anonymous&gt;::function_static</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>&lt;anonymous&gt;::some_class::private_member_function</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>&lt;anonymous&gt;::some_class::private_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>&lt;anonymous&gt;::some_class::private_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>&lt;anonymous&gt;::some_class::private_static_member_function</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>&lt;anonymous&gt;::some_class::private_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>&lt;anonymous&gt;::some_class::private_static_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>&lt;anonymous&gt;::some_class::public_member_function</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>&lt;anonymous&gt;::some_class::public_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>&lt;anonymous&gt;::some_class::public_member_function_inline_not_in_body</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>&lt;anonymous&gt;::some_class::public_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>&lt;anonymous&gt;::some_class::public_static_member_function</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>&lt;anonymous&gt;::some_class::public_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>&lt;anonymous&gt;::some_class::public_static_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>&lt;anonymous&gt;::variable_extern</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>&lt;anonymous&gt;::variable_noextern</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>&lt;anonymous&gt;::variable_noextern_const</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>&lt;anonymous&gt;::variable_static</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::base_nonvis_class::private_member_function</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::base_nonvis_class::private_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::base_nonvis_class::private_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::base_nonvis_class::private_static_member_function</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::base_nonvis_class::private_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::base_nonvis_class::private_static_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::base_nonvis_class::public_member_function</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::base_nonvis_class::public_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::base_nonvis_class::public_member_function_inline_not_in_body</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::base_nonvis_class::public_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::base_nonvis_class::public_static_member_function</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::base_nonvis_class::public_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::base_nonvis_class::public_static_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::derived_nonvis_class::private_member_function</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::derived_nonvis_class::private_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::derived_nonvis_class::private_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::derived_nonvis_class::private_static_member_function</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::derived_nonvis_class::private_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::derived_nonvis_class::private_static_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::derived_nonvis_class::public_member_function</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::derived_nonvis_class::public_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::derived_nonvis_class::public_member_function_inline_not_in_body</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::derived_nonvis_class::public_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::derived_nonvis_class::public_static_member_function</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::derived_nonvis_class::public_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::derived_nonvis_class::public_static_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> </tr>
+<tr> <td>::function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::function_static</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::private_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::private_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::private_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::private_nested_class::private_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::private_nested_class::private_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::private_nested_class::private_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::private_nested_class::private_static_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::private_nested_class::private_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::private_nested_class::private_static_member_variable</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::private_nested_class::public_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::private_nested_class::public_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::private_nested_class::public_member_function_inline_not_in_body</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::private_nested_class::public_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::private_nested_class::public_static_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::private_nested_class::public_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::private_nested_class::public_static_member_variable</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::private_static_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::private_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::private_static_member_variable</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_member_function_inline_not_in_body</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class::private_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class::private_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class::private_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class::private_static_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class::private_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class::private_static_member_variable</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class::public_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class::public_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class::public_member_function_inline_not_in_body</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class::public_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class::public_static_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class::public_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class::public_static_member_variable</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class_not_inside::private_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class_not_inside::private_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class_not_inside::private_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class_not_inside::private_static_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class_not_inside::private_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class_not_inside::private_static_member_variable</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class_not_inside::public_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class_not_inside::public_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class_not_inside::public_member_function_inline_not_in_body</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class_not_inside::public_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class_not_inside::public_static_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class_not_inside::public_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_nested_class_not_inside::public_static_member_variable</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_static_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::some_class::public_static_member_variable</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::variable_extern</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::variable_noextern</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::variable_noextern_const</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>::variable_static</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::function_static</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::function_static</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::private_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::private_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::private_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::private_static_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::private_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::private_static_member_variable</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_member_function_inline_not_in_body</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class::private_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class::private_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class::private_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class::private_static_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class::private_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class::private_static_member_variable</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class::public_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class::public_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class::public_member_function_inline_not_in_body</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class::public_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class::public_static_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class::public_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class::public_static_member_variable</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class_not_inside::private_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class_not_inside::private_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class_not_inside::private_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class_not_inside::private_static_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class_not_inside::private_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class_not_inside::private_static_member_variable</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class_not_inside::public_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class_not_inside::public_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class_not_inside::public_member_function_inline_not_in_body</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class_not_inside::public_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class_not_inside::public_static_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class_not_inside::public_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_nested_class_not_inside::public_static_member_variable</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_static_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::some_class::public_static_member_variable</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::variable_extern</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::variable_noextern</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::variable_noextern_const</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::nested_ns::variable_static</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::some_class::private_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::some_class::private_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::some_class::private_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::some_class::private_static_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::some_class::private_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::some_class::private_static_member_variable</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::some_class::public_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::some_class::public_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::some_class::public_member_function_inline_not_in_body</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::some_class::public_member_variable</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::some_class::public_static_member_function</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::some_class::public_static_member_function_inline</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::some_class::public_static_member_variable</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::variable_extern</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::variable_noextern</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td bgcolor='green'>True</td> <td style='border:none'> </td> <td bgcolor='green'>True</td> <td>=</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::variable_noextern_const</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+<tr> <td>visible_ns::variable_static</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td bgcolor='red'>False</td> <td style='border:none'> </td> <td bgcolor='red'>False</td> <td>=</td> <td bgcolor='red'>False</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> <td>&amp;&amp;</td> <td bgcolor='green'>True</td> </tr>
+
+
+
+
+
+
+
+
+        </table>
+
+        <h3 id="vissource">B. Library source file</h3>
+<pre style='color:#000000;background:#ffffff;'><span style='color:#008000; '>// main.cpp</span>
+<span style='color:#004a43; '>#</span><span style='color:#004a43; '>define</span><span style='color:#004a43; '> __visible__ __attribute__</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>(</span><span style='color:#004a43; '>visibility</span><span style='color:#0000ff; '>(</span><span style='color:#0000e6; '>"</span><span style='color:#0000e6; '>default</span><span style='color:#0000e6; '>"</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>)</span>
+
+<span style='color:#004a43; '>#</span><span style='color:#004a43; '>define</span><span style='color:#004a43; '> NONCLASS_ENTITIES</span><span style='color:#0000ff; '>(</span><span style='color:#004a43; '>prefix</span><span style='color:#0000ff; '>)</span><span style='color:#004a43; '>                                           \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#008000; '>/*variables*/</span><span style='color:#004a43; '>                                                           \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;static  __visible__ int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '> __variable_static </span><span style='color:#0000ff; '>=</span><span style='color:#004a43; '> 0</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '>                \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;__visible__ int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '> __variable_noextern </span><span style='color:#0000ff; '>=</span><span style='color:#004a43; '> 0</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '>              \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;__visible__ const int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '> __variable_noextern_const </span><span style='color:#0000ff; '>=</span><span style='color:#004a43; '> 0</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '>  \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;extern  __visible__ int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '> __variable_extern</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '>                    \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '> __variable_extern </span><span style='color:#0000ff; '>=</span><span style='color:#004a43; '> 0</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '>                                    \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;\</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#008000; '>/*functions*/</span><span style='color:#004a43; '>                                                           \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;__visible__ inline  int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '> __function_inline</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>{</span><span style='color:#004a43; '> return 0</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '>    \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;__visible__ static  int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '> __function_static</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>{</span><span style='color:#004a43; '> return 0</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '>    \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;__visible__         int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '> __function</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>{</span><span style='color:#004a43; '> return 0</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '>           \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#008000; '>/**/</span>
+
+<span style='color:#004a43; '>#</span><span style='color:#004a43; '>define</span><span style='color:#004a43; '> CLASS_MEMBER_ENTITIES</span><span style='color:#0000ff; '>(</span><span style='color:#004a43; '>prefix</span><span style='color:#0000ff; '>)</span><span style='color:#004a43; '>                                                   \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;public</span><span style='color:#0000ff; '>:</span><span style='color:#004a43; '>                                                                             \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;static  int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '>   __public_static_member_function_inline</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>{</span><span style='color:#004a43; '> return 0</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>}</span><span style='color:#004a43; '>  \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;static  int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '>   __public_static_member_function</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '>                      \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;static  int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '>   __public_static_member_variable</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '>                        \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '>   __public_member_function_inline</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>{</span><span style='color:#004a43; '> return 0</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>}</span><span style='color:#004a43; '>         \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;inline  int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '>   __public_member_function_inline_not_in_body</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '>          \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '>   __public_member_function</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '>                             \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '>   __public_member_variable</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '>                               \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;private</span><span style='color:#0000ff; '>:</span><span style='color:#004a43; '>                                                                            \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;static  int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '>   __private_static_member_function_inline</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>{</span><span style='color:#004a43; '> return 0</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>}</span><span style='color:#004a43; '> \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;static  int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '>   __private_static_member_function</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '>                     \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;static  int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '>   __private_static_member_variable</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '>                       \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '>   __private_member_function_inline</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>{</span><span style='color:#004a43; '> return 0</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>}</span><span style='color:#004a43; '>        \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '>   __private_member_function</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '>                            \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '>   __private_member_variable</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '>                              \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#008000; '>/**/</span>
+
+<span style='color:#004a43; '>#</span><span style='color:#004a43; '>define</span><span style='color:#004a43; '> CLASS_MEMBER_ENTITIES_DEFINITION</span><span style='color:#0000ff; '>(</span><span style='color:#004a43; '>prefix</span><span style='color:#0000ff; '>)</span><span style='color:#004a43; '>                                \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '> __public_static_member_function</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>{</span><span style='color:#004a43; '> return 0</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>}</span><span style='color:#004a43; '>               \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '> __public_static_member_variable </span><span style='color:#0000ff; '>=</span><span style='color:#004a43; '> 0</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '>                          \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '> __public_member_function</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>{</span><span style='color:#004a43; '> return 0</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>}</span><span style='color:#004a43; '>                      \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '> __public_member_function_inline_not_in_body</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>{</span><span style='color:#004a43; '> return 0</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>}</span><span style='color:#004a43; '>   \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '> __private_static_member_function</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>{</span><span style='color:#004a43; '> return 0</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>}</span><span style='color:#004a43; '>              \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '> __private_static_member_variable </span><span style='color:#0000ff; '>=</span><span style='color:#004a43; '> 0</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '>                         \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;int prefix </span><span style='color:#0000ff; '>#</span><span style='color:#0000ff; '>#</span><span style='color:#004a43; '> __private_member_function</span><span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>{</span><span style='color:#004a43; '> return 0</span><span style='color:#0000ff; '>;</span><span style='color:#004a43; '> </span><span style='color:#0000ff; '>}</span><span style='color:#004a43; '>                     \</span>
+<span style='color:#004a43; '>&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#008000; '>/**/</span>
+
+NONCLASS_ENTITIES<span style='color:#0000ff; '>(</span>global_ns<span style='color:#0000ff; '>)</span>
+
+<span style='color:#0000ff; font-weight:bold; '>struct</span> base_nonvis_class_impl <span style='color:#0000ff; '>{</span>
+    <span style='color:#0000ff; font-weight:bold; '>virtual</span> <span style='color:#0000ff; '>~</span>base_nonvis_class_impl<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>{</span><span style='color:#0000ff; '>}</span>
+    CLASS_MEMBER_ENTITIES<span style='color:#0000ff; '>(</span>global_ns__base_nonvis_class<span style='color:#0000ff; '>)</span>
+<span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+CLASS_MEMBER_ENTITIES_DEFINITION<span style='color:#0000ff; '>(</span>base_nonvis_class_impl<span style='color:#0000ff; '>::</span>global_ns__base_nonvis_class<span style='color:#0000ff; '>)</span>
+
+
+<span style='color:#0000ff; font-weight:bold; '>struct</span> __visible__ some_class<span style='color:#0000ff; '>:</span> base_nonvis_class_impl <span style='color:#0000ff; '>{</span>
+    CLASS_MEMBER_ENTITIES<span style='color:#0000ff; '>(</span>global_ns__some_class<span style='color:#0000ff; '>)</span>
+
+    <span style='color:#0000ff; font-weight:bold; '>int</span> foo<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span> <span style='color:#0000ff; '>{</span>
+        <span style='color:#0000ff; font-weight:bold; '>return</span> base_nonvis_class_impl<span style='color:#0000ff; '>::</span>global_ns__base_nonvis_class__public_member_function<span style='color:#0000ff; '>(</span><span style='color:#0000ff; '>)</span><span style='color:#0000ff; '>;</span>
+    <span style='color:#0000ff; '>}</span>
+<span style='color:#0000ff; font-weight:bold; '>public</span><span style='color:#e34adc; '>:</span>
+    <span style='color:#0000ff; font-weight:bold; '>struct</span> public_nested_class <span style='color:#0000ff; '>{</span> 
+        CLASS_MEMBER_ENTITIES<span style='color:#0000ff; '>(</span>global_ns__some_class__public_nested_class<span style='color:#0000ff; '>)</span>
+    <span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+
+    <span style='color:#0000ff; font-weight:bold; '>struct</span> public_nested_class_not_inside<span style='color:#0000ff; '>;</span>
+<span style='color:#0000ff; font-weight:bold; '>private</span><span style='color:#e34adc; '>:</span>
+    <span style='color:#0000ff; font-weight:bold; '>struct</span> private_nested_class <span style='color:#0000ff; '>{</span>
+        CLASS_MEMBER_ENTITIES<span style='color:#0000ff; '>(</span>global_ns__some_class__private_nested_class<span style='color:#0000ff; '>)</span>
+    <span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+<span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+
+<span style='color:#0000ff; font-weight:bold; '>struct</span>  some_class<span style='color:#0000ff; '>::</span>public_nested_class_not_inside <span style='color:#0000ff; '>{</span>
+    CLASS_MEMBER_ENTITIES<span style='color:#0000ff; '>(</span>global_ns__some_class__public_nested_class_not_inside<span style='color:#0000ff; '>)</span>
+<span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+
+CLASS_MEMBER_ENTITIES_DEFINITION<span style='color:#0000ff; '>(</span>some_class<span style='color:#0000ff; '>::</span>global_ns__some_class<span style='color:#0000ff; '>)</span>
+CLASS_MEMBER_ENTITIES_DEFINITION<span style='color:#0000ff; '>(</span>some_class<span style='color:#0000ff; '>::</span>public_nested_class<span style='color:#0000ff; '>::</span>global_ns__some_class__public_nested_class<span style='color:#0000ff; '>)</span>
+CLASS_MEMBER_ENTITIES_DEFINITION<span style='color:#0000ff; '>(</span>some_class<span style='color:#0000ff; '>::</span>private_nested_class<span style='color:#0000ff; '>::</span>global_ns__some_class__private_nested_class<span style='color:#0000ff; '>)</span>
+CLASS_MEMBER_ENTITIES_DEFINITION<span style='color:#0000ff; '>(</span>some_class<span style='color:#0000ff; '>::</span>public_nested_class_not_inside<span style='color:#0000ff; '>::</span>global_ns__some_class__public_nested_class_not_inside<span style='color:#0000ff; '>)</span>
+
+
+<span style='color:#0000ff; font-weight:bold; '>struct</span> derived_nonvis_class_impl<span style='color:#0000ff; '>:</span> some_class <span style='color:#0000ff; '>{</span>
+    CLASS_MEMBER_ENTITIES<span style='color:#0000ff; '>(</span>global_ns__derived_nonvis_class<span style='color:#0000ff; '>)</span>
+<span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+CLASS_MEMBER_ENTITIES_DEFINITION<span style='color:#0000ff; '>(</span>derived_nonvis_class_impl<span style='color:#0000ff; '>::</span>global_ns__derived_nonvis_class<span style='color:#0000ff; '>)</span>
+
+
+<span style='color:#0000ff; font-weight:bold; '>namespace</span> <span style='color:#008000; '>/*anonymous_ns*/</span> <span style='color:#0000ff; '>{</span>
+    NONCLASS_ENTITIES<span style='color:#0000ff; '>(</span>anonymous_ns<span style='color:#0000ff; '>)</span>
+    <span style='color:#0000ff; font-weight:bold; '>struct</span> __visible__ anonymous_ns_class <span style='color:#0000ff; '>{</span>
+        CLASS_MEMBER_ENTITIES<span style='color:#0000ff; '>(</span>anonymous_ns__some_class<span style='color:#0000ff; '>)</span>
+    <span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+    CLASS_MEMBER_ENTITIES_DEFINITION<span style='color:#0000ff; '>(</span>anonymous_ns_class<span style='color:#0000ff; '>::</span>anonymous_ns__some_class<span style='color:#0000ff; '>)</span>
+<span style='color:#0000ff; '>}</span>
+
+<span style='color:#0000ff; font-weight:bold; '>namespace</span> visible_ns __visible__ <span style='color:#0000ff; '>{</span>
+    NONCLASS_ENTITIES<span style='color:#0000ff; '>(</span>visible_ns<span style='color:#0000ff; '>)</span>
+    <span style='color:#0000ff; font-weight:bold; '>struct</span> __visible__ visible_ns_class <span style='color:#0000ff; '>{</span>
+        CLASS_MEMBER_ENTITIES<span style='color:#0000ff; '>(</span>visible_ns__some_class<span style='color:#0000ff; '>)</span>
+    <span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+    CLASS_MEMBER_ENTITIES_DEFINITION<span style='color:#0000ff; '>(</span>visible_ns_class<span style='color:#0000ff; '>::</span>visible_ns__some_class<span style='color:#0000ff; '>)</span>
+
+    <span style='color:#0000ff; font-weight:bold; '>namespace</span> nested <span style='color:#0000ff; '>{</span>
+        NONCLASS_ENTITIES<span style='color:#0000ff; '>(</span>visible_ns__nested_ns<span style='color:#0000ff; '>)</span>
+        <span style='color:#0000ff; font-weight:bold; '>struct</span> __visible__ visible_ns_nested_ns_class <span style='color:#0000ff; '>{</span>
+            CLASS_MEMBER_ENTITIES<span style='color:#0000ff; '>(</span>visible_ns__nested_ns__some_class<span style='color:#0000ff; '>)</span>
+<span style='color:#e34adc; '>&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;&#xa0;</span><span style='color:#0000ff; font-weight:bold; '>public</span><span style='color:#e34adc; '>:</span>
+            <span style='color:#0000ff; font-weight:bold; '>struct</span> public_nested_class <span style='color:#0000ff; '>{</span> 
+                CLASS_MEMBER_ENTITIES<span style='color:#0000ff; '>(</span>visible_ns__nested_ns__some_class__public_nested_class<span style='color:#0000ff; '>)</span>
+            <span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+
+            <span style='color:#0000ff; font-weight:bold; '>struct</span> public_nested_class_not_inside<span style='color:#0000ff; '>;</span>
+        <span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+
+        <span style='color:#0000ff; font-weight:bold; '>struct</span> visible_ns_nested_ns_class<span style='color:#0000ff; '>::</span>public_nested_class_not_inside <span style='color:#0000ff; '>{</span>
+                CLASS_MEMBER_ENTITIES<span style='color:#0000ff; '>(</span>visible_ns__nested_ns__some_class__public_nested_class_not_inside<span style='color:#0000ff; '>)</span>
+        <span style='color:#0000ff; '>}</span><span style='color:#0000ff; '>;</span>
+
+        CLASS_MEMBER_ENTITIES_DEFINITION<span style='color:#0000ff; '>(</span>visible_ns_nested_ns_class<span style='color:#0000ff; '>::</span>visible_ns__nested_ns__some_class<span style='color:#0000ff; '>)</span>
+        CLASS_MEMBER_ENTITIES_DEFINITION<span style='color:#0000ff; '>(</span>visible_ns_nested_ns_class<span style='color:#0000ff; '>::</span>public_nested_class<span style='color:#0000ff; '>::</span>visible_ns__nested_ns__some_class__public_nested_class<span style='color:#0000ff; '>)</span>
+        CLASS_MEMBER_ENTITIES_DEFINITION<span style='color:#0000ff; '>(</span>visible_ns_nested_ns_class<span style='color:#0000ff; '>::</span>public_nested_class_not_inside<span style='color:#0000ff; '>::</span>visible_ns__nested_ns__some_class__public_nested_class_not_inside<span style='color:#0000ff; '>)</span>
+    <span style='color:#0000ff; '>}</span>
+<span style='color:#0000ff; '>}</span>
+</pre>
+
+
+
+
+
+
+        <h3 id="visscript">C. Program to generate visibility table</h3>
+<pre style='color:#000000;background:#ffffff;'><span style='color:#696969; '>#!/usr/bin/python</span>
+
+<span style='color:#800000; font-weight:bold; '>import</span> re
+<span style='color:#800000; font-weight:bold; '>import</span> subprocess
+
+<span style='color:#696969; '># Compiles the main.cpp, extracts all the exported entities using readelf</span>
+<span style='color:#800000; font-weight:bold; '>def</span> get_exported_entities<span style='color:#808030; '>(</span>compiler<span style='color:#808030; '>,</span> all_entities<span style='color:#808030; '>)</span><span style='color:#808030; '>:</span>
+    popen_result <span style='color:#808030; '>=</span> subprocess<span style='color:#808030; '>.</span>Popen<span style='color:#808030; '>(</span>compiler <span style='color:#44aadd; '>+</span> <span style='color:#0000e6; '>' -g -fvisibility=hidden -shared main.cpp -o libmain.so &amp;&amp; readelf -sW libmain.so'</span><span style='color:#808030; '>,</span>
+        shell<span style='color:#808030; '>=</span><span style='color:#074726; '>True</span><span style='color:#808030; '>,</span>
+        stdout<span style='color:#808030; '>=</span>subprocess<span style='color:#808030; '>.</span>PIPE<span style='color:#808030; '>,</span>
+        stderr<span style='color:#808030; '>=</span>subprocess<span style='color:#808030; '>.</span>PIPE<span style='color:#808030; '>)</span>
+    popen_result<span style='color:#808030; '>.</span>wait<span style='color:#808030; '>(</span><span style='color:#808030; '>)</span>
+
+    <span style='color:#800000; font-weight:bold; '>if</span> popen_result<span style='color:#808030; '>.</span>returncode <span style='color:#44aadd; '>!=</span> <span style='color:#008c00; '>0</span><span style='color:#808030; '>:</span>
+        <span style='color:#800000; font-weight:bold; '>print</span> popen_result<span style='color:#808030; '>.</span>stderr<span style='color:#808030; '>.</span>read<span style='color:#808030; '>(</span><span style='color:#808030; '>)</span>
+        exit<span style='color:#808030; '>(</span>popen_result<span style='color:#808030; '>.</span>returncode<span style='color:#808030; '>)</span>
+
+    output <span style='color:#808030; '>=</span> popen_result<span style='color:#808030; '>.</span>stdout
+    exported <span style='color:#808030; '>=</span> <span style='color:#400000; '>set</span><span style='color:#808030; '>(</span><span style='color:#808030; '>)</span>
+    <span style='color:#800000; font-weight:bold; '>while</span> <span style='color:#074726; '>True</span><span style='color:#808030; '>:</span>
+        line <span style='color:#808030; '>=</span> output<span style='color:#808030; '>.</span>readline<span style='color:#808030; '>(</span><span style='color:#808030; '>)</span>
+        <span style='color:#800000; font-weight:bold; '>if</span> <span style='color:#800000; font-weight:bold; '>not</span> line<span style='color:#808030; '>:</span>
+            <span style='color:#800000; font-weight:bold; '>break</span>
+
+        <span style='color:#800000; font-weight:bold; '>if</span> <span style='color:#800000; font-weight:bold; '>not</span> <span style='color:#0000e6; '>" GLOBAL "</span> <span style='color:#800000; font-weight:bold; '>in</span> line<span style='color:#808030; '>:</span>
+            <span style='color:#800000; font-weight:bold; '>continue</span>
+
+        exported<span style='color:#808030; '>.</span>update<span style='color:#808030; '>(</span><span style='color:#808030; '>[</span>e <span style='color:#800000; font-weight:bold; '>for</span> e <span style='color:#800000; font-weight:bold; '>in</span> all_entities <span style='color:#800000; font-weight:bold; '>if</span> e <span style='color:#800000; font-weight:bold; '>in</span> line<span style='color:#808030; '>]</span><span style='color:#808030; '>)</span>
+
+    <span style='color:#800000; font-weight:bold; '>return</span> exported
+
+
+<span style='color:#800000; font-weight:bold; '>def</span> extend_with_colors<span style='color:#808030; '>(</span>items<span style='color:#808030; '>)</span><span style='color:#808030; '>:</span>
+    ext <span style='color:#808030; '>=</span> <span style='color:#800080; '>{</span><span style='color:#800080; '>}</span>
+    <span style='color:#800000; font-weight:bold; '>for</span> key<span style='color:#808030; '>,</span> value <span style='color:#800000; font-weight:bold; '>in</span> items<span style='color:#808030; '>.</span>iteritems<span style='color:#808030; '>(</span><span style='color:#808030; '>)</span><span style='color:#808030; '>:</span>
+        ext<span style='color:#808030; '>[</span>key <span style='color:#44aadd; '>+</span> <span style='color:#0000e6; '>"_color"</span><span style='color:#808030; '>]</span> <span style='color:#808030; '>=</span> <span style='color:#0000e6; '>'green'</span> <span style='color:#800000; font-weight:bold; '>if</span> value <span style='color:#800000; font-weight:bold; '>else</span> <span style='color:#0000e6; '>'red'</span>
+        
+    items<span style='color:#808030; '>.</span>update<span style='color:#808030; '>(</span>ext<span style='color:#808030; '>)</span>
+
+
+<span style='color:#696969; '># Preprocesses the main.cpp, extracts all the entities with two underlines in the middle</span>
+<span style='color:#800000; font-weight:bold; '>def</span> get_all_entities<span style='color:#808030; '>(</span><span style='color:#808030; '>)</span><span style='color:#808030; '>:</span>
+    popen_result <span style='color:#808030; '>=</span> subprocess<span style='color:#808030; '>.</span>Popen<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'g++ -E main.cpp'</span><span style='color:#808030; '>,</span>
+        shell<span style='color:#808030; '>=</span><span style='color:#074726; '>True</span><span style='color:#808030; '>,</span>
+        stdout<span style='color:#808030; '>=</span>subprocess<span style='color:#808030; '>.</span>PIPE<span style='color:#808030; '>,</span>
+        stderr<span style='color:#808030; '>=</span>subprocess<span style='color:#808030; '>.</span>PIPE<span style='color:#808030; '>)</span>
+    popen_result<span style='color:#808030; '>.</span>wait<span style='color:#808030; '>(</span><span style='color:#808030; '>)</span>
+
+    <span style='color:#800000; font-weight:bold; '>if</span> popen_result<span style='color:#808030; '>.</span>returncode <span style='color:#44aadd; '>!=</span> <span style='color:#008c00; '>0</span><span style='color:#808030; '>:</span>
+        <span style='color:#800000; font-weight:bold; '>print</span> popen_result<span style='color:#808030; '>.</span>stderr<span style='color:#808030; '>.</span>read<span style='color:#808030; '>(</span><span style='color:#808030; '>)</span>
+        exit<span style='color:#808030; '>(</span>popen_result<span style='color:#808030; '>.</span>returncode<span style='color:#808030; '>)</span>
+
+    output <span style='color:#808030; '>=</span> popen_result<span style='color:#808030; '>.</span>stdout
+    all_entities <span style='color:#808030; '>=</span> <span style='color:#808030; '>[</span><span style='color:#808030; '>]</span>
+    <span style='color:#800000; font-weight:bold; '>while</span> <span style='color:#074726; '>True</span><span style='color:#808030; '>:</span>
+        line <span style='color:#808030; '>=</span> output<span style='color:#808030; '>.</span>readline<span style='color:#808030; '>(</span><span style='color:#808030; '>)</span>
+        <span style='color:#800000; font-weight:bold; '>if</span> <span style='color:#800000; font-weight:bold; '>not</span> line<span style='color:#808030; '>:</span>
+            <span style='color:#800000; font-weight:bold; '>break</span>
+
+        all_entities <span style='color:#44aadd; '>+</span><span style='color:#808030; '>=</span> re<span style='color:#808030; '>.</span>findall<span style='color:#808030; '>(</span><span style='color:#0000e6; '>"([_a-z]+__[_a-z]+)"</span><span style='color:#808030; '>,</span> line<span style='color:#808030; '>)</span>
+
+    <span style='color:#800000; font-weight:bold; '>return</span> <span style='color:#400000; '>list</span><span style='color:#808030; '>(</span><span style='color:#400000; '>set</span><span style='color:#808030; '>(</span>all_entities<span style='color:#808030; '>)</span><span style='color:#808030; '>)</span>
+
+
+<span style='color:#800000; font-weight:bold; '>def</span> get_extern_linkage_entities<span style='color:#808030; '>(</span><span style='color:#808030; '>)</span><span style='color:#808030; '>:</span>
+    vis_suffix <span style='color:#808030; '>=</span> <span style='color:#808030; '>[</span>
+        <span style='color:#0000e6; '>'__function'</span><span style='color:#808030; '>,</span>
+        <span style='color:#0000e6; '>'__function_inline'</span><span style='color:#808030; '>,</span>
+        <span style='color:#0000e6; '>'__variable_noextern'</span><span style='color:#808030; '>,</span>
+        <span style='color:#0000e6; '>'__variable_extern'</span><span style='color:#808030; '>,</span>
+
+        <span style='color:#0000e6; '>'__public_member_function'</span><span style='color:#808030; '>,</span>
+        <span style='color:#0000e6; '>'__public_member_function_inline'</span><span style='color:#808030; '>,</span>
+        <span style='color:#0000e6; '>'__public_member_function_inline_not_in_body'</span><span style='color:#808030; '>,</span>
+        <span style='color:#0000e6; '>'__public_static_member_function'</span><span style='color:#808030; '>,</span>
+        <span style='color:#0000e6; '>'__public_static_member_function_inline'</span><span style='color:#808030; '>,</span>
+
+        <span style='color:#0000e6; '>'__private_member_function'</span><span style='color:#808030; '>,</span>
+        <span style='color:#0000e6; '>'__private_member_function_inline'</span><span style='color:#808030; '>,</span>
+        <span style='color:#0000e6; '>'__private_static_member_function'</span><span style='color:#808030; '>,</span>
+        <span style='color:#0000e6; '>'__private_static_member_function_inline'</span><span style='color:#808030; '>,</span>
+
+        <span style='color:#0000e6; '>'__public_static_member_variable'</span><span style='color:#808030; '>,</span>
+        <span style='color:#0000e6; '>'__private_static_member_variable'</span><span style='color:#808030; '>,</span>
+    <span style='color:#808030; '>]</span>
+
+    extern_linkage <span style='color:#808030; '>=</span> <span style='color:#400000; '>set</span><span style='color:#808030; '>(</span><span style='color:#808030; '>)</span>
+    <span style='color:#800000; font-weight:bold; '>for</span> i <span style='color:#800000; font-weight:bold; '>in</span> vis_suffix<span style='color:#808030; '>:</span>
+        <span style='color:#800000; font-weight:bold; '>if</span> <span style='color:#0000e6; '>"member"</span> <span style='color:#800000; font-weight:bold; '>in</span> i<span style='color:#808030; '>:</span>
+            extern_linkage<span style='color:#808030; '>.</span>add<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'global_ns__base_nonvis_class'</span> <span style='color:#44aadd; '>+</span> i<span style='color:#808030; '>)</span>
+            extern_linkage<span style='color:#808030; '>.</span>add<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'global_ns__some_class'</span> <span style='color:#44aadd; '>+</span> i<span style='color:#808030; '>)</span>
+            extern_linkage<span style='color:#808030; '>.</span>add<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'global_ns__derived_nonvis_class'</span> <span style='color:#44aadd; '>+</span> i<span style='color:#808030; '>)</span>
+            extern_linkage<span style='color:#808030; '>.</span>add<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'global_ns__some_class__public_nested_class'</span> <span style='color:#44aadd; '>+</span> i<span style='color:#808030; '>)</span>
+            extern_linkage<span style='color:#808030; '>.</span>add<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'global_ns__some_class__public_nested_class_not_inside'</span> <span style='color:#44aadd; '>+</span> i<span style='color:#808030; '>)</span>
+            extern_linkage<span style='color:#808030; '>.</span>add<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'global_ns__some_class__private_nested_class'</span> <span style='color:#44aadd; '>+</span> i<span style='color:#808030; '>)</span>
+            extern_linkage<span style='color:#808030; '>.</span>add<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'visible_ns__some_class'</span> <span style='color:#44aadd; '>+</span> i<span style='color:#808030; '>)</span>
+            extern_linkage<span style='color:#808030; '>.</span>add<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'visible_ns__nested_ns__some_class'</span> <span style='color:#44aadd; '>+</span> i<span style='color:#808030; '>)</span>
+            extern_linkage<span style='color:#808030; '>.</span>add<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'visible_ns__nested_ns__some_class__public_nested_class'</span> <span style='color:#44aadd; '>+</span> i<span style='color:#808030; '>)</span>
+            extern_linkage<span style='color:#808030; '>.</span>add<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'visible_ns__nested_ns__some_class__public_nested_class_not_inside'</span> <span style='color:#44aadd; '>+</span> i<span style='color:#808030; '>)</span>
+        <span style='color:#800000; font-weight:bold; '>else</span><span style='color:#808030; '>:</span>
+            extern_linkage<span style='color:#808030; '>.</span>add<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'global_ns'</span> <span style='color:#44aadd; '>+</span> i<span style='color:#808030; '>)</span>
+            extern_linkage<span style='color:#808030; '>.</span>add<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'visible_ns'</span> <span style='color:#44aadd; '>+</span> i<span style='color:#808030; '>)</span>
+            extern_linkage<span style='color:#808030; '>.</span>add<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'visible_ns__nested_ns'</span> <span style='color:#44aadd; '>+</span> i<span style='color:#808030; '>)</span>
+
+    <span style='color:#800000; font-weight:bold; '>return</span> extern_linkage
+
+
+
+<span style='color:#800000; font-weight:bold; '>def</span> main<span style='color:#808030; '>(</span><span style='color:#808030; '>)</span><span style='color:#808030; '>:</span>
+    all_entities <span style='color:#808030; '>=</span> get_all_entities<span style='color:#808030; '>(</span><span style='color:#808030; '>)</span>
+    extern_linkage <span style='color:#808030; '>=</span> get_extern_linkage_entities<span style='color:#808030; '>(</span><span style='color:#808030; '>)</span>
+
+    gcc46_exports <span style='color:#808030; '>=</span> get_exported_entities<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'g++-4.6'</span><span style='color:#808030; '>,</span> all_entities<span style='color:#808030; '>)</span>
+    gcc48_exports <span style='color:#808030; '>=</span> get_exported_entities<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'g++-4.8'</span><span style='color:#808030; '>,</span> all_entities<span style='color:#808030; '>)</span>
+    gcc53_exports <span style='color:#808030; '>=</span> get_exported_entities<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'g++-5'</span><span style='color:#808030; '>,</span> all_entities<span style='color:#808030; '>)</span>
+    clang34_exports <span style='color:#808030; '>=</span> get_exported_entities<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'clang++'</span><span style='color:#808030; '>,</span> all_entities<span style='color:#808030; '>)</span>
+
+    result <span style='color:#808030; '>=</span> <span style='color:#808030; '>[</span><span style='color:#808030; '>]</span>
+
+    pattern <span style='color:#808030; '>=</span> <span style='color:#808030; '>(</span>
+        <span style='color:#0000e6; '>"&lt;tr> "</span>
+            <span style='color:#0000e6; '>"&lt;td>{name}&lt;/td> "</span>
+            <span style='color:#0000e6; '>"&lt;td bgcolor='{gcc46_color}'>{gcc46}&lt;/td> "</span>
+            <span style='color:#0000e6; '>"&lt;td bgcolor='{gcc48_color}'>{gcc48}&lt;/td> "</span>
+            <span style='color:#0000e6; '>"&lt;td bgcolor='{gcc53_color}'>{gcc53}&lt;/td> "</span>
+            <span style='color:#0000e6; '>"&lt;td bgcolor='{clang34_color}'>{clang34}&lt;/td> "</span>
+            <span style='color:#0000e6; '>"&lt;td style='border:none'> &lt;/td> "</span>
+            <span style='color:#0000e6; '>"&lt;td bgcolor='{computed_color}'>{computed}&lt;/td> "</span>
+            <span style='color:#0000e6; '>"&lt;td>=&lt;/td> "</span>
+            <span style='color:#0000e6; '>"&lt;td bgcolor='{linkage_color}'>{linkage}&lt;/td> "</span>
+            <span style='color:#0000e6; '>"&lt;td>&amp;amp;&amp;amp;&lt;/td> "</span>
+            <span style='color:#0000e6; '>"&lt;td bgcolor='{noinline_color}'>{noinline}&lt;/td> "</span>
+            <span style='color:#0000e6; '>"&lt;td>&amp;amp;&amp;amp;&lt;/td> "</span>
+            <span style='color:#0000e6; '>"&lt;td bgcolor='{visible_color}'>{visible}&lt;/td> "</span>
+        <span style='color:#0000e6; '>"&lt;/tr>"</span>
+    <span style='color:#808030; '>)</span>
+
+    <span style='color:#800000; font-weight:bold; '>for</span> entity <span style='color:#800000; font-weight:bold; '>in</span> all_entities<span style='color:#808030; '>:</span>
+        not_base_or_derived <span style='color:#808030; '>=</span> <span style='color:#800000; font-weight:bold; '>not</span> <span style='color:#0000e6; '>"derived"</span> <span style='color:#800000; font-weight:bold; '>in</span> entity <span style='color:#800000; font-weight:bold; '>and</span> <span style='color:#800000; font-weight:bold; '>not</span> <span style='color:#0000e6; '>"base"</span> <span style='color:#800000; font-weight:bold; '>in</span> entity
+        is_extern <span style='color:#808030; '>=</span> entity <span style='color:#800000; font-weight:bold; '>in</span> extern_linkage
+        not_inline <span style='color:#808030; '>=</span> <span style='color:#800000; font-weight:bold; '>not</span> <span style='color:#0000e6; '>"inline"</span> <span style='color:#800000; font-weight:bold; '>in</span> entity
+        computed_vis <span style='color:#808030; '>=</span> not_base_or_derived <span style='color:#800000; font-weight:bold; '>and</span> not_inline <span style='color:#800000; font-weight:bold; '>and</span> is_extern
+        
+        s <span style='color:#808030; '>=</span> <span style='color:#800080; '>{</span>
+            <span style='color:#0000e6; '>'name'</span><span style='color:#808030; '>:</span> entity<span style='color:#808030; '>,</span>
+            <span style='color:#0000e6; '>'gcc46'</span><span style='color:#808030; '>:</span> entity <span style='color:#800000; font-weight:bold; '>in</span> gcc46_exports<span style='color:#808030; '>,</span>
+            <span style='color:#0000e6; '>'gcc48'</span><span style='color:#808030; '>:</span> entity <span style='color:#800000; font-weight:bold; '>in</span> gcc48_exports<span style='color:#808030; '>,</span>
+            <span style='color:#0000e6; '>'gcc53'</span><span style='color:#808030; '>:</span> entity <span style='color:#800000; font-weight:bold; '>in</span> gcc53_exports<span style='color:#808030; '>,</span>
+            <span style='color:#0000e6; '>'clang34'</span><span style='color:#808030; '>:</span> entity <span style='color:#800000; font-weight:bold; '>in</span> clang34_exports<span style='color:#808030; '>,</span>
+            <span style='color:#0000e6; '>'computed'</span><span style='color:#808030; '>:</span> computed_vis<span style='color:#808030; '>,</span>
+            <span style='color:#0000e6; '>'linkage'</span><span style='color:#808030; '>:</span> is_extern<span style='color:#808030; '>,</span>
+            <span style='color:#0000e6; '>'noinline'</span><span style='color:#808030; '>:</span> not_inline<span style='color:#808030; '>,</span>
+            <span style='color:#0000e6; '>'visible'</span><span style='color:#808030; '>:</span> not_base_or_derived<span style='color:#808030; '>,</span>
+        <span style='color:#800080; '>}</span>
+        extend_with_colors<span style='color:#808030; '>(</span>s<span style='color:#808030; '>)</span> 
+        result<span style='color:#808030; '>.</span>append<span style='color:#808030; '>(</span> pattern<span style='color:#808030; '>.</span>format<span style='color:#808030; '>(</span><span style='color:#44aadd; '>**</span>s<span style='color:#808030; '>)</span> <span style='color:#808030; '>)</span>
+
+    <span style='color:#800000; font-weight:bold; '>for</span> l <span style='color:#800000; font-weight:bold; '>in</span> <span style='color:#400000; '>sorted</span><span style='color:#808030; '>(</span>result<span style='color:#808030; '>)</span><span style='color:#808030; '>:</span>
+        <span style='color:#800000; font-weight:bold; '>print</span> l<span style='color:#808030; '>.</span>replace<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'__'</span><span style='color:#808030; '>,</span><span style='color:#0000e6; '>'::'</span><span style='color:#808030; '>)</span><span style='color:#808030; '>.</span>replace<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'global_ns'</span><span style='color:#808030; '>,</span> <span style='color:#0000e6; '>''</span><span style='color:#808030; '>)</span><span style='color:#808030; '>.</span>replace<span style='color:#808030; '>(</span><span style='color:#0000e6; '>'anonymous_ns'</span><span style='color:#808030; '>,</span> <span style='color:#0000e6; '>'&amp;lt;anonymous&amp;gt;'</span><span style='color:#808030; '>)</span>
+
+
+<span style='color:#800000; font-weight:bold; '>if</span> <span style='color:#074726; '>__name__</span> <span style='color:#44aadd; '>==</span> <span style='color:#0000e6; '>"__main__"</span><span style='color:#808030; '>:</span>
+    main<span style='color:#808030; '>(</span><span style='color:#808030; '>)</span>
+</pre>
+
+</body></html>
