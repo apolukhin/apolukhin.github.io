@@ -20,7 +20,7 @@
 		<address>&nbsp;</address>
 		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
 		<address>&nbsp;</address>
-		<address>Date: 2016-04-07</address>
+		<address>Date: 2016-04-19</address>
 		<h1>Add Constexpr Modifiers to Functions in &lt;algorithm&gt; and <span class="changed-deleted">&lt;cstring&gt;</span> <span class="changed-added">&lt;utility&gt;</span> Headers</h1>
 
  <span class="changed-added">Changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0202r0.html">P0202R0</a> are marked with blue.</span> <button onclick="show_hide_deleted()">Show/Hide deleted lines from P0202R0</button>
@@ -110,6 +110,12 @@ int main() {
 		Those algorithms are not marked with constexpr in this wording.</p>
 
 		<p class="changed-added">libc++ uses <code>goto</code> in some algorithms, this must be pretty simple to fix without affecting performance.</p>
+
+
+		<h3 class="changed-added">D. Mark <code>ExecutionPolicy&amp;&amp;</code> overloads with <code>constexpr</code>.</h3>
+		<p class="changed-added">N4582 already marks some of the <code>ExecutionPolicy&amp;&amp;</code> overloads with <code>constexpr</code>, which
+		may be useful with <code>sequential</code> execution policy.
+		This wording sticks to the existing N4582 practice and marks the <code>ExecutionPolicy&amp;&amp;</code> overloads with <code>constexpr</code>.</p>
 
 		<h2>IV. Proposed wording relative to <span class="changed-deleted">N4567</span><span class="changed-added">N4582</span></h2>
 		<p>All the additions to the Standard are marked with <span class="addition">underlined green</span>.</p>
