@@ -20,14 +20,11 @@
 		<address>&nbsp;</address>
 		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
 		<address>&nbsp;</address>
-		<address>Date: 2016-07-04</address>
+		<address>Date: 2016-07-09</address>
 		<h1>Constexpr for std::complex</h1>
 
 		<h2>I. Introduction and Motivation</h2>
-		<p>The Standard Library provides a great collection of containers and algorithms, many of which currently lack constexpr support.
-			Even a simple <code>constexpr</code> usage requires reimplementing a big bunch of the Standard Library.</p>
-
-		<p>Users of the Standard Library wish to perform complex-number arithmetic at compile time. There is a request in "C++ Standard Library Active Issues List" for a <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-active.html#2693">constexpr for various std::complex arithmetic and value operators</a>. Currently the following code fails to compile:</p>
+		<p>There is a request in the "C++ Standard Library Active Issues List" for a <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-active.html#2693">constexpr for various std::complex arithmetic and value operators</a>. Currently the following code fails to compile:</p>
 
 		<p></p><blockquote><pre>#include &lt;array&gt;
 #include &lt;algorithm&gt;
@@ -47,10 +44,10 @@ int main() {
 
 
 		<h2>II. Impact on the Standard</h2>
-		<p>This proposal is a pure library extension. It proposes changes to
+		<p>This proposal is a pure library extension. It proposes changes to the
 			existing header <code>&lt;complex&gt;</code> such that the changes do not break existing code
 			and do not degrade performance. It does not require any changes in the core 
-			language and it could be implemented in standard C++.
+			language and it can be implemented in standard C++.
 		</p>
 
 		<h2>III. Analysis of existing <code>&lt;complex&gt;</code> implementations and making them constexpr.</h2>
@@ -61,9 +58,9 @@ int main() {
 
 		<p><code>abs(const complex&lt;T&gt;&amp;)</code> seems highly usable however it requires either <code>sqrt</code> or <code>hypot</code> to be <code>constexpr</code>. Forcing complicated math functions to be constexpr intrinsics may be a burden for compiler developers.</p>
 
-		<p>Adding <code>constexpr</code> to libc++ according to a wording in section IV of this paper resulted in <a href="https://apolukhin.github.io/papers/constexpr_complex/constexpr_complex__gcc_ok.hpp">a <code>&lt;complex&gt;</code> header</a> that works well on GCC-6. <code>__builtin_logb</code>, <code>__builtin_isnan</code> and <code>__builtin_scalbln</code> are recognised by Clang, but they are not usable in constant expressions right now. <a href="https://apolukhin.github.io/papers/constexpr_complex/constexpr_complex.hpp">Header</a> with a hand-made naive <code>logb</code>, <code>isnan</code> and <code>scalbn</code> became usable on CLANG-3.6 too.</p> 
+		<p>Adding <code>constexpr</code> to libc++ according to the wording in section IV of this paper resulted in <a href="https://apolukhin.github.io/papers/constexpr_complex/constexpr_complex__gcc_ok.hpp">a <code>&lt;complex&gt;</code> header</a> that works well on GCC-6. <code>__builtin_logb</code>, <code>__builtin_isnan</code> and <code>__builtin_scalbln</code> are recognised by Clang, but they are not usable in constant expressions right now. <a href="https://apolukhin.github.io/papers/constexpr_complex/constexpr_complex.hpp">Header</a> with a hand-made naïve <code>logb</code>, <code>isnan</code> and <code>scalbn</code> became usable on CLANG-3.6 too.</p> 
 
-		<h2>IV. Proposed wording.</h2>
+		<h2>IV. Proposed wording relative to the Working Draft N4594.</h2>
 		<h3>A. Modifications to "Header &lt;complex&gt; synopsis" [complex.syn]</h3>
 		<pre>namespace std {
 template&lt;class T&gt; class complex;
@@ -274,7 +271,7 @@ complex number.
 		<h3>D. Modifications to remaining parts of "Complex numbers" [complex.*]</h3>
 		<p><i><b>Note for the editor:</b> All the functions marked with <code>constexpr</code> in previous paragraphs of this document must be accordingly marked with <code>constexpr</code>
 			in detailed descriptions.
-			For shortness only modifications to "complex member functions" [complex.members] are shown in this paper.</i>
+			For brevity only modifications to "complex member functions" [complex.members] are shown in this paper.</i>
 		</p>
 		<pre>
 template&lt;class T&gt; constexpr complex(const T& re = T(), const T& im = T());
@@ -302,23 +299,26 @@ constexpr T imag() const;
 		<p>Revision 0:</p>
 		<ul>
 			<li>
-				Initial proposal
+				Initial proposal.
 			</li>
 		</ul>
 
 
 		<h2>VI. References</h2>
 		<p>[<a name="N4594">N4594</a>] Working Draft, Standard for Programming Language C++. Available online at
-					<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/n4594.pdf">www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/n4594.pdf</a></p>
+					<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/n4594.pdf">www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/n4594.pdf</a>.</p>
 		<p>[<a name="Antony Polukhin">Antony Polukhin</a>] Proof of concept implementation.
 			Available online at <a href="https://github.com/apolukhin/apolukhin.github.io/tree/master/papers/constexpr_complex/">
-				https://github.com/apolukhin/apolukhin.github.io/tree/master/papers/constexpr_complex/</a>
+				https://github.com/apolukhin/apolukhin.github.io/tree/master/papers/constexpr_complex/</a>.
 			</p>
 		<p>[<a name="LWG2693">LWG2693</a>] constexpr for various std::complex arithmetic and value operators. Available online at
 					<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-active.html#2693">
-				http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-active.html#2693</a>
+				http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-active.html#2693</a>.
 			</p>
 		<p>&nbsp;</p>
+
+		<h2>VII. Acknowledgements</h2>
+		<p>Walter E. Brown pointed me at the LWG 2693 issue, provided numerous comments, corrections, and suggestions for this proposal.</p>
 
 		<script type="text/javascript">
 		var show = true;
