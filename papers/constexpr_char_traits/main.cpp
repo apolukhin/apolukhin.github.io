@@ -3,7 +3,7 @@
 
 // Simple constexpr char trait
 template <class T>
-struct ce_char_triat : std::char_traits<T> {
+struct ce_char_trait : std::char_traits<T> {
     using base_t = std::char_traits<T>;
     using size_t = std::size_t;
     using char_type = typename base_t::char_type;
@@ -41,7 +41,7 @@ struct ce_char_triat : std::char_traits<T> {
 
 // constexpr char trait that uses intrinsics
 template <class T>
-struct ce_tuned_char_triat : ce_char_triat<T> {
+struct ce_tuned_char_trait : ce_char_trait<T> {
     using base_t = std::char_traits<T>;
     using size_t = std::size_t;
     using char_type = typename base_t::char_type;
@@ -61,7 +61,7 @@ struct ce_tuned_char_triat : ce_char_triat<T> {
 
 // non-constexpr char trait that uses C funtion calls
 template <class T>
-struct char_triat_c : std::char_traits<T> {
+struct char_trait_c : std::char_traits<T> {
     using base_t = std::char_traits<T>;
     using size_t = std::size_t;
     using char_type = typename base_t::char_type;
@@ -280,41 +280,56 @@ private:
 public:
 
     template <template <class> class Tester>
-    void measure_different_triats() const {
+    void measure_different_traits() const {
         start_table();
-        print_row("String length", "hand-made+intrinsics<char>", "std::char_traits<char>", "Relation", "");
+        print_row("String length", "intrinsics<char>", "c_calls<char>", "Relation", "deviation");
         for (std::size_t string_length = 10; string_length < string_length_max; string_length = next(string_length))
-            test<Tester, ce_tuned_char_triat, std::char_traits, char>     (string_length);
+            test<Tester, ce_tuned_char_trait, char_trait_c, char>     (string_length);
         end_table();
 
         start_table();
-        print_row("String length", "hand-made<wchar_t>", "std::char_traits<wchar_t>", "Relation", "");
+        print_row("String length", "intrinsics<char>", "hand-made<char>", "Relation", "deviation");
         for (std::size_t string_length = 10; string_length < string_length_max; string_length = next(string_length))
-            test<Tester, ce_char_triat,       std::char_traits, wchar_t>  (string_length);
+            test<Tester, ce_tuned_char_trait, ce_char_trait, char>     (string_length);
         end_table();
 
         start_table();
-        print_row("String length", "hand-made<char16_t>", "std::char_traits<char16_t>", "Relation", "");
+        print_row("String length", "hand-made<wchar_t>", "std::char_traits<wchar_t>", "Relation", "deviation");
         for (std::size_t string_length = 10; string_length < string_length_max; string_length = next(string_length))
-            test<Tester, ce_char_triat,       std::char_traits, char16_t> (string_length);
+            test<Tester, ce_char_trait,       std::char_traits, wchar_t>  (string_length);
+        end_table();
+
+
+
+        std::cout << "----------- misc... -------------\n";
+        start_table();
+        print_row("String length", "intrinsics<char>", "std::char_traits<char>", "Relation", "deviation");
+        for (std::size_t string_length = 10; string_length < string_length_max; string_length = next(string_length))
+            test<Tester, ce_tuned_char_trait, std::char_traits, char>     (string_length);
         end_table();
 
         start_table();
-        print_row("String length", "hand-made<char32_t>", "std::char_traits<char32_t>", "Relation", "");
+        print_row("String length", "hand-made<char16_t>", "std::char_traits<char16_t>", "Relation", "deviation");
         for (std::size_t string_length = 10; string_length < string_length_max; string_length = next(string_length))
-            test<Tester, ce_char_triat,       std::char_traits, char32_t> (string_length);
+            test<Tester, ce_char_trait,       std::char_traits, char16_t> (string_length);
         end_table();
 
         start_table();
-        print_row("String length", "hand-made<char>", "std::char_traits<char>", "Relation", "");
+        print_row("String length", "hand-made<char32_t>", "std::char_traits<char32_t>", "Relation", "deviation");
         for (std::size_t string_length = 10; string_length < string_length_max; string_length = next(string_length))
-            test<Tester, ce_char_triat,       std::char_traits, char>     (string_length);
+            test<Tester, ce_char_trait,       std::char_traits, char32_t> (string_length);
         end_table();
 
         start_table();
-        print_row("String length", "hand-made<char>", "hand-made-with-c_calls<char>", "Relation", "");
+        print_row("String length", "hand-made<char>", "std::char_traits<char>", "Relation", "deviation");
         for (std::size_t string_length = 10; string_length < string_length_max; string_length = next(string_length))
-            test<Tester, ce_char_triat,       char_triat_c, char>         (string_length);
+            test<Tester, ce_char_trait,       std::char_traits, char>     (string_length);
+        end_table();
+
+        start_table();
+        print_row("String length", "hand-made<char>", "c_calls<char>", "Relation", "deviation");
+        for (std::size_t string_length = 10; string_length < string_length_max; string_length = next(string_length))
+            test<Tester, ce_char_trait,       char_trait_c, char>         (string_length);
         end_table();
 
     }
@@ -327,14 +342,14 @@ int main() {
 
     std::cout << "Running with measures count = " << m.measures_count << " and strings count per test = " << m.vector_length << "\n\n";
     std::cout << "\nTypeTrait::length\n";
-    m.measure_different_triats<length_tester>();
+    m.measure_different_traits<length_tester>();
 
     std::cout << "\nTypeTrait::find\n";
-    m.measure_different_triats<find_tester>();
+    m.measure_different_traits<find_tester>();
 
     std::cout << "\nTypeTrait::find2\n";
-    m.measure_different_triats<find2_tester>();
+    m.measure_different_traits<find2_tester>();
 
     std::cout << "\nTypeTrait::compare\n";
-    m.measure_different_triats<compare_tester>();
+    m.measure_different_traits<compare_tester>();
 }

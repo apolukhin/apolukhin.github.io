@@ -7,10 +7,16 @@
 
 		<style type="text/css">
 			.addition { color: green; text-decoration: underline; }
+			.right { float:right; }
+			.desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; }
 			.changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
 			.addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
 			.changed-added { background-color: #CFF0FC ;}
 			body {max-width: 1024px; margin-left: 25px;}
+			.cppkeyword { color: blue; }
+			.cppcomment { color: green; }
+			.cppcomment > .cppkeyword{ color: green; }
+			.cpptext { color: #2E8B57; }
 		</style>
 	</head>
 	<body bgcolor="#ffffff">
@@ -20,13 +26,13 @@
 		<address>&nbsp;</address>
 		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
 		<address>&nbsp;</address>
-		<address>Date: 2016-07-09</address>
+		<address>Date: 2016-07-25</address>
 		<h1>Constexpr for std::char_traits</h1>
 
 		<h2>I. Introduction and Motivation</h2>
 		<p>There is a request in the "C++ Standard Library Active Issues List" for a <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-active.html#2232">The char_traits specializations should declare their length(), compare(), and find() members constexpr</a>. Currently the following code fails to compile:</p>
 
-		<p></p><blockquote><pre>#include <string_view>
+		<p></p><blockquote><pre>#include &lt;string_view&gt;
 //  Compile time error:
 //  > error: constexpr variable 'service' must be initialized by a constant expression
 //  > constexpr string_view service = "HELLO WORD SERVICE";
@@ -37,6 +43,8 @@ constexpr string_view service = "HELLO WORD SERVICE";
 </pre></blockquote><p></p>
 
 		<p>This proposal attempts to solve the issue 2232 and make <code>std::string_view</code> usable in constant expressions.</p>
+		<p><code>std::basic_string_view</code> uses from <code>traits_type</code> only <code>traits_type::length</code>, <code>traits_type::compare</code> and <code>traits_type::find</code> non-constexpr functions. Only those functions are affected by this proposal.</p>
+
 		<p>A proof of concept implementation with benchmark is available at: <a href="https://github.com/apolukhin/apolukhin.github.io/tree/master/papers/constexpr_char_traits/">constexpr char_traits</a>.
 		</p>
 
@@ -49,27 +57,34 @@ constexpr string_view service = "HELLO WORD SERVICE";
 		</p>
 
 		<h2>III. Analysis of existing <code>std::char_traits</code> implementations.</h2>
-		<p><code>std::basic_string_view</code> uses from <code>triats_type</code> only <code>traits_type::length</code>, <code>traits_type::compare</code> and <code>traits_type::find</code> non-constexpr functions. Only those functions are affected by this proposal.</p>
-
 		<p>libstdc++ and libc++ have implementations of <code>std::char_traits&lt;char16_t&gt;</code> and <code>std::char_traits&lt;char32_t&gt;</code> that do not use C functions or intrinsics. Those two <code>std::char_traits</code> could be made constexpr without any impact on performance.</p>
 
-		<p>libstdc++ uses <code>__builtin_strlen</code>, <code>__builtin_memcmp</code> and <code>__builtin_memchr</code> instrinsics for <code>std::char_traits&lt;char&gt;</code>. Those extensions are already usable in constant expressions.</p>
+		<p>libstdc++ uses <code>__builtin_strlen</code>, <code>__builtin_memcmp</code> and <code>__builtin_memchr</code> intrinsics for <code>std::char_traits&lt;char&gt;</code>. Those extensions are already usable in constant expressions.</p>
 
-		<p>libstdc++ uses C functions for <code>std::char_traits&lt;wchar_t&gt;</code>; libc++ uses C functions for <code>std::char_traits&lt;char&gt;</code> and <code>std::char_traits&lt;wchar_t&gt;</code>. Replacing C functions with hand-made naïve implmentations result in performance degradation. For <code>std::char_traits&lt;char&gt;</code> intrinsics must be used. New intrinsics must be created for <code>std::char_traits&lt;wchar_t&gt;</code> or <code>std::char_traits&lt;wchar_t&gt;</code> must not be made constexpr.</p>
-
-		<p>Performance measures could be found in <a href="#appendix">"Appendix"</a>.</p>
+		<p>libstdc++ uses C functions for <code>std::char_traits&lt;wchar_t&gt;</code>; libc++ uses C functions for <code>std::char_traits&lt;char&gt;</code> and <code>std::char_traits&lt;wchar_t&gt;</code>.</p>
+		<p>Implementations of standard library, C library and compilers may differ a lot, but according to the performance measures from <a href="#appendix">"Appendix"</a> following conclusions could be made for eglibc-2.19:</p>
+		<ul>
+			<li><code>char</code> related intrinsics outperform C calls</li>
+			<li><code>char</code> related intrinsics significantly outperform hand-made naïve implementation</li>
+			<li>hand-made naïve implementations may outperform C functions on short <code>wchar_t</code> strings</li>
+		</ul>
+		<p>Assuming that the situation in mostly the same on different platforms, it seems reasonable to:</p>
+		<ul>
+			<li>use intrinsics to make <code>std::char_traits&lt;char&gt;</code> constexpr. Typically this brings performance improvement.</li>
+			<li>create constexpr-usable intrinsics for <code>std::char_traits&lt;wchar_t&gt;</code> or leave it non-constexpr. Two wordings are provided in this paper: one that does not mark <code>std::char_traits&lt;wchar_t&gt;</code> functions with <code>constexpr</code> and another one that does.</li>
+		</ul>
 
 		<h2>IV. Proposed wordings relative to the Working Draft N4604.</h2>
-		<h3>A. Wording that affects all the <code>std::char_traits</code> <i>including</i> <code>std::char_traits&lt;wchar_t&gt;</code> </h3>
-		<p>In 21.2.3.1 [char.traits.specializations.char], 21.2.3.2 [char.traits.specializations.char16_t], 21.2.3.3 [char.traits.specializations.char32_t], 21.2.3.4 [char.traits.specializations.wchar.t]:</p>
+		<h3>A. Wording that affects all the <code>std::char_traits</code> <u>including</u> <code>std::char_traits&lt;wchar_t&gt;</code> </h3>
+		<p><b>Note for editor:</b> Add constexpr in all the 21.2.3.* [char.traits.specializations.*]:</p>
 		<pre>
         static <span class="addition">constexpr</span> int compare(const char_type* s1, const char_type* s2, size_t n);
         static <span class="addition">constexpr</span> size_t length(const char_type* s);
         static <span class="addition">constexpr</span> const char_type* find(const char_type* s, size_t n, const char_type& a);
 		</pre>
 
-		<h3>B. Wording that affects all the <code>std::char_traits</code> <i>except</i> <code>std::char_traits&lt;wchar_t&gt;</code> </h3>
-		<p>In 21.2.3.1 [char.traits.specializations.char], 21.2.3.2 [char.traits.specializations.char16_t], 21.2.3.3 [char.traits.specializations.char32_t]:</p>
+		<h3>B. Wording that affects all the <code>std::char_traits</code> <u>except</u> <code>std::char_traits&lt;wchar_t&gt;</code> </h3>
+		<p><b>Note for editor:</b> Add constexpr in all the 21.2.3.* [char.traits.specializations.*] <u>except 21.2.3.4 [char.traits.specializations.wchar.t]</u>:</p>
 		<pre>
         static <span class="addition">constexpr</span> int compare(const char_type* s1, const char_type* s2, size_t n);
         static <span class="addition">constexpr</span> size_t length(const char_type* s);
@@ -90,11 +105,11 @@ constexpr string_view service = "HELLO WORD SERVICE";
 
 
 		<h2>VI. References</h2>
-		<p>[<a name="N4594">N4594</a>] Working Draft, Standard for Programming Language C++. Available online at
-					<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/n4594.pdf">www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/n4594.pdf</a>.</p>
+		<p>[<a name="N4604">N4604</a>] C++17 CD Ballot Document. Available online at
+					<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/n4604.pdf">www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/n4604.pdf</a>.</p>
 		<p>[<a name="Antony Polukhin">Antony Polukhin</a>] Proof of concept implementation.
-			Available online at <a href="https://github.com/apolukhin/apolukhin.github.io/tree/master/papers/constexpr_complex/">
-				https://github.com/apolukhin/apolukhin.github.io/tree/master/papers/constexpr_complex/</a>.
+			Available online at <a href="https://github.com/apolukhin/apolukhin.github.io/tree/master/papers/constexpr_char_traits/">
+				https://github.com/apolukhin/apolukhin.github.io/tree/master/papers/constexpr_char_traits/</a>.
 			</p>
 		<p>[<a name="LWG2232">LWG2232</a>] The char_traits specializations should declare their length(), compare(), and find() members constexpr. Available online at
 					<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-active.html#2232">
@@ -104,11 +119,18 @@ constexpr string_view service = "HELLO WORD SERVICE";
 
 
 		<h2 id="appendix">VII. Appendix.</h2>
+		<p>Below are results of performance measures for different implementations of char_traits. Full output of benchmark and source codes are available online at <a href="https://github.com/apolukhin/apolukhin.github.io/tree/master/papers/constexpr_char_traits/">https://github.com/apolukhin/apolukhin.github.io/tree/master/papers/constexpr_char_traits/</a>.</p>
 		<p>First column in output describes the length of each char array that was given to the trait's function. Second and third columns show the median value of 500 runs of trait's function on 10000 char arrays in microseconds.
-		Column "Relation" is equal to the second column divided on the third column. Last column is eqaul to max(mean absolute diviation of first trait's function runs, mean absolute diviation of second trait's function runs).</p>
+		Column "Relation" is equal to the second column divided on the third column. Last column is equal to <i>max(mean absolute diviation of first trait's function runs, mean absolute diviation of second trait's function runs)</i>.</p>
 
+		<p>Clang results for <code>wchar_t</code>:</p>
 		<pre>
-$sudo echo "becnhmarking" && g++-6 -std=c++1y -O2 ~/experiments/dll4/urgent/constexpr_char_traits/main.cpp && sudo nice -n -20 ./a.out && rm a.out
+
+		</pre>
+
+		<p>GCC results for <code>wchar_t</code>:</p>
+		<pre>
+
 		</pre>
 
 		<script type="text/javascript">
@@ -121,6 +143,7 @@ $sudo echo "becnhmarking" && g++-6 -std=c++1y -O2 ~/experiments/dll4/urgent/cons
 
 			show = !show;
 		}
+
 		</script>
 
 
