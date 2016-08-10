@@ -26,11 +26,11 @@
 		<address>&nbsp;</address>
 		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
 		<address>&nbsp;</address>
-		<address>Date: 2016-07-28</address>
+		<address>Date: 2016-08-10</address>
 		<h1>Constexpr for std::char_traits</h1>
 
 		<h2>I. Introduction and Motivation</h2>
-		<p>There is a request in the "C++ Standard Library Active Issues List" for a <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-active.html#2232">The char_traits specializations should declare their length(), compare(), and find() members constexpr</a>. Currently the following code fails to compile:</p>
+		<p>There is a request in the "C++ Standard Library Active Issues List" for <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-active.html#2232">The char_traits specializations should declare their length(), compare(), and find() members constexpr</a>. Currently the following code fails to compile:</p>
 
 		<p></p><blockquote><pre>#include &lt;string_view&gt;
 //  Compile time error:
@@ -43,7 +43,7 @@ constexpr string_view service = "HELLO WORD SERVICE";
 </pre></blockquote><p></p>
 
 		<p>This proposal attempts to solve the issue 2232 and make <code>std::string_view</code> usable in constant expressions.</p>
-		<p><code>std::basic_string_view</code> uses from <code>traits_type</code> only <code>traits_type::length</code>, <code>traits_type::compare</code> and <code>traits_type::find</code> non-constexpr functions. Only those functions are affected by this proposal.</p>
+		<p><code>std::basic_string_view</code> uses from <code>traits_type</code> only the static member functions <code>length</code>, <code>compare</code> and <code>find</code>. Only those functions are affected by this proposal.</p>
 
 		<p>A proof of concept implementation with benchmark is available at: <a href="https://github.com/apolukhin/apolukhin.github.io/tree/master/papers/constexpr_char_traits/">constexpr char_traits</a>.
 		</p>
@@ -53,7 +53,7 @@ constexpr string_view service = "HELLO WORD SERVICE";
 		<p>This proposal is a pure library extension. It proposes changes to the
 			existing header <code>&lt;string&gt;</code> such that the changes do not break existing code
 			and do not degrade performance. It does not require any changes in the core 
-			language and it can be implemented in standard C++.
+			language and it can be (and has been) implemented in standard C++.
 		</p>
 
 		<h2>III. Analysis of existing <code>std::char_traits</code> implementations.</h2>
@@ -74,7 +74,8 @@ constexpr string_view service = "HELLO WORD SERVICE";
 			<li>create constexpr-usable intrinsics for <code>std::char_traits&lt;wchar_t&gt;</code> or leave it non-constexpr. Two wordings are provided in this paper: one that does not mark <code>std::char_traits&lt;wchar_t&gt;</code> functions with <code>constexpr</code> and another one that does.</li>
 		</ul>
 
-		<h2>IV. Proposed wordings relative to the Working Draft N4604.</h2>
+		<h2>IV. Proposed wording relative to the Working Draft N4604.</h2>
+		<p><b>Note:</b> Only one of the wordings may be accepted, not both.</p>
 		<h3>A. Wording that affects all the <code>std::char_traits</code> <u>including</u> <code>std::char_traits&lt;wchar_t&gt;</code> </h3>
 		<p><b>Note for editor:</b> Add constexpr in all the 21.2.3.* [char.traits.specializations.*]:</p>
 		<pre>
@@ -118,7 +119,11 @@ constexpr string_view service = "HELLO WORD SERVICE";
 		<p>&nbsp;</p>
 
 
-		<h2 id="appendix">VII. Appendix.</h2>
+		<h2>VII. Acknowledgements</h2>
+		<p>Walter E. Brown provided corrections and suggestions for this proposal.</p>
+
+
+		<h2 id="appendix">VIII. Appendix.</h2>
 		<p>Below are results of performance measures for different implementations of char_traits. Full output of benchmark and source codes are available online at <a href="https://github.com/apolukhin/apolukhin.github.io/tree/master/papers/constexpr_char_traits/">https://github.com/apolukhin/apolukhin.github.io/tree/master/papers/constexpr_char_traits/</a>.</p>
 		<p>First column in output describes the length of each char array that was given to the trait's function. Second and third columns show the median value of 500 runs of trait's function on 10000 char arrays in microseconds.
 		Column "Relation" is equal to the second column divided on the third column. Last column is equal to <i>max(mean absolute diviation of first trait's function runs, mean absolute diviation of second trait's function runs)</i>.</p>
