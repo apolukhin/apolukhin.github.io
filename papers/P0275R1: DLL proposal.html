@@ -1,0 +1,744 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+		<title>A Proposal to add Classes and Functions Required for Dynamic Library Load</title>
+		<meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+		<meta http-equiv="Content-Language" content="en-us">
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+		<style type="text/css">
+			.addition { color: green; }
+			.right { float:right; }
+			.changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+			.addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+			.changed-added { background-color: #CFF0FC ;}
+            pre { line-height: 1.2; font-size: 10pt; margin-top: 25px;}
+            .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; }
+            body {max-width: 1024px; margin-left: 25px;}
+            /*code {font-size: large; }*/
+            .cppkeyword { color: blue; }
+            .cppcomment { color: green; }
+            .cppcomment > .cppkeyword{ color: green; }
+            .cpptext { color: #2E8B57; }
+		</style>
+
+	</head>
+	<body bgcolor="#ffffff">
+		<address>Document number: P0275R1</address>
+		<address>Project: Programming Language C++</address>
+		<address>Audience: Library Evolution Working Group</address>
+		<address>&nbsp;</address>
+		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+		<address>&nbsp;</address>
+		<address>Date: 2017-01-28</address>
+		<h1>A Proposal to add Classes and Functions Required for Dynamic Library Load</h1>
+
+
+ <span class='changed-added'>Changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0275r0.html">P0275R0</a> are marked with blue.</span> <button onclick="show_hide_deleted()">Show/Hide deleted lines from P0275R0</button>
+
+		<h2>I. Introduction and Motivation</h2>
+		<p>Adding a specific features to an existing software applications at
+            runtime could be useful in many cases. Such extensions, or plugins,
+            are usually implemented using Shared Library files (DLL,
+            SO/DSO) loaded into the memory of program at runtime.</p>
+		<p>Current C++ Standard lacks support for dynamic library 
+            loading (DLL). This proposal attempts to fix that and provide a simple to
+            use classes and functions for DLL.</p>
+		<p>A proof of concept implementation available at: <a href="https://github.com/boostorg/dll">Boost.DLL</a>.
+		</p>
+
+
+		<h2>II. Impact on the Standard</h2>
+		<p>This proposal is a pure library extension. It does not propose changes to
+			existing headers. <span class='changed-deleted'>It relies on N4099, because it uses class experimental::path from that proposal. </span>It does not require any changes in the core
+			language and it could be implemented in standard C++.
+		</p>
+
+		<h2>III. Design Decisions</h2>
+		<h3>A. Usage of <code>std::</code><span class='changed-deleted'><code>experimental::</code></span><code>filesystem::path</code></h3>
+		<p>To simplify library usage <code>std::</code><span class='changed-deleted'><code>experimental::</code></span><code>filesystem::path</code> is used for specifying paths . All the <code>path</code> related overhead is minor,
+            comparing to the time of loading shared library file into the memory of program or getting information about shared library file location.</p>
+		<h3>B. Stick to the Filesystem error reporting scheme.</h3>
+		<p>Provide two overloads for some functions, one that throws an exception to report system errors, and another that sets an <code>error_code</code>. This supports two common use cases:</p>
+            <ul>
+                <li>Uses where shared library file related system errors are truly exceptional and indicate a serious failure.</li>
+                <li>Uses where shared library file related errors are routine and do not necessarily represent failure.</li>
+            </ul>
+		<h3>C. Do not take care of mangling.</h3>
+			<p>C++ symbol mangling depend on compiler and platform. Existing attempts to get mangled symbol by unmangled name
+            result in significant complexity and memory usage growth and overall slowdown of getting symbol from shared library file.
+            </p>
+            <pre>[ Example:
+    // Loading a shared library file with mangled symbols
+    mangled_library lib("libmycpp.so");
+
+    // Attempt to get function "foo::bar" with signature void(int)
+    lib.get&lt;void(int)&gt;("foo::bar");
+
+    // The problem is that we do not know what `foo::bar` is:
+    // * `foo` could be a class and `bar` could be a static member function
+    // * `foo` could be a struct and `bar` could be a static member function
+    // * `foo` could be a namespace and `bar` could be function in that namespace
+    //
+    // We also do not know the calling convention for `foo` and it's noexcept specification.
+    //
+    // Mangling of `foo::bar` depends on all the knowledge from above, so we are either forced to
+    // mangle and try to obtain all the available combinations; or we need to investigate all the
+    // symbols exported by "libmycpp.so" shared library file and find a best match.
+- end example ]</pre>
+            <p>While no good solution was found for obtaining mangled 
+                symbol by unmangled name, this proposal concentrates on obtaining symbols 
+                by exact name match.</p>
+		<h3>D. Provide functions for simple usage.</h3>
+			<p>Keeping a shared library file loaded in memory of program while using the symbol obtained from shared library file could be
+            hard and error prone for some users. For the simplicity of those users, <code>import</code>
+            functions were provided. Those functions return a symbol 
+            wrapped in a helper class along with an instance of <code>shared_library</code>. In that way while
+            returned value in in scope, the shared
+            library file won't be unloaded from program memory, so the user does not need to take
+            care of shared library file lifetime in program memory.</p>
+		<h3>E. Do not search libraries in system specific paths by default.</h3>
+			<p>Searching paths for a specified shared library file may affect load times and 
+            make the proposed wording less efficient. It is assumed to be the most 
+            common case, that
+            user exactly knows were the desired shared library file is
+            located and provides either absolute or relative to current
+            directory path. For that case searching
+            system specific paths affects performance and increases the 
+            chance of finding wrong shared library file with the same name. Because some 
+            operating systems search
+            system paths even if relative path is provided, the 
+            requirement to not do that is implicitly described in proposed wording.</p>
+		<h3>F. Minimal modifications for the N<span class='changed-added'>4618</span><span class='changed-deleted'>4567</span> wording.</h3>
+        <p>There have been a lot of shared library related proposals:</p>
+        <ul>
+        <li><a href="http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2002/n1400.html">N1400: Toward standardization of dynamic libraries</a></li>
+        <li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2002/n1418.html">N1418: Dynamic Libraries in C++</a></li>
+        <li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1428.html">N1428: Draft Proposal for Dynamic Libraries in C++</a></li>
+        <li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1496.html">N1496: Draft Proposal for Dynamic Libraries in C++ (Revision 1)</a></li>
+        <li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n1976.html">N1976: Dynamic Shared Objects: Survey and Issues</a></li>
+        <li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n2015.pdf" >N2015: Plugins in C++</a></li>
+        <li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2407.html">N2407: C++ Dynamic Library Support</a></li>
+        </ul>
+
+        <p>The proposal you're reading attempts to avoid issues of the proposals from above, minifying the changes to the N<span class='changed-added'>4618</span><span class='changed-deleted'>4567</span> wording. The proposal you're reading:</p>
+        <ul>
+        <li>is a pure library extension (does not modify Basic Concepts [basic] and does not add new keywords)</li>
+        <li>does not add platform requiremnt for shared libraries suport</li>
+        </ul>
+
+		<h2>IV. Proposed wording relative to N<span class='changed-added'>4618</span><span class='changed-deleted'>4567</span></h2>
+
+<h3>31 Dynamic library load support library<span class="right">[dll]</span></h3>
+<h4>31.1 General <span class="right">[dll.general]</span></h4>
+<p>
+    'Dynamic library load' is a runtime mechanism to load shared library file into the memory of current program,
+    retrieve the addresses of functions and objects contained in the shared library file, execute those functions or access those objects,
+    unload the shared library file from memory.
+</p>
+<p>
+    'Shared library file' is a file containing set of objects and functions available for use at program startup or at runtime.
+</p>
+<p>
+    Headers &lt;experimental/dll&gt; and &lt;experimental/import&gt;
+    define classes and functions suitable for dynamic library load. For
+    those headers term 'symbol' relates to a
+    function, reference, class member or object that can be obtained from shared library file at runtime.
+    Term 'symbol name' relates to a character identifier of a symbol, using
+    which symbol can be obtained from shared library file. For symbols declared with <code>extern
+    "C"</code> in code of shared library file, 'symbol name' is the name of the
+    entity. 'symbol name' <span class='changed-added'>for entities </span>without <code>extern "C"</code> <span class='changed-added'>are unspecified <i>[ Note:</i> Typically symbol names of those entities are mangled entity names<i> — end note ]</i></span><span class='changed-deleted'>in C++ code of shared library file is the mangled name of the entity</span>.
+</p>
+
+<h4>31.2 Error reporting <span class="right">[dll.errors]</span></h4>
+<p>
+    Functions not having an argument of type <code>error_code&amp;</code> report errors as follows, unless otherwise specified:</p>
+    <ul>
+    <li>When a call by the implementation to an operating system or other underlying API results in an error that
+    prevents the function from meeting its specifications, an exception of type system_error is thrown.</li>
+
+    <li>Failure to allocate storage is reported by throwing an exception as described in the C++ standard,
+    <span class='changed-deleted'>17.6.4.10</span><span class='changed-added'>17.5.5.12</span>[res.on.exception.handling].</li>
+
+    <li>Destructors throw nothing.</li>
+    </ul>
+
+    Functions having an argument of type <code>error_code&amp;</code> report errors as follows, unless otherwise specified:
+    <ul>
+    <li>If a call by the implementation to an operating system or other underlying API results in an 
+    error that prevents the function from meeting its specifications, the <code>error_code&amp;</code> argument is set as
+    appropriate for the specific error. Otherwise, <code>clear()</code> is called on the <code>error_code&amp;</code> argument.</li>
+
+    <li>Failure to allocate storage is reported by throwing an exception
+         as described in the C++ standard, <span class='changed-deleted'>17.6.4.10</span><span class='changed-added'>17.5.5.12</span>
+        [res.on.exception.handling].</li>
+    </ul>
+
+
+<h4>31.3 Header &lt;experimental/dll&gt; <span class="right">[dll.dll]</span></h4>
+<pre>namespace std {
+  namespace experimental {
+  inline namespace dll_v1 {
+
+    // shared library file load modes
+    enum class dll_mode {
+        default_mode<span class='changed-deleted'> = 0</span>,
+        dont_resolve_dll_references,    // DONT_RESOLVE_DLL_REFERENCES
+        load_ignore_code_authz_level,   // LOAD_IGNORE_CODE_AUTHZ_LEVEL
+        rtld_lazy,                      // RTLD_LAZY
+        rtld_now,                       // RTLD_NOW
+        rtld_global,                    // RTLD_GLOBAL
+        rtld_local,                     // RTLD_LOCAL
+        rtld_deepbind,                  // RTLD_DEEPBIND
+        append_decorations,             // See [dll.dll_mode]
+        search_system_directories       // See [dll.dll_mode]
+    };
+
+    constexpr dll_mode  operator| (dll_mode lhs, dll_mode rhs)  noexcept;
+    constexpr dll_mode&amp; operator|=(dll_mode&amp; lhs, dll_mode rhs) noexcept;
+    constexpr dll_mode  operator&amp; (dll_mode lhs, dll_mode rhs)  noexcept;
+    constexpr dll_mode&amp; operator&amp;=(dll_mode&amp; lhs, dll_mode rhs) noexcept;
+    constexpr dll_mode  operator^ (dll_mode lhs, dll_mode rhs)  noexcept;
+    constexpr dll_mode&amp; operator^=(dll_mode&amp; lhs, dll_mode rhs) noexcept;
+    constexpr dll_mode&amp; operator~ (dll_mode&amp; lhs) noexcept;
+
+    // class to work with shared library files
+    class shared_library;
+
+    bool operator==(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;
+    bool operator!=(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;
+    bool operator&lt; (const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;
+    bool operator&gt; (const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;
+    bool operator&lt;=(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;
+    bool operator&gt;=(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;
+
+    // free functions
+    template&lt;class T&gt;
+    filesystem::path symbol_location(const T&amp; symbol, error_code&amp; ec);
+    template&lt;class T&gt;
+    <span class='changed-deleted'>boost::</span>filesystem::path symbol_location(const T&amp; symbol);
+
+    filesystem::path this_line_location(error_code&amp; ec);
+    filesystem::path this_line_location();
+
+    filesystem::path program_location(error_code&amp; ec);
+    filesystem::path program_location();
+
+  }
+  }
+
+  // support
+  template &lt;class T&gt; struct hash;
+  template &lt;&gt; struct hash&lt;experimental::shared_library&gt;;
+  template &lt;&gt; struct hash&lt;experimental::dll_mode&gt;;
+}
+
+</pre>
+<p>
+The value of each enum <code>dll_mode</code> constant shall be the same as the value 
+of the macro shown in the above synopsis if that macro is available on 
+the platform or 0 otherwise.
+</p>
+
+<h4>31.3.1 Enum dll_mode <span class="right">[dll.dll_mode]</span></h4>
+<p>
+    Enum <code>dll_mode</code> provides modes for searching the shared library file and platform specific modes for loading the shared library file in memory of program.
+    <i>[ Note:</i> library users may extend available modes by
+    casting the required platform specific mode to dll_mode: <i>[ Example:</i> <code>static_cast&lt;dll_mode&gt;(RTLD_NODELETE); </code><i> — end example ] — end note ]</i></p>
+
+<p>
+    Each of system family 
+    provides own modes, flags not supported by a particular platform must be
+    set to 0. Special modes are listened below:
+</p>
+
+<pre>append_decorations</pre>
+    <div class="desc"><i>Effects:</i> Appends a platform specific extensions and prefixes to shared library filename before trying to load it into program memory.
+    If load attempts fail, tries to load with exactly specified name.</div>
+    <div class="desc"><i>Platforms:</i> Windows, POSIX</div>
+    <div class="desc"><i>Value:</i> Any value that can not be received by applying binary OR to any set of modes from <code>dll_mode</code></div>
+    <div class="desc"><i>[ Example:</i></div>
+<pre>        // Tries to open
+        //      `./my_plugins/plugin1.dll` and `./my_plugins/libplugin1.dll` on Windows
+        //      `./my_plugins/libplugin1.so` on Linux
+        //      `./my_plugins/libplugin1.dylib` and `./my_plugins/libplugin1.so` on MacOS.
+        // If that fails, loads `./my_plugins/plugin1`
+        shared_library lib("./my_plugins/plugin1", dll_mode::append_decorations);
+</pre>
+<div class="desc"><i>- end example ]</i></div>
+
+<pre>default_mode</pre>
+    <div class="desc"><i>Effects:</i> Same as <code>rtld_lazy | rtld_local</code>.</div>
+
+<pre>search_system_directories</pre>
+    <div class="desc"><i>Value:</i> Any value that can not be received by applying binary OR to any set of modes from <code>dll_mode</code></div>
+    <div class="desc"><i>Effects:</i> Allows loading of shared library files from system specific shared library file directories [fs.def.directory]
+    along with loading shared library files from current directory.</div>
+
+
+<h4>31.3.1.1 dll_mode operators <span class="right">[dll.dll_mode.operators]</span></h4>
+<pre>constexpr dll_mode  operator| (dll_mode lhs, dll_mode rhs)  noexcept;
+constexpr dll_mode&amp; operator|=(dll_mode&amp; lhs, dll_mode rhs) noexcept;
+constexpr dll_mode  operator&amp; (dll_mode lhs, dll_mode rhs)  noexcept;
+constexpr dll_mode&amp; operator&amp;=(dll_mode&amp; lhs, dll_mode rhs) noexcept;
+constexpr dll_mode  operator^ (dll_mode lhs, dll_mode rhs)  noexcept;
+constexpr dll_mode&amp; operator^=(dll_mode&amp; lhs, dll_mode rhs) noexcept;
+constexpr dll_mode&amp; operator~ (dll_mode&amp; lhs) noexcept;</pre>
+    <div class="desc"><i>Effects:</i> Converts parameters to unsigned integral type capable of storing them, applies a corresponding
+    binary operator and returns the result as <code>dll_mode</code>.</div>
+
+<h4>31.3.1.2 dll_mode hash support<span class="right">[dll.dll_mode.hash]</span></h4>
+<pre>template &lt;&gt; struct hash&lt;experimental::dll_mode&gt;;
+</pre>
+<p>
+    <span class='changed-added'>The specialization is enabled (20.14.14).</span>
+    <span class='changed-deleted'>The template specialization shall meet the requirements of class template hash (20.9.13).</span>
+</p>
+
+
+<h4>31.3.2 Class shared_library <span class="right">[dll.shared_library]</span></h4>
+<p>
+    The class <code>shared_library</code> provides means to load shared library file into the memory of program,
+    check that shared library file exports symbol with specified symbol name and obtain that
+    symbol.
+</p>
+<p>
+    <code>shared_library</code> instances share reference count to an actual shared library file loaded in memory
+    of current program, so it is safe and memory efficient to have multiple instances
+    of <code>shared_library</code> referencing the same shared library file even if those instances
+    were loaded in memory using different paths (relative and absolute) referencing the
+    same shared library file.
+</p>
+<p>
+    <span class='changed-added'><i>[ Note:</i></span>
+    It must be safe to concurrently load shared library files into memory of program, unload and get symbols from
+    any shared library files using different <code>shared_library</code> instances. If current
+    platform does
+    not guarantee safe concurrent work with shared library files, calls to <code>shared_library</code> functions must
+    be serialized by <code>shared_library</code> implementation.
+    <span class='changed-added'><i>— end note ]</i></span>
+</p>
+<p>
+    <i>[ Note:</i>
+    Constructors, comparisons and <code>reset()</code> functions that accept <code>nullptr_t</code> are not provided because that may cause confusion:
+    some of the platforms provide interfaces for shared library files that accept <code>nullptr_t</code> to get a handler to the current program.
+    <i>— end note ]</i>
+</p>
+<pre>namespace std {
+  namespace experimental {
+  inline namespace dll_v1 {
+
+    class shared_library {
+    public:
+      typedef platform_specific native_handle_type;
+
+      // construct/copy/destruct
+      shared_library() noexcept;
+      shared_library(const shared_library&amp; lib);
+      shared_library(const shared_library&amp; lib, error_code&amp; ec);
+      shared_library(shared_library&amp;&amp; lib) noexcept;
+      explicit shared_library(const filesystem::path&amp; library_path, dll_mode mode = dll_mode::default_mode);
+      shared_library(const filesystem::path&amp; library_path, error_code&amp; ec, dll_mode mode = dll_mode::default_mode);
+      shared_library(const filesystem::path&amp; library_path, dll_mode mode, error_code&amp; ec);
+      ~shared_library();
+
+      // public member functions
+      shared_library&amp; assign(const shared_library&amp; lib, error_code&amp; ec);
+      shared_library&amp; assign(const shared_library&amp; lib);
+      
+      shared_library&amp; operator=(const shared_library&amp; lib);
+      shared_library&amp; operator=(shared_library&amp;&amp; lib) noexcept;
+
+      void load(const filesystem::path&amp; library_path, dll_mode mode = dll_mode::default_mode);
+      void load(const filesystem::path&amp; library_path, error_code&amp; ec, dll_mode mode = dll_mode::default_mode);
+      void load(const filesystem::path&amp; library_path, dll_mode mode, error_code&amp; ec);
+
+      void reset() noexcept;
+      explicit operator bool() const noexcept;
+
+      bool has(const char* symbol_name) const noexcept;
+      bool has(const string&amp; symbol_name) const noexcept;
+
+      template &lt;typename SymbolT&gt;
+      auto get(const char* symbol_name) const
+        -&gt; conditional_t&lt;is_member_pointer_v&lt;SymbolT&gt;, SymbolT, add_lvalue_reference_t&lt;SymbolT&gt;&gt;;
+
+      template &lt;typename SymbolT&gt;
+      auto get(const string&amp; symbol_name) const
+        -&gt; conditional_t&lt;is_member_pointer_v&lt;SymbolT&gt;, SymbolT, add_lvalue_reference_t&lt;SymbolT&gt;&gt;;
+
+      native_handle_type native_handle() const noexcept;
+
+      filesystem::path location() const;
+      filesystem::path location(error_code&amp; ec) const;
+
+      // public static member functions
+      static constexpr bool platform_supports_dll() noexcept;
+      static constexpr bool platform_supports_dll_of_program() noexcept;
+    };
+
+  }
+  }
+}
+</pre>
+
+<h4>31.3.3.1 shared_library constructors <span class="right">[dll.shared_library.constr]</span></h4>
+<pre>shared_library() noexcept;</pre>
+    <div class="desc"><i>Effects:</i> Creates <code>shared_library</code> that does not reference any shared library file.</div>
+    <div class="desc"><i>Postconditions:</i> <code>*this</code> is <code>false</code>.</div>
+
+<pre>shared_library(const shared_library&amp; lib);
+shared_library(const shared_library&amp; lib, error_code&amp; ec);</pre>
+    <div class="desc"><i>Effects:</i> Makes <code>*this</code> reference the same shared library file that is referenced by <code>lib</code> or if <code>lib</code> does not reference shared library file
+    sets <code>*this</code> to default constructed state.</div>
+    <div class="desc"><i>Postconditions:</i> <code>lib == *this</code></div>
+    <div class="desc"><i>Throws:</i> As specified in [dll.errors]</div>
+
+<pre>shared_library(shared_library&amp;&amp; lib) noexcept;</pre>
+    <div class="desc"><i>Effects:</i> Assigns the state of <code>lib</code> to <code>*this</code> and sets <code>lib</code> to a default constructed state.</div>
+    <div class="desc"><i>Remarks:</i> Does not invalidate symbols previously obtained from <code>lib</code>.</div>
+    <div class="desc"><i>Postconditions:</i> <code>lib</code> is <code>false</code>, <code>*this</code> is <code>true</code>.</div>
+
+<pre>explicit shared_library(const filesystem::path&amp; library_path, dll_mode mode = dll_mode::default_mode);
+shared_library(const filesystem::path&amp; library_path, error_code&amp; ec, dll_mode mode = dll_mode::default_mode);
+shared_library(const filesystem::path&amp; library_path, dll_mode mode, error_code&amp; ec);</pre>
+    <div class="desc"><i>Effects:</i> Same as calling <code>shared_library::load()</code> with same parameters.</div>
+    <div class="desc"><i>Throws:</i> As specified in [dll.errors].</div>
+
+
+<h4>31.3.3.2 shared_library destructor <span class="right">[dll.shared_library.destr]</span></h4>
+<pre>~shared_library();</pre>
+<div class="desc">
+    <i>Effects:</i> Destroys the <code>shared_library</code> by calling <code>reset()</code>. If
+    the shared library file is referenced by different instances of
+    <code>shared_library</code>,
+    the shared library file won't be unloaded until there is at least one 
+    instance of <code>shared_library</code> referencing it.
+</div>
+
+
+
+<h4>31.3.3.3 shared_library members<span class="right">[dll.shared_library.member]</span></h4>
+<pre>shared_library&amp; assign(const shared_library&amp; lib, error_code&amp; ec);
+shared_library&amp; assign(const shared_library&amp; lib);</pre>
+    <div class="desc"><i>Effects:</i> If <code>*this</code>, then calls <code>reset()</code>.
+    Makes <code>*this</code> reference the same shared library file as <code>lib</code>.</div>
+    <div class="desc"><i>Postconditions:</i> <code>lib.location() == <span class='changed-deleted'>this-&gt;</span>location()</code>, <code>lib == *this</code></div>
+    <div class="desc"><span class='changed-added'><i>Returns:</i> <code>*this</code></span></div>
+    <div class="desc"><i>Throws:</i> As specified in [dll.errors]</div>
+    
+<h4>31.3.3.4 shared_library assignment <span class="right">[dll.shared_library.assign]</span></h4>
+<pre>shared_library&amp; operator=(const shared_library&amp; lib);</pre>
+    <div class="desc"><i>Effects:</i> Same as calling <code><span class='changed-deleted'>this-&gt;</span>assign(lib)</code></div>
+    <div class="desc"><span class='changed-added'><i>Returns:</i> <code>*this</code></span></div>
+
+<pre>shared_library&amp; operator=(shared_library&amp;&amp; lib) noexcept;</pre>
+    <div class="desc"><i>Effects:</i> If <code>*this</code> then calls
+ <code><span class='changed-deleted'>this-&gt;</span>reset()</code>. Assigns the state of <code>lib</code> to <code>*this</code> and sets <code>lib</code> 
+to a default constructed state.</div>
+    <div class="desc"><i>Remarks:</i> Does not invalidate symbols previously obtained from <code>lib</code>.</div>
+    <div class="desc"><i>Postconditions:</i> <code>lib</code> is <code>false</code>, <code>*this</code> is <code>true</code>.</div>
+    <div class="desc"><span class='changed-added'><i>Returns:</i> <code>*this</code></span></div>
+
+
+<pre>void load(const filesystem::path&amp; library_path, dll_mode mode = dll_mode::default_mode);
+void load(const filesystem::path&amp; library_path, error_code&amp; ec, dll_mode mode = dll_mode::default_mode);
+void load(const filesystem::path&amp; library_path, dll_mode mode, error_code&amp; ec);</pre>
+    <div class="desc"><i>Effects:</i> If the shared library file specified by <code>library_path</code> is already loaded in memory of current program
+    makes <code>*this</code> reference the previously loaded shared library file.
+    Otherwise loads a shared library file by specified path with a specified mode into the memory of current program,
+    executes all the platform specific initializations<span class='changed-deleted'>
+    and makes the symbols of that shared library file ready to obtain using <code><span class='changed-deleted'>this-&gt;</span>get()</code></span>.
+    If some shared library file is already referenced by <code>*this</code>, calls <code>reset()</code> first.</div>
+
+    <div class="desc"><span class='changed-deleted'>Must be capable of referencing</span><span class='changed-added'>References</span> current program if
+    absolute or relative path to the program was provided as
+    <code>library_path</code><span class='changed-added'> and <code>platform_supports_dll_of_program()</code> is <code>true</code></span>.</div>
+    <div class="desc"><span class='changed-deleted'>Must try to load</span><span class='changed-added'>Loads</span>
+    shared library file with changed name and applied extension only if <code>(mode &amp; 
+    dll_mode::append_decorations)</code> is not 0. Must
+    attempt to load a shared library file from system specific shared library file
+    directories only if <code>library_path</code> contains only shared library filename and
+    <code>(mode &amp; dll_mode::search_system_directories)</code> is not 0. During loads
+    from system
+    specific directories file name modification rules from above apply. If
+    with <code>dll_mode::search_system_directories</code> more than one
+    shared library file has the same base name and extension, the function
+    loads in memory any first matching shared library file.
+    If <code>(mode &amp; dll_mode::search_system_directories)</code> is 0, then any 
+    relative path or path that contains only filename must be treated as a
+    path in current working directory.</div>
+
+    <div class="desc">Library open mode is equal to <code>(mode &amp; 
+    ~dll_mode::search_system_directories &amp; ~dll_mode::append_decorations)</code>
+    converted to a platform specific
+    type representing shared library file load modes and adjusted to satisfy the 
+    <code>dll_mode::search_system_directories</code> requirements from above. If mode is
+    invalid for current platform, attempts to adjust the mode by 
+    applying <code>dll_mode::rtld_lazy</code>
+    and <span class="changed-deleted">throws</span><span class="changed-added">reports error</span> if resulting mode
+    is invalid. <i>[ Example:</i> If mode on POSIX was set to <code>rtld_local</code>, then it will be adjusted
+    to <code>rtld_lazy | rtld_local</code>. <i>- end example ]</i></div>
+
+    <div class="desc"><i>Throws:</i> As specified in [dll.errors]</div>
+
+<pre>void reset() noexcept;</pre>
+    <div class="desc"><i>Effects:</i> Sets <code>*this</code> to a default constructed state. If <code>*this</code> was the last instance of <code>shared_library</code> referencing the shared library file,
+    then all the resources associated with shared library file shall be released.</div>
+    <div class="desc"><i>Remarks:</i> Symbols obtained from shared library file remain valid until there is at least one instance of <code>shared_library</code> referencing the shared library file.</div>
+    <div class="desc"><i>Postconditions:</i> <code>*this</code> is <code>false</code>.</div>
+
+<pre>explicit operator bool() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>true</code> if <code>*this</code> references a shared library file.</div>
+
+<pre>bool has(const char* symbol_name) const noexcept;
+bool has(const string&amp; symbol_name) const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>true</code> if <code>*this</code> references a shared library file and symbol symbol_name could be obtained from shared library file.</div>
+
+<pre>template &lt;typename SymbolT&gt;
+auto get(const char* symbol_name) const
+    -&gt; conditional_t&lt;is_member_pointer_v&lt;SymbolT&gt;, SymbolT, add_lvalue_reference_t&lt;SymbolT&gt;&gt;;
+
+template &lt;typename SymbolT&gt;
+auto get(const string&amp; symbol_name) const
+    -&gt; conditional_t&lt;is_member_pointer_v&lt;SymbolT&gt;, SymbolT, add_lvalue_reference_t&lt;SymbolT&gt;&gt;;</pre>
+    <div class="desc"><i>Returns:</i> Symbol from shared library file that has the name symbol_name.</div>
+    <div class="desc"><i>Remarks:</i> It's the user responsibility to 
+    provide valid <code>SymbolT</code> type for symbol. However implementations may 
+    provide additional checks for
+    matching <code>SymbolT</code> type and actual symbol type. <i>[ Note:</i> For
+    example implementations
+    may check that <code>SymbolT</code> is a function pointer and that
+    symbol with <code>symbol_name</code> allows execution. <i>— end note ]</i></div>
+    <div class="desc"><i>Throws:</i> <code>system_error</code> if symbol does not exist or if the shared library file was not loaded.</div>
+
+<pre>native_handle_type native_handle() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> Native handler of the loaded in memory shared library file or default constructed native_handle_type if *this does not reference a shared library file.
+    <i>[ Note:</i> This member allow implementations to provide access to implementation details. Actual use of these members is inherently non-portable. <i>— end note ]</i>
+</div>
+
+<pre>filesystem::path location() const;
+filesystem::path location(error_code&amp; ec) const;</pre>
+    <div class="desc"><i>Returns:</i> Full path and name to the referenced shared library file,
+    <span class="changed-deleted">throws</span><span class="changed-added">reports error</span> if <code>*this</code> does not reference shared library file.</div>
+    <div class="desc"><i>Throws:</i> As specified in [dll.errors]</div>
+
+<h4>31.3.3.5 shared_library static members<span class="right">[dll.shared_library.static]</span></h4>
+
+<pre>static constexpr bool platform_supports_dll() noexcept;</pre>
+    <div class="desc"><i>Returns:</i> true if platform supports loading of shared library files into the momery of program.
+    [ Note: If this function returns <code>false</code>, then any attempt to load a shared library file will fail at runtime. This function could be used to ensure platform capabilities at
+    compile time: <code>static_assert(shared_library::platform_supports_dll(), "DLL required for this program");</code> — end note ]</div>
+
+
+<pre>static constexpr bool platform_supports_dll_of_program() noexcept</pre>
+    <div class="desc"><i>Returns:</i> <code>true</code> if according to platform capabilities <code>shared_library(program_location())</code> may succeed.</div>
+
+
+<h4>31.3.3.6 shared_library free operators<span class="right">[dll.shared_library.operators]</span></h4>
+<p>
+    <code>shared_library</code> provides fast comparison operators that compare the referenced shared libraries file.
+</p>
+<pre>bool operator==(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>lhs.native_handle() == rhs.native_handle()</code></div>
+
+<pre>bool operator!=(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>lhs.native_handle() != rhs.native_handle()</code></div>
+
+<pre>bool operator&lt;(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>lhs.native_handle() &lt; rhs.native_handle()</code></div>
+
+<pre>bool operator&gt;(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>lhs.native_handle() &gt; rhs.native_handle()</code></div>
+
+<pre>bool operator&lt;=(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>lhs.native_handle() &lt;= rhs.native_handle()</code></div>
+
+<pre>bool operator&gt;=(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>lhs.native_handle() &gt;= rhs.native_handle()</code></div>
+
+
+<h4>31.3.3.7 shared_library hash support<span class="right">[dll.shared_library.hash]</span></h4>
+<pre>template &lt;&gt; struct hash&lt;experimental::shared_library&gt;;</pre><p>
+    <div class="desc">
+        <span class='changed-added'>The specialization is enabled (20.14.14).</span>
+        <span class='changed-deleted'>The template specialization shall meet the requirements of class template hash (20.9.13).</span>
+    </div>
+
+
+<h4>31.3.4 Runtime path functions<span class="right">[dll.location]</span></h4>
+<pre>template&lt;class T&gt;
+filesystem::path symbol_location(const T&amp; symbol, error_code&amp; ec);
+template&lt;class T&gt;
+<span class='changed-deleted'>boost::</span>filesystem::path symbol_location(const T&amp; symbol);</pre>
+    <div class="desc"><i>Returns:</i> Full path and name to shared library file or program that contains <code>symbol</code></div>
+    <div class="desc"><i>Throws:</i> As specified in [dll.errors]</div>
+
+<pre>filesystem::path this_line_location(error_code&amp; ec);
+filesystem::path this_line_location();</pre>
+    <div class="desc"><i>Returns:</i> Full path and name to shared library file or program that contains line of code in which <code>this_line_location()</code> was called</div>
+    <div class="desc"><i>Throws:</i> As specified in [dll.errors]</div>
+
+<pre>filesystem::path program_location(error_code&amp; ec);
+filesystem::path program_location();</pre>
+    <div class="desc"><i>Returns:</i> Full path and name to the current program.</div>
+    <div class="desc"><i>Throws:</i> As specified in [dll.errors]</div>
+
+
+<h4>31.4 Header &lt;experimental/import&gt; <span class="right">[dll.import.header]</span></h4>
+<pre>#include &lt;experimental/dll&gt;
+#include &lt;type_traits&gt;
+#include &lt;memory&gt;
+#include &lt;functional&gt;
+
+namespace std {
+  namespace experimental {
+  inline namespace dll_v1 {
+
+    template &lt;typename SymbolT&gt;
+    using imported_t = conditional_t&lt;is_object_v&lt;SymbolT&gt;, shared_ptr&lt;SymbolT&gt;, function&lt;SymbolT&gt;&gt;;
+
+    // functions for importing a symbol
+    template &lt;typename SymbolT&gt;
+    imported_t&lt;SymbolT&gt; import(const filesystem::path&amp; library_path, const char* symbol_name, dll_mode mode = dll_mode::default_mode);
+
+    template &lt;typename SymbolT&gt;
+    imported_t&lt;SymbolT&gt; import(const filesystem::path&amp; library_path, const string&amp; symbol_name, dll_mode mode = dll_mode::default_mode);
+
+    template &lt;typename SymbolT&gt;
+    imported_t&lt;SymbolT&gt; import(const shared_library&amp; library, const char* symbol_name);
+
+    template &lt;typename SymbolT&gt;
+    imported_t&lt;SymbolT&gt; import(const shared_library&amp; library, const string&amp; symbol_name);
+
+    template &lt;typename SymbolT&gt;
+    imported_t&lt;SymbolT&gt; import(shared_library&amp;&amp; library, const char* symbol_name);
+
+    template &lt;typename SymbolT&gt;
+    imported_t&lt;SymbolT&gt; import(shared_library&amp;&amp; library, const string&amp; symbol_name);
+
+  }
+  }
+}
+</pre>
+
+<p><code>import</code> functions are meant to simplify dynamic library loads of
+    symbols by keeping shared library file loaded in program memory while imported symbol is in scope:</p>
+<pre><i>[ Example:</i>
+    // Code of "/plugin_directory/libplugin.so" contains extern "C" void foo_function(string&amp;&amp;)
+
+    auto foo_function = import&lt;void(string&amp;&amp;)&gt;("/plugin_directory/libplugin.so", "foo_function");
+    foo_function("Test");
+<i>- end example ]</i></pre>
+
+
+<h4>31.4.1 import functions <span class="right">[dll.import.func]</span></h4>
+<pre>template &lt;typename SymbolT&gt;
+imported_t&lt;SymbolT&gt; import(const filesystem::path&amp; library_path, const char* symbol_name, dll_mode mode = dll_mode::default_mode);
+
+template &lt;typename SymbolT&gt;
+imported_t&lt;SymbolT&gt; import(const filesystem::path&amp; library_path, const string&amp; symbol_name, dll_mode mode = dll_mode::default_mode);
+
+template &lt;typename SymbolT&gt;
+imported_t&lt;SymbolT&gt; import(const shared_library&amp; library, const char* symbol_name);
+
+template &lt;typename SymbolT&gt;
+imported_t&lt;SymbolT&gt; import(const shared_library&amp; library, const string&amp; symbol_name);
+
+template &lt;typename SymbolT&gt;
+imported_t&lt;SymbolT&gt; import(shared_library&amp;&amp; library, const char* symbol_name);
+
+template &lt;typename SymbolT&gt;
+imported_t&lt;SymbolT&gt; import(shared_library&amp;&amp; library, const string&amp; symbol_name);</pre>
+    <div class="desc"><i>Effects:</i> Obtains a symbol with name <code>symbol_name</code> from shared library file and returns it wrapped in class that implements semantics
+    of shared ownership of shared library file; the last remaining owner is responsible for releasing the resources associated with the
+    shared library file. <code>mode</code> must be passed to <code>shared_library</code> constructor or <code>shared_library::load</code> function.</div>
+    <div class="desc"><i>Remarks:</i> It's the user responsibility to provide valid <code>SymbolT</code> type for symbol.</div>
+    <div class="desc"><i>Return type:</i> <code>imported_t&lt;SymbolT&gt;</code> that keeps an instance an of <code>shared_library</code> internally</div>
+    <div class="desc"><i>Returns:</i> Variable that keeps <code>shared_library</code> and symbol and provides access to the symbol only.</div>
+    <div class="desc"><i>Throws:</i> <code>system_error</code> if symbol does not exist or if failed to load the shared library file into the memory of program.</div>
+
+
+		<h2>V. Feature-testing macro</h2>
+		<p>For the purposes of SG10 it is sufficient to check for header 
+        &lt;experimental/dll&gt; or &lt;experimental/import&gt; using 
+        __has_include.
+        </p>
+
+
+		<h2>V<span class='changed-added'>I</span>. Revision History</h2>
+		<p><span class='changed-added'>Revision 1:</span></p>
+		<ul>
+			<li>
+				<span class='changed-added'>Rebased to N4618 and applied minor fixes</span>
+			</li>
+		</ul>
+		<p>Revision 0:</p>
+		<ul>
+			<li>
+				Initial proposal
+			</li>
+		</ul>
+
+
+		<h2>VI<span class='changed-added'>I</span>. References</h2>
+		<p>[<a name="Boost.DLL">Boost.DLL</a>] Boost DLL library.
+			Available online at <a href="https://github.com/boostorg/dll">https://github.com/boostorg/dll</a></p>
+		<p><span class='changed-added'>[<a name="N4618">N4618</a>] Working Draft, Standard for Programming Language C++.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/n4618.pdf">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/n4618.pdf</a></span></p>
+		<p><span class='changed-deleted'>[<a name="N4567">N4567</a>] Working Draft, Standard for Programming Language C++.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4567.pdf">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4567.pdf</a></span></p>
+		<p><span class='changed-deleted'>[<a name="N4099">N4099</a>] Working Draft, Technical Specification — File System.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4099.html">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4099.html</a></span></p>
+
+
+		<p>[<a name="N1400">N1400</a>] Toward standardization of dynamic libraries.
+			Available online at <a href="http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2002/n1400.html">http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2002/n1400.html</a></p>
+		<p>[<a name="N1418">N1418</a>] Dynamic Libraries in C++.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2002/n1418.html">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2002/n1418.html</a></p>
+		<p>[<a name="N1428">N1428</a>] Draft Proposal for Dynamic Libraries in C++.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1428.html">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1428.html</a></p>
+		<p>[<a name="N1496">N1496</a>] Draft Proposal for Dynamic Libraries in C++ (Revision 1).
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1496.html">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1496.html</a></p>
+		<p>[<a name="N1976">N1976</a>] Dynamic Shared Objects: Survey and Issues.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n1976.html">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n1976.html</a></p>
+		<p>[<a name="N2015">N2015</a>] Plugins in C++.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n2015.pdf">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n2015.pdf</a></p>
+		<p>[<a name="N2407">N2407</a>] C++ Dynamic Library Support.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2407.html">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2407.html</a></p>
+		<p>&nbsp;</p>
+
+		<h2>VII<span class='changed-added'>I</span>. Acknowledgements</h2>
+		<p>Klemens Morgenstern highlighted some of the missing functionality 
+        in Boost.DLL and provided implementation of mangled symbols load,
+        that showed complexities of such approach. Renato Tegon Forti started the work on Boost.DLL and
+        provided a lot of code, help and documentation for the Boost.DLL.</p>
+
+
+
+        <script type="text/javascript">
+            function colorize_texts(texts) {
+                for (var i = 0; i < texts.length; ++i) {
+                    var text = texts[i].innerHTML;
+                    text = text.replace(/namespace|enum|void|constexpr|extern|noexcept|bool|template|class |struct|auto|const|typename|explicit|public|private|operator|#include|char|typedef|static_assert|static_cast|static/g,"<span class='cppkeyword'>$&</span>");
+                    text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&</span>");
+                    //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&</span>");
+                    texts[i].innerHTML = text;
+                }
+            }
+
+            colorize_texts(document.getElementsByTagName("pre"));
+            colorize_texts(document.getElementsByTagName("code"));
+
+            var show = true;
+            function show_hide_deleted() {
+                var to_change = document.getElementsByClassName('changed-deleted');
+                for (var i = 0; i < to_change.length; ++i) {
+                    to_change[i].style.display = (show ? 'inline' : 'none');
+                }
+
+                show = !show;
+            }
+        </script>
+
+
+</body></html>
