@@ -1,0 +1,133 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+		<title>Changing attack vector of the constexpr_vector</title>
+		<meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+		<meta http-equiv="Content-Language" content="en-us">
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+        <style type="text/css">
+            .addition { color: green; }
+            .right { float:right; }
+            pre { line-height: 1.2; font-size: 10pt; margin-top: 25px;}
+            .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; }
+            body {max-width: 1024px; margin-left: 25px;}
+            .cppkeyword { color: blue; }
+            .cppcomment { color: green; }
+            .cppcomment > .cppkeyword{ color: green; }
+            .cpptext { color: #2E8B57; }
+        </style>
+
+	</head>
+	<body bgcolor="#ffffff">
+		<address>Document number: D0639R0</address>
+		<address>Project: Programming Language C++</address>
+		<address>Audience: Evolution Working Group, Library Evolution Working Group</address>
+		<address>&nbsp;</address>
+		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+		<address>Alexander Zaitsev &lt;<a href="mailto:zamazan4ik@tut.by">zamazan4ik@tut.by</a>&gt;</address>
+		<address>&nbsp;</address>
+		<address>Date: 2017-04-12</address>
+		<h1>Changing attack vector of the constexpr_vector</h1>
+
+
+<p align="right">“The easiest way to solve a problem is to deny it exists.”</p>
+<p align="right"><i>― Isaac Asimov</i></p>
+
+		<h2>I. Introduction and Motivation</h2>
+		<p><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0597r0.html">P0597R0</a> proposed to add a new <code>std::constexpr_vector</code> type that is usable in constexpr context. That's going to be a very useful class and many people already wish to have it in Standard Library.</p>
+
+		<p>However, users will definitely wish for more:</p>
+        <ul>
+            <li>Reflections SG would like to have a constexpr_string</li>
+            <li>Boost is already trying to invent constexpr associative containers</li>
+            <li>constexpr_deque seems to be very useful as it has a handy <code>pop_front</code> function</li>
+            <li>Users have their own containers and one day they would like to make them <code>constexpr</code></li>
+            <li>Numerics SG may wish to have constexpr unbounded integers some day</li>
+            <li>constexpr_path?..</li>
+            <li>...</li>
+        </ul>
+
+		<p>This proposal <b>is not</b> an attempt to prevent further work on P0597R0. This proposal is <b>an attempt to change problem attack vector of the P0597R0</b> to make it more generic and solve more problems without duplicating each container in the Standard Library.</p>
+
+		<h2>II. The idea</h2>
+		<p>Instead of providing multiple constexpr containers we can provide a single <code>std::constexpr_allocator</code> and mark existing containers with constexpr.</p>
+
+
+		<h2>III. Proof of concept</h2>
+		<p>It took roughly 10 man-hours to implement naive <code>std::constexpr_allocator</code> as a library only solution and tune <code>std::vector</code> to be usable in constexpr context. Now it is possible to write code like the following:</p>
+<pre>
+constexpr bool vector_testing_constexpr(unsigned size) {
+    std::vector&lt;unsigned, constexpr_allocator&lt;unsigned&gt;&gt; compile_time;
+    for (unsigned i = 0; i <= size; ++ i)
+        compile_time.push_back(i);
+
+    compile_time.emplace_back(0);
+    compile_time.pop_back();
+
+    return compile_time.back() == size;
+}
+
+int main() {
+    constexpr auto r = vector_testing_constexpr(5);
+    static_assert(r, "");
+}
+</pre>
+		<p>The proof of concept implementation could be found at <a href="https://github.com/ZaMaZaN4iK/constexpr_allocator">https://github.com/ZaMaZaN4iK/constexpr_allocator</a> (all the major changes are in <code>modif_*</code> headers).</p>
+
+
+		<h2>IV. Challenges and solutions</h2>
+		<p>Following problems were discovered while implementing the proof of concept prototype:</p>
+        <ul>
+            <li>Standard Library containers miss <code>constexpr</code></li>
+                <ul><li><b>Solution: </b>It is simple to add <code>constexpr</code> all around the container declaration</li></ul>
+            <li>Standard Library containers have non trivial destructors</li>
+                <ul>
+                    <li><b>Solution 1:</b> This can be worked around by querying the allocator, checking that it is a constexpr allocator and changing the destructors to trivial ones. That's the solution that was used in the prototype</li>
+                    <li><b>Solution 2:</b> This can be fixed in a more general way by allowing non trivial destructors in constant expressions</li>
+                </ul>
+
+            <li>Many utility functions and algorithms miss <code>constexpr</code> specifiers</li>
+                <ul><li><b>Solution:</b> This is solved by <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0202r1.html">P0202R1</a></li></ul>
+            <li><code>try</code> and <code>catch</code> are not allowed in constant expressions</li>
+                <ul><li><b>Solution:</b> Exceptions could not be thrown in constant expression so it seems OK to allow <code>try</code> and <code>catch</code> in constant expressions that just do nothing</li></ul>
+            <li>No way to allocate memory in constant expressions</li>
+                <ul><li><b>Solution 1:</b> That's were the <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0597r0.html">P0597R0</a> is stepping in. Instead of having a magic <code>constexpr_vector</code> that allocates memory, please change it to magic <code>constexpr_allocator</code> that allocates memory in constant expressions.</li>
+                <li><b>Solution 2:</b> Prototype used an array of default initialized objects instead of allocating memory and constructing objects in place. Users may use the similar approach for providing their own constexpr allocators.</li></ul>
+            <li>No way to use <code>placement new</code> in constant expressions, so no way to implement <code>constexpr_allocator::construct</code></li>
+                <ul><li><b>Solution 1:</b> Instead of placement new use <code>constructor+move_assignment</code>. That's the solution that was used in the prototype</li>
+                <li><b>Solution 2:</b> Allow <code>placement new</code> in constexpr expressions.</li>
+                <li><b>Solution 3:</b> Use same compiler magic as in <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0597r0.html">P0597R0</a></li></ul>
+        </ul>
+
+
+		<h2>V. Pros and Cons</h2>
+		<p>Pros of constexpr_allocator approach:</p>
+		<ul>
+            <li>Extensible - it is simple to add new containers</li>
+            <li>Brief - no duplication of existing Standard Library containers</li>
+            <li>Follows existing practice - uses allocators for memory allocation, not fuses the allocator behavior into the container behavior</li>
+            <li>Future proof - if one day someone invents a constant expression usable <code>new</code>, we won't need to deprecate a bunch of constexpr containers. We'll just deprecate a single constexpr allocator</li>
+            <li>User friendly - could be used with user defined containers without tedious wrapping and reinventing constexpr allocators from the <code>std::constexpr_vector</code>.</li>
+        </ul>
+
+
+		<p>Cons of constexpr_allocator approach:</p>
+		<ul>
+            <li>Touches Allocators - people try to avoid that</li>
+            <li>Requires More Work - instead of having a single big <code>std::constexpr_vector</code> proposal the <code>constexpr_allocator</code> approach requires multiple smaller proposals to cycle trough almost all the subgroups.</li>
+        </ul>
+
+
+		<h2>VI. References</h2>
+		<p>[<a name="P0597R0">P0597R0</a>] "std::constexpr_vector&lt;T&gt;" proposal.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0597r0.html">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0597r0.html</a></p>
+		<p>[<a name="P0202R1">P0202R1</a>] "Add Constexpr Modifiers to Functions in &lt;algorithm&gt; and &lt;utility&gt; Headers" proposal.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0202r1.html">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0202r1.html</a></p>
+
+		<p>&nbsp;</p>
+		<p>&nbsp;</p>
+
+		<h2>VII. Acknowledgements</h2>
+		<p>Daveed Vandevoorde highlighted some challenges during early review of the paper.</p>
+
+</body></html>
