@@ -1,0 +1,362 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+        <title>Maybe cuncurrent and unordered container</title>
+        <meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+        <meta http-equiv="Content-Language" content="en-us">
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+        <style type="text/css">
+            .addition { color: green; }
+            .right { float:right; }
+            .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+            .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+            .changed-added { background-color: #CFF0FC ;}
+            .notes { background-color: #80D080 ;}
+            pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
+            .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; }
+            body {max-width: 1024px; margin-left: 25px;}
+            .cppkeyword { color: blue; }
+            .cppcomment { color: green; }
+            .cppcomment > .cppkeyword{ color: green; }
+            .cpptext { color: #2E8B57; }
+        </style>
+    </head>
+    <body bgcolor="#ffffff">
+        <address>Document number: D????R0</address>
+        <address>Project: Programming Language C++</address>
+        <address>Audience: SG1 Concurrency</address>
+        <address>&nbsp;</address>
+        <address>Anton Malakhov, Intel Corp., &lt;<a href="mailto:anton.malakhov@intel.com">anton.malakhov@intel.com</a>&gt;</address>
+        <address>Sergey Murylev, Yandex Ltd, &lt;<a href="mailto:f03n1x@yandex.ru">f03n1x@yandex.ru</a>&gt;, &lt;<a href="mailto:smurylev@yandex-team.ru">smurylev@yandex-team.ru</a>&gt;</address>
+        <address>Antony Polukhin, Yandex Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+        <address>&nbsp;</address>
+        <address>Date: 2017-05-04</address>
+        <h1>Maybe cuncurrent and unordered container</h1>
+
+        <h2>I. Introduction and Motivation</h2>
+        <p>There's a lot of usecases where a concurrent modification of unordered associative container is required. There were attempts to add such containers in the past (N3425, N3732, TODO: )</p>
+        <p>This paper is an another attempt to deal with the problem. This time we are trying to keep the interface familiar to users, hard to missuse but stil functional.</p>
+        <p>Reference implementation is available at TODO: .</p>
+
+        <h2>II. Design decisions</h2>
+
+        <h3>A. Open addressing:</h3>
+        <p>When users wish to use the concurrent unordered container, they are searching for performance and scalability.
+        Fastest know implementations rely on the <b>open addressing</b>, so we are basing this proposal on top of that idea.<p>
+
+        <h3>B. No functions that are easy to missuse:</h3>
+        <p>In C++17 <code>std::shared_ptr::use_count()</code> function was removed because users were missusing it. Users were hoping that the result of the function is actual
+        at the point were they were trying to use it. However as soon as the rsult is returned from the function it could expire as someone modifies the value from other thread.</p>
+        <p>We followed the C++17 decision and <b>removed all the functions that are useless/dangerous</b> in concurrent
+        environments: <code>size()</code>, <code>count()</code>, <code>empty()</code>, <code>buckets_count()</code> and so forth.</p>
+
+        <h3>C. No iterators:</h3>
+        <p>Iterators must take care of synchronization, otherwize the user can not dereference the iterator at all. If Iterators do some synchronization
+        it <b>affects performance</b>. If Iterators do some synchronization then <b>deadlocks will happen</b>. For example if in first thread we
+        iterate from beginning to the end of container and in the second thread we iterate from the end to the beginning, then the deadlock will
+        happen in the middle as the iterators met.</p>
+
+        <p>It is possible to drop the open addressing idea and make the iterators to have shared ownership of buckets. In that case iterator may keep the bucket
+        alive. This seems implementatble and usable by users, but significantly <b>affects performance</b> by adding multiple additional atomic operations
+        and adding additional indirections.</p>
+
+        <p>We tried to stick to this idea for a long time and minimize the performnace impact. Finally we created a list of usecases for concurrent
+        unordered containers and found out that in all of those usecases iterators are useless or kill performance of the whole container (so are also useless).
+        Instead of that, we came up with an idea of <b>unsynchronized view/policy</b>.</p>
+
+        <h3>D. Unsynchronized view/policy with a full interface:</h3>
+        <p>This is the <b>killer feature</b> of this proposal that attempts to fix all the limitations from above and provide a much more usefull interface.</p>
+
+        <p>The idea is following: multiple operations on unordered containers make sense only if that container is not concurrently modified. User may take the
+        resposibility that noone is modifing the container at this point and gain all the operations and iterators.</p></li>
+
+        <p>Such approach allows to initialize/prepare the data for container <b>without additional synchronization overhead.</b> It also <b>allows advanced usage</b>:
+        <ul>
+            <li>Multiple threads use the same <code>concurrent_unordered_map</code> for reads and writes simultaneously.</li>
+            <li>Multiple threads use <code>const unsynchronized_view</code> on the same <code>concurrent_unordered_map</code> simultaneously
+                (no modifications through <code>concurrent_unordered_map</code> interface are allowed!).</li>
+            <li>Single thread uses <code>unsynchronized_view</code> (no modifications are allowed from other treads!).</li>
+            <li>Multiple threads use the same <code>const concurrent_unordered_map&amp;</code> for reads and multiple threads
+                use <code>const unsynchronized_view</code> on the same concurrent_unordered_map simultaneously 
+                (ineffective: use multiple <code>const unsynchronized_view</code> instead).</li>
+        </ul>
+
+        <h3>E. No node operations and different from <code>std::unordered_map</code> iterator invalidation:</h3>
+        <p>This is a consequence of choosing the open addressing as an underlyind technique.</p>
+
+
+        <h2>III. Draft interface and informal description</h2>
+<p><code>concurrent_unordered_map</code> class is a container that provides an effective key-value storage, but does not meet the unordered associative container requirements.
+Concurrent member functions calls on the same instance of <code>concurrent_unordered_map</code> have well defined behavior.</p>
+
+<pre>
+namespace std {
+  template &lt;class Key,
+            class T,
+            class Hasher = hash&lt;Key&gt;,
+            class Equality = equal_to&lt;Key&gt;,
+            class Allocator = allocator&lt;pair&lt;const Key, T&gt;&gt; &gt;
+  class concurrent_unordered_map {
+  public:
+    // types:
+    using key_type          = Key;
+    using mapped_type       = T;
+    using value_type        = pair&lt;const Key, T&gt;;
+    using hasher            = Hash;
+    using key_equal         = Equality;
+    using allocator_type    = Allocator;
+    using size_type         = implementation-defined;
+
+    // construct/destroy:
+    concurrent_unordered_map() noexcept;
+    explicit concurrent_unordered_map(size_type n,
+                                      const Hasher&amp; hf = hasher(),
+                                      const key_equal&amp; eql = key_equal(),
+                                      const allocator_type&amp; a = allocator_type());
+    template &lt;typename InputIterator&gt;
+    concurrent_unordered_map(InputIterator first, InputIterator last,
+                             size_type n = implementation-defined,
+                             const hasher&amp; hf = hasher(),
+                             const key_equal&amp; eql = key_equal(),
+                             const allocator_type&amp; a = allocator_type());
+    concurrent_unordered_map(const Alloc&amp;);
+    concurrent_unordered_map(concurrent_unordered_map&amp;&amp;) noexcept;
+    concurrent_unordered_map(concurrent_unordered_map&amp;&amp;, const Allocator&amp;);
+    concurrent_unordered_map(initializer_list&lt;value_type&gt; il,
+                             size_type n = implementation-defined,
+                             const hasher&amp; hf = hasher(),
+                             const key_equal&amp; eql = key_equal(),
+                             const allocator_type&amp; a = allocator_type());
+    ~concurrent_unordered_map();
+
+    // unsychronized view/policy:
+    class unsynchronized_view;
+    unsyncronized_view lock_table() noexcept;
+
+    // concurrent-safe assignment:
+    concurrent_unordered_map&amp; operator=(concurrent_unordered_map&amp;&amp;) noexcept;
+    concurrent_unordered_map&amp; operator=(initializer_list&lt;value_type&gt; il);
+
+
+    void swap(concurrent_unordered_map&amp;)
+        noexcept(
+            allocator_traits&lt;Allocator&gt;::is_always_equal::value &&
+            is_nothrow_swappable_v&lt;Hash&gt; &&
+            is_nothrow_swappable_v&lt;Pred&gt;);
+    void clear() noexcept;
+
+    // concurrent-safe element retrieval:
+    optional&lt;mapped_type&gt; find(const key_type&amp; key) const;
+    mapped_type find(const key_type&amp; key, const mapped_type&amp; default_value) const;
+
+    // concurrent-safe modifiers:
+    template &lt;typename... Args&gt;
+    bool emplace(const key_type&amp; key, Args&amp;&amp;... val);
+    template &lt;typename... Args&gt;
+    bool emplace(key_type&amp;&amp; key, Args&amp;&amp;... val);
+
+    bool insert(const value_type&amp; x);
+    bool insert(value_type&amp;&amp; x);
+    template&lt;class InputIterator&gt;
+    void insert(InputIterator first, InputIterator last);
+
+    template &lt;typename V&gt;
+    bool insert_or_assign(const key_type&amp; key, V&amp;&amp; val);
+    template &lt;typename V&gt;
+    bool insert_or_assign(key_type&amp;&amp; key, V&amp;&amp; val);
+
+    size_type update(const key_type&amp; key, const value_type&amp; val);
+    size_type update(const key_type&amp; key, value_type&amp;&amp; val);
+
+    size_type erase(const key_type&amp; key);
+
+    template&lt;class H2, class P2&gt;
+    void merge(concurrent_unordered_map&lt;Key, T, H2, P2, Allocator&gt;&amp; source);
+    template&lt;class H2, class P2&gt;
+    void merge(concurrent_unordered_map&lt;Key, T, H2, P2, Allocator&gt;&amp;&amp; source);
+    // Note: merge for concurrent_unordered_multimap?
+  };
+</pre>
+
+<p><code>unsynchronized_view</code> class refers <code>concurrent_unordered_map</code> and provides a concurrent unsafe
+interface to <code>concurrent_unordered_map</code> that satisfies unordered associative container requirements (except iterator
+invalidation requirements and node operations).</p>
+<p>[ <i>Note:</i> Concurrent non const member functions calls on the instances of <code>unsynchronized_view</code> referencing
+the same <code>concurrent_unordered_map</code> are not safe! <i>- end note. </i>] </p>
+<p>[ <i>Note:</i> Concurrent member functions calls on the <code>concurrent_unordered_map</code> instance <i>A</i> and on the <code>unsynchronized_view</code> referencing
+the instance <i>A</i> are not safe! <i>- end note. </i>] </p>
+
+
+<pre>
+  template &lt;class Key, class T, class Hasher, class Equality, class Allocator&gt;
+  class concurrent_unordered_map&lt;Key, T, Hasher, Equality, Allocator&gt;::unsynchronized_view {
+    concurrent_unordered_map&lt;Key, T, Hasher, Equality, Allocator&gt;&amp; delegate; // exposition only
+
+  public:
+    // types:
+    using key_type          = Key;
+    using mapped_type       = T;
+    using value_type        = pair&lt;const Key, T&gt;;
+    using hasher            = Hash;
+    using key_equal         = Equality;
+    using allocator_type    = Allocator;
+
+    using pointer           = typename allocator_traits&lt;Allocator&gt;::pointer;
+    using const_pointer     = typename allocator_traits&lt;Allocator&gt;::const_pointer;
+    using reference         = value_type&amp;;
+    using reference         = const value_type&amp;;
+    using size_type         = implementation-defined;
+    using difference_type   = implementation-defined;
+    using iterator          = implementation-defined;
+    using const_iterator    = implementation-defined;
+    using local_iterator    = implementation-defined;
+    using const_local_iterator = implementation-defined;
+
+    // construct/copy/destroy:
+    unsynchronized_view() = delete;
+    unsynchronized_view(const unsynchronized_view&amp;) noexcept = default;
+    unsynchronized_view& operator=(const unsynchronized_view&amp;) noexcept = default;
+    ~unsynchronized_view() = default;
+
+    // iterators:
+    iterator        begin() noexcept;
+    const_iterator  begin() const noexcept;
+    iterator        end() noexcept;
+    const_iterator  end() const noexcept;
+    const_iterator  cbegin() const noexcept;
+    const_iterator  cend() const noexcept;
+
+    // capacity:
+    bool empty() const noexcept;
+    size_type size() const noexcept;
+    size_type max_size() const noexcept;
+
+    // modifiers:
+    template&lt;typename... Args&gt;
+    pair&lt;iterator, bool&gt; emplace(Args&amp;&amp;... args);
+    template&lt;typename... Args&gt;
+    iterator emplace_hint(const_iterator hint, Args&amp;&amp;... args);
+
+    pair&lt;iterator, bool&gt; insert(const value_type&amp; x);
+    pair&lt;iterator, bool&gt; insert(const value_type&amp;&amp; x);
+    template&lt;class P&gt; pair&lt;iterator, bool&gt; insert(P&amp;&amp; x);
+    iterator insert(const_iterator hint, const value_type&amp; x);
+    iterator insert(const_iterator hint, const value_type&amp;&amp; x);
+    template&lt;class P&gt; pair&lt;iterator, bool&gt; insert(const_iterator hint, P&amp;&amp; x);
+    template&lt;class InputIterator&gt; void insert(InputIterator first, InputIterator last);
+    void insert(initializer_list&lt;value_type&gt; il);
+
+    template &lt;typename... Args&gt;
+      pair&lt;iterator, bool&gt; try_emplace(const key_type&amp; k, Args&amp;&amp;... args);
+    template &lt;typename... Args&gt;
+      pair&lt;iterator, bool&gt; try_emplace(key_type&amp;&amp; k, Args&amp;&amp;... args);
+    template &lt;typename... Args&gt;
+      iterator try_emplace(const_iterator hint, const key_type&amp; k, Args&amp;&amp;... args);
+    template &lt;typename... Args&gt;
+      iterator try_emplace(const_iterator hint, key_type&amp;&amp; k, Args&amp;&amp;... args);
+    template &lt;class M&gt;
+      pair&lt;iterator, bool&gt; insert_or_assign(const key_type&amp; k, M&amp;&amp; obj);
+    template &lt;class M&gt;
+      pair&lt;iterator, bool&gt; insert_or_assign(key_type&amp;&amp; k, M&amp;&amp; obj);
+    template &lt;class M&gt;
+      iterator insert_or_assign(const_iterator hint, const key_type&amp; k, M&amp;&amp; obj);
+    template &lt;class M&gt;
+      iterator insert_or_assign(const_iterator hint, key_type&amp;&amp; k, M&amp;&amp; obj);
+
+    iterator erase(iterator position);
+    iterator erase(const_iterator position);
+    size_type erase(const key_type&amp; k);
+    iterator erase(const_iterator first, const_iterator last);
+    void swap(unordered_mapamp&amp;)
+        noexcept(allocator_traits&lt;Allocator&gt;::is_always_equal::value &amp;&amp;
+            is_nothrow_swappable_v&lt;Hash&gt; &amp;&amp;
+            is_nothrow_swappable_v&lt;Pred&gt;);
+    void clear() noexcept;
+
+    template&lt;class H2, class P2&gt;
+    void merge(concurrent_unordered_map&lt;Key, T, H2, P2, Allocator&gt;&amp;&amp; source);
+    template&lt;class H2, class P2&gt;
+    void merge(concurrent_unordered_multimap&lt;Key, T, H2, P2, Allocator&gt;&amp;&amp; source);
+    // Note: merge for concurrent_unordered_multimap ?
+
+    // observers:
+    allocator_type get_allocator() const;
+    hasher hash_function() const;
+    key_equal key_eq() const;
+
+    // map operations:
+    iterator find(const key_type&amp; k);
+    const_iterator find(const key_type&amp; k) const;
+    size_type count(const key_type&amp; k) const;
+    pair&lt;iterator, iterator&gt; equal_range(const key_type&amp; k);
+    pair&lt;const_iterator, const_iterator&gt; equal_range(const key_type&amp; k) const;
+
+    // element access:
+    mapped_type&amp; operator[](const key_type&amp; k);
+    mapped_type&amp; operator[](key_type&amp;&amp; k);
+    const mapped_type&amp; at(const key_type&amp; k) const;
+    mapped_type&amp; at(const key_type&amp; k);
+
+    // bucket interface:
+    size_type bucket_count() const;
+    size_type max_bucket_count() const;
+    size_type bucket_size(size_type n);
+    size_type bucket(const key_type&amp; k) const;
+    local_iterator begin(size_type n);
+    const_local_iterator begin(size_type n) const;
+    local_iterator end(size_type n);
+    const_local_iterator end(size_type n) const;
+    const_local_iterator cbegin(size_type n) const;
+    const_local_iterator cend(size_type n) const;
+
+    // hash policy:
+    float load_factor() const noexcept;
+    float max_load_factor() const noexcept;
+    void max_load_factor(float z);
+    void rehash(size_type n);
+  };
+}
+</pre>
+
+<p>
+[ <i>Note:</i> Following usecases are allowed:
+<ul>
+    <li>Multiple threads use the same <code>concurrent_unordered_map</code> for reads and writes simultaneously</li>
+    <li>Multiple threads use <code>const unsynchronized_view</code> on the same <code>concurrent_unordered_map</code> simultaneously
+        (no modifications through <code>concurrent_unordered_map</code> interface are allowed!)</li>
+    <li>Single thread uses <code>unsynchronized_view</code> (no modifications are allowed from other treads!)</li>
+    <li>Multiple threads use the same <code>const concurrent_unordered_map&amp;</code> for reads and multiple threads use <code>const unsynchronized_view</code> on the same concurrent_unordered_map simultaneously (ineffective: use multiple <code>const unsynchronized_view</code> instead).</li>
+</ul>
+<i> - end note.</i> ]
+</p>
+
+
+        <h2>IV. Some usage examples in pseudocode</h2>
+        <p>TODO: </p>
+
+        <script type="text/javascript">
+            function colorize_texts(texts) {
+                for (var i = 0; i < texts.length; ++i) {
+                    var text = texts[i].innerHTML;
+                    text = text.replace(/namespace|enum|void|constexpr|extern|noexcept|bool|template|class |struct|auto|const |typename|explicit|public|private|operator|#include|inline| char|typedef|static_assert|static_cast|static/g,"<span class='cppkeyword'>$&</span>");
+                    text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&</span>");
+                    //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&</span>");
+                    texts[i].innerHTML = text;
+                }
+            }
+
+            colorize_texts(document.getElementsByTagName("pre"));
+            colorize_texts(document.getElementsByTagName("code"));
+
+            var show = false;
+            function show_hide_deleted() {
+                var to_change = document.getElementsByClassName('changed-deleted');
+                for (var i = 0; i < to_change.length; ++i) {
+                    to_change[i].style.display = (show ? 'block' : 'none');
+                }
+
+                show = !show;
+            }
+            show_hide_deleted()
+        </script>
+</body></html>
