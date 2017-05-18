@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html><head>
-        <title>Maybe cuncurrent and unordered container</title>
+        <title>Maybe concurrent and unordered container</title>
         <meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
         <meta http-equiv="Content-Language" content="en-us">
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -27,48 +27,48 @@
         <address>Audience: SG1 Concurrency</address>
         <address>&nbsp;</address>
         <address>Anton Malakhov, Intel Corp., &lt;<a href="mailto:anton.malakhov@intel.com">anton.malakhov@intel.com</a>&gt;</address>
-        <address>Sergey Murylev, Yandex Ltd, &lt;<a href="mailto:f03n1x@yandex.ru">f03n1x@yandex.ru</a>&gt;, &lt;<a href="mailto:smurylev@yandex-team.ru">smurylev@yandex-team.ru</a>&gt;</address>
+        <address>Sergey Murylev, Yandex Ltd, &lt;<a href="mailto:SergeyMurylev@gmail.com">SergeyMurylev@gmail.com</a>&gt;, &lt;<a href="mailto:smurylev@yandex-team.ru">smurylev@yandex-team.ru</a>&gt;</address>
         <address>Antony Polukhin, Yandex Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
         <address>&nbsp;</address>
-        <address>Date: 2017-05-04</address>
-        <h1>Maybe cuncurrent and unordered container</h1>
+        <address>Date: 2017-05-18</address>
+        <h1>Maybe concurrent and unordered container</h1>
 
         <h2>I. Introduction and Motivation</h2>
-        <p>There's a lot of usecases where a concurrent modification of unordered associative container is required. There were attempts to add such containers in the past (N3425, N3732, TODO: )</p>
-        <p>This paper is an another attempt to deal with the problem. This time we are trying to keep the interface familiar to users, hard to missuse but stil functional.</p>
+        <p>There's a lot of use-cases where a concurrent modification of unordered associative container is required. There were attempts to add such containers in the past (<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2012/n3425.html">N3425</a>, <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3732.pdf">N3732</a>, TODO: )</p>
+        <p>This paper is an another attempt to deal with the problem. This time we are trying to keep the interface familiar to users, hard to misuse but still functional.</p>
         <p>Reference implementation is available at TODO: .</p>
 
         <h2>II. Design decisions</h2>
 
         <h3>A. Open addressing:</h3>
         <p>When users wish to use the concurrent unordered container, they are searching for performance and scalability.
-        Fastest know implementations rely on the <b>open addressing</b>, so we are basing this proposal on top of that idea.<p>
+        Fastest know implementations rely on the <b>open addressing</b> <a href="http://www.cs.cmu.edu/%7Edga/papers/memc3-nsdi2013.pdf">MemC3.pdf</a>, so we are basing this proposal on top of that idea.<p>
 
-        <h3>B. No functions that are easy to missuse:</h3>
-        <p>In C++17 <code>std::shared_ptr::use_count()</code> function was removed because users were missusing it. Users were hoping that the result of the function is actual
-        at the point were they were trying to use it. However as soon as the rsult is returned from the function it could expire as someone modifies the value from other thread.</p>
+        <h3>B. No functions that are easy to misuse:</h3>
+        <p>In C++17 <code>std::shared_ptr::use_count()</code> function was removed because users were misusing it. Users were hoping that the result of the function is actual
+        at the point were they were trying to use it. However as soon as the result is returned from the function it could expire as someone modifies the value from other thread.</p>
         <p>We followed the C++17 decision and <b>removed all the functions that are useless/dangerous</b> in concurrent
         environments: <code>size()</code>, <code>count()</code>, <code>empty()</code>, <code>buckets_count()</code> and so forth.</p>
 
         <h3>C. No iterators:</h3>
-        <p>Iterators must take care of synchronization, otherwize the user can not dereference the iterator at all. If Iterators do some synchronization
+        <p>Iterators must take care of synchronization, otherwise the user can not dereference the iterator at all. If Iterators do some synchronization
         it <b>affects performance</b>. If Iterators do some synchronization then <b>deadlocks will happen</b>. For example if in first thread we
         iterate from beginning to the end of container and in the second thread we iterate from the end to the beginning, then the deadlock will
         happen in the middle as the iterators met.</p>
 
         <p>It is possible to drop the open addressing idea and make the iterators to have shared ownership of buckets. In that case iterator may keep the bucket
-        alive. This seems implementatble and usable by users, but significantly <b>affects performance</b> by adding multiple additional atomic operations
+        alive. This seems implementable and usable by users, but significantly <b>affects performance</b> by adding multiple additional atomic operations
         and adding additional indirections.</p>
 
-        <p>We tried to stick to this idea for a long time and minimize the performnace impact. Finally we created a list of usecases for concurrent
-        unordered containers and found out that in all of those usecases iterators are useless or kill performance of the whole container (so are also useless).
+        <p>We tried to stick to this idea for a long time and minimize the performance impact. Finally we created a list of use-cases for concurrent
+        unordered containers and found out that in all of those use-cases iterators are useless or kill performance of the whole container (so are also useless).
         Instead of that, we came up with an idea of <b>unsynchronized view/policy</b>.</p>
 
         <h3>D. Unsynchronized view/policy with a full interface:</h3>
-        <p>This is the <b>killer feature</b> of this proposal that attempts to fix all the limitations from above and provide a much more usefull interface.</p>
+        <p>This is the <b>killer feature</b> of this proposal that attempts to fix all the limitations from above and provide a much more useful interface.</p>
 
         <p>The idea is following: multiple operations on unordered containers make sense only if that container is not concurrently modified. User may take the
-        resposibility that noone is modifing the container at this point and gain all the operations and iterators.</p></li>
+        responsibility that no-one is modifying the container at this point and gain all the operations and iterators.</p></li>
 
         <p>Such approach allows to initialize/prepare the data for container <b>without additional synchronization overhead.</b> It also <b>allows advanced usage</b>:
         <ul>
@@ -82,8 +82,14 @@
         </ul>
 
         <h3>E. No node operations and different from <code>std::unordered_map</code> iterator invalidation:</h3>
-        <p>This is a consequence of choosing the open addressing as an underlyind technique.</p>
+        <p>This is a consequence of choosing the open addressing as an underlying technique.</p>
 
+        <h3>F. Allow visitation under the synchronization of the container:</h3>
+        <p>This is a very risky decision because it unleashes the way for deadlocking/breaking the container (users may recursively visit the container values; call heavy functions
+        that will damage the overall performance of the container; can call some parallel functions of the standard library that may potentially use same locking as the container implementation...).</p>
+
+        <p>However, there's a lot of use-cases where a value must be updated depending on value that is in the container. Without a visitation, there's no way to do that safely,
+        as all the functions return values by copy. See examples <a href="#exampleB">B</a> and <a href="#exampleC">C</a>.</p>
 
         <h2>III. Draft interface and informal description</h2>
 <p><code>concurrent_unordered_map</code> class is a container that provides an effective key-value storage, but does not meet the unordered associative container requirements.
@@ -91,6 +97,9 @@ Concurrent member functions calls on the same instance of <code>concurrent_unord
 
 <pre>
 namespace std {
+  template &lt;class Key, class T, class Hasher, class Equality, class Allocator&gt;
+  class unsynchronized_view;
+
   template &lt;class Key,
             class T,
             class Hasher = hash&lt;Key&gt;,
@@ -102,7 +111,7 @@ namespace std {
     using key_type          = Key;
     using mapped_type       = T;
     using value_type        = pair&lt;const Key, T&gt;;
-    using hasher            = Hash;
+    using hasher            = Hasher;
     using key_equal         = Equality;
     using allocator_type    = Allocator;
     using size_type         = implementation-defined;
@@ -130,18 +139,24 @@ namespace std {
     ~concurrent_unordered_map();
 
     // unsychronized view/policy:
-    class unsynchronized_view;
-    unsyncronized_view lock_table() noexcept;
+    unsyncronized_view&lt;Key, T, Hasher, Equality, Allocator&gt; lock_table() const noexcept;
 
     // concurrent-safe assignment:
     concurrent_unordered_map&amp; operator=(concurrent_unordered_map&amp;&amp;) noexcept;
     concurrent_unordered_map&amp; operator=(initializer_list&lt;value_type&gt; il);
 
+     // executes `f` under a `lock` if `key` is in *this.
+    template &lt;typename F&gt;
+    void visit(const key_type&amp; key, F&& f);
+
+     // executes `f` under a `lock`. If `key` is not in *this calls emplace(std::forward&lt;Args&gt;(args)...) first.
+    template &lt;typename F, typename... Args&gt;
+    void emplace_or_visit(const key_type&amp; key, F&& f, Args&amp;&amp;... args);
 
     void swap(concurrent_unordered_map&amp;)
         noexcept(
             allocator_traits&lt;Allocator&gt;::is_always_equal::value &&
-            is_nothrow_swappable_v&lt;Hash&gt; &&
+            is_nothrow_swappable_v&lt;Hasher&gt; &&
             is_nothrow_swappable_v&lt;Pred&gt;);
     void clear() noexcept;
 
@@ -164,6 +179,8 @@ namespace std {
     bool insert_or_assign(const key_type&amp; key, V&amp;&amp; val);
     template &lt;typename V&gt;
     bool insert_or_assign(key_type&amp;&amp; key, V&amp;&amp; val);
+
+    optional&lt;value_type&gt; extract(const key_type& x);
 
     size_type update(const key_type&amp; key, const value_type&amp; val);
     size_type update(const key_type&amp; key, value_type&amp;&amp; val);
@@ -189,7 +206,7 @@ the instance <i>A</i> are not safe! <i>- end note. </i>] </p>
 
 <pre>
   template &lt;class Key, class T, class Hasher, class Equality, class Allocator&gt;
-  class concurrent_unordered_map&lt;Key, T, Hasher, Equality, Allocator&gt;::unsynchronized_view {
+  class unsynchronized_view {
     concurrent_unordered_map&lt;Key, T, Hasher, Equality, Allocator&gt;&amp; delegate; // exposition only
 
   public:
@@ -197,7 +214,7 @@ the instance <i>A</i> are not safe! <i>- end note. </i>] </p>
     using key_type          = Key;
     using mapped_type       = T;
     using value_type        = pair&lt;const Key, T&gt;;
-    using hasher            = Hash;
+    using hasher            = Hasher;
     using key_equal         = Equality;
     using allocator_type    = Allocator;
 
@@ -214,6 +231,7 @@ the instance <i>A</i> are not safe! <i>- end note. </i>] </p>
 
     // construct/copy/destroy:
     unsynchronized_view() = delete;
+    unsynchronized_view(concurrent_unordered_map&lt;Key, T, Hasher, Equality, Allocator&gt;&amp; delegate);
     unsynchronized_view(const unsynchronized_view&amp;) noexcept = default;
     unsynchronized_view& operator=(const unsynchronized_view&amp;) noexcept = default;
     ~unsynchronized_view() = default;
@@ -269,7 +287,7 @@ the instance <i>A</i> are not safe! <i>- end note. </i>] </p>
     iterator erase(const_iterator first, const_iterator last);
     void swap(unordered_mapamp&amp;)
         noexcept(allocator_traits&lt;Allocator&gt;::is_always_equal::value &amp;&amp;
-            is_nothrow_swappable_v&lt;Hash&gt; &amp;&amp;
+            is_nothrow_swappable_v&lt;Hasher&gt; &amp;&amp;
             is_nothrow_swappable_v&lt;Pred&gt;);
     void clear() noexcept;
 
@@ -319,7 +337,7 @@ the instance <i>A</i> are not safe! <i>- end note. </i>] </p>
 </pre>
 
 <p>
-[ <i>Note:</i> Following usecases are allowed:
+[ <i>Note:</i> Following use-cases are allowed:
 <ul>
     <li>Multiple threads use the same <code>concurrent_unordered_map</code> for reads and writes simultaneously</li>
     <li>Multiple threads use <code>const unsynchronized_view</code> on the same <code>concurrent_unordered_map</code> simultaneously
@@ -331,14 +349,223 @@ the instance <i>A</i> are not safe! <i>- end note. </i>] </p>
 </p>
 
 
-        <h2>IV. Some usage examples in pseudocode</h2>
-        <p>TODO: </p>
+        <h2>IV. Some usage examples in pseudo code</h2>
+        <h3><a name="exampleA">A.</a> User session cache</h3>
+        <p>
+
+<pre>
+using namespace std;
+void precess_user(string_view name, shared_ptr&lt;const user_t&gt; user);
+auto get_new_user();
+auto get_request();
+
+int main() {
+    concurrent_unordered_map&lt;string_view, shared_ptr&lt;user_t&gt; &gt; users;
+
+    // single threaded fill
+    read_users_from_file(users.lock_table())
+
+    constexpr unsigned threads_count = 10;
+    while(1) {
+        // concurrent work:
+        std::atomic&lt;int&gt; b{threads_count * 100500};
+        thread threads[threads_count];
+
+        for (auto& t: threads) {
+            // processing users
+            t = thread([&users, &b]() {
+                while (--b &gt; 0) {
+                    auto [user_name, data] = co_await get_request();
+                    auto u = users.find(user_name);
+                    if (!u) continue;
+
+                    shared_ptr&lt;const user_t&gt; user = *u;
+                    precess_user(user, data);
+                }
+            });
+        }
+
+        // accepting users
+        while (--b &gt; 0) {
+            auto [new_user_name, user] = co_await get_new_user();
+            users.insert(new_user_name, user);
+        }
+
+        for (auto& t: threads) {
+            t.join();
+        }
+
+        // single threaded processing:
+        unsynchronized_view v{users};
+        count_statistics(v);
+        dump_to_file(v);
+        cleanup(v);
+    }
+}
+</pre>
+        </p>
+
+
+        <h3><a name="exampleB">B.</a> Unique events processor/events deduplicator</h3>
+        <p>
+<pre>
+int main() {
+    using namespace std;
+    using event_id = ...;
+    struct event_data {
+        event_data(const event_data&) = delete;
+        event_data& operator=(const event_data&) = delete;
+        ...
+    };
+
+    concurrent_unordered_map&lt;event_id, unique_ptr&lt;event_data&gt; &gt; events;
+
+    // Getting unique events.
+    auto event_generators = get_event_generators();
+    for_each(execution::par_unseq, event_generators.begin(), event_generators.end(), [&events](auto& g) {
+        while (1) {
+            auto [event_name, data] = co_await g.get_event();
+            if (event_name.empty()) {
+                break; // no more events
+            }
+
+            events.emplace_or_visit(event_name, [&data](unique_ptr&lt;event_data&gt;&amp; v){
+                if (v || v-&gt;priority() &lt; data-&gt;priority()) {
+                    std::swap(data, v);
+                }
+            }, unique_ptr&lt;event_data&gt;{});
+        }
+    });
+
+    auto v = events.lock_table();
+    for_each(execution::par_unseq, v.begin(), v.end(), [](auto& e) {
+        process(e.first, std::move(e.second));
+    });
+}
+</pre>
+        </p>
+
+        <h3><a name="exampleC">C.</a> Gathering statistics</h3>
+        <p>
+<pre>
+int main() {
+    using namespace std;
+    using id_t = ...;
+    using use_count_t = size_t;
+
+    concurrent_unordered_map&lt;id_t, use_count_t&gt; stats;
+
+    constexpr unsigned threads_count = 10;
+    thread threads[threads_count];
+    for (auto& t: threads) {
+        t = thread([&stats]() {
+            while (1) {
+                auto [id, data] = co_await get_something();
+                stats.emplace_or_visit(
+                    id,
+                    [](auto& v){ ++v; },
+                    0
+                );
+
+                precess_stuff(id, data);
+            }
+        });
+    }
+
+    for (auto& t: threads) {
+        t.join();
+    }
+
+    process_stats(events.lock_table());
+}
+</pre>
+        </p>
+
+
+        <h3><a name="exampleD">D.</a> HFT Order book</h3>
+        <p>
+<pre>
+using namespace std;
+
+struct orders_book {
+    using order_key = string;
+    using order_key_ref = string_view;
+    enum class order_amount: std::size_t {};
+    enum class order_type: std::size_t {};
+    using order_t = std::pair&lt;order_type, order_amount&gt;;
+
+private:
+    concurrent_unordered_map&lt;order_key, order_t &gt; orders;
+
+// For debug only: optimistic attempt to catch concurrent use of snapshot() function.
+#ifndef NDEBUG
+    atomic&lt;size_t&gt; uses_;
+    struct in_use {
+        atomic&lt;size_t&gt;&amp; uses_;
+
+        in_use(atomic&lt;size_t&gt;&amp; uses)
+            : uses_(uses)
+        {
+            ++ uses_;
+        }
+
+        ~in_use() {
+            -- uses_;
+        }
+    };
+
+    in_use set_in_use() noexcept {
+        return {uses_};
+    }
+    void validate() const {
+        const size_t v = uses_;
+        assert(v == 0);
+    }
+#else
+    struct in_use {};
+    static in_use set_in_use() noexcept { return {}; }
+    static void validate() noexcept {}
+#endif
+
+    orders_book(const orders_book&) = delete;
+    orders_book& operator=(const orders_book&) = delete;
+
+public: // Therad safe:
+    void place(order_key_ref o, order_t&& v) {
+        const auto guard = set_in_use();
+        orders_.insert_or_assign(o, std::move(v));
+    }
+
+    auto try_get(order_key_ref o) const {
+        return orders_.find(o);
+    }
+
+    auto try_bet(order_key_ref o) {
+        const auto guard = set_in_use();
+        return orders_.extract(o);
+    }
+
+public: // Not thread safe!
+    unordered_map&lt;order_key, order_t &gt; snapshot() const {
+        validate();
+        auto v = orders_.lock_table();
+        validate();
+        unordered_map&lt;order_key, order_t &gt; ret{v.begin(), v.end()};
+        validate();
+        return ret;
+    }
+};
+</pre>
+        </p>
+		<h2>V. References</h2>
+		<p>[<a name="MemC3">MemC3</a>] "MemC3: Compact and Concurrent MemCache with Dumber Caching and Smarter Hashing" proposal.
+			Available online at <a href="http://www.cs.cmu.edu/%7Edga/papers/memc3-nsdi2013.pdf">http://www.cs.cmu.edu/%7Edga/papers/memc3-nsdi2013.pdf</a></p>
 
         <script type="text/javascript">
             function colorize_texts(texts) {
                 for (var i = 0; i < texts.length; ++i) {
                     var text = texts[i].innerHTML;
-                    text = text.replace(/namespace|enum|void|constexpr|extern|noexcept|bool|template|class |struct|auto|const |typename|explicit|public|private|operator|#include|inline| char|typedef|static_assert|static_cast|static/g,"<span class='cppkeyword'>$&</span>");
+                    text = text.replace(/namespace|enum|void|constexpr|extern|noexcept|bool|template|class |co_await|struct|auto|const |for |while|using|#endif|#else|#ifndef|#ifdef|typename|continue|if |explicit|public|private|operator|#include|inline| char|typedef|static_assert|static_cast|static/g,"<span class='cppkeyword'>$&</span>");
                     text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&</span>");
                     //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&</span>");
                     texts[i].innerHTML = text;
