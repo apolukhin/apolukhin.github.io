@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html><head>
-        <title>Maybe concurrent and unordered container</title>
+        <title>Concurrent associative data structure with unsynchronized view</title>
         <meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
         <meta http-equiv="Content-Language" content="en-us">
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -26,42 +26,41 @@
         <address>Project: Programming Language C++</address>
         <address>Audience: SG1 Concurrency</address>
         <address>&nbsp;</address>
-        <address>Anton Malakhov, Intel Corp., &lt;<a href="mailto:anton.malakhov@intel.com">anton.malakhov@intel.com</a>&gt;</address>
         <address>Sergey Murylev, Yandex Ltd, &lt;<a href="mailto:SergeyMurylev@gmail.com">SergeyMurylev@gmail.com</a>&gt;, &lt;<a href="mailto:smurylev@yandex-team.ru">smurylev@yandex-team.ru</a>&gt;</address>
+        <address>Anton Malakhov, Intel Corp., &lt;<a href="mailto:anton.malakhov@intel.com">anton.malakhov@intel.com</a>&gt;</address>
         <address>Antony Polukhin, Yandex Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
         <address>&nbsp;</address>
-        <address>Date: 2017-05-18</address>
-        <h1>Maybe concurrent and unordered container</h1>
+        <address>Date: 2017-06-07</address>
+        <h1>Concurrent associative data structure with unsynchronized view</h1>
 
         <h2>I. Introduction and Motivation</h2>
-        <p>There's a lot of use-cases where a concurrent modification of unordered associative container is required. There were attempts to add such containers in the past (<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2012/n3425.html">N3425</a>, <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3732.pdf">N3732</a>, TODO: )</p>
+        <p>There's a lot of use-cases where a concurrent modification of unordered associative container is required. There were attempts to add such containers/data structures in the past (<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2012/n3425.html">N3425</a>, <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3732.pdf">N3732</a>, and others...)</p>
         <p>This paper is an another attempt to deal with the problem. This time we are trying to keep the interface familiar to users, hard to misuse but still functional.</p>
-        <p>Reference implementation is available at TODO: .</p>
+        <p>Reference implementation is available at <a href="https://github.com/BlazingPhoenix/concurrent-hash-map">https://github.com/BlazingPhoenix/concurrent-hash-map</a>.</p>
 
         <h2>II. Design decisions</h2>
 
-        <h3>A. Open addressing:</h3>
-        <p>When users wish to use the concurrent unordered container, they are searching for performance and scalability.
-        Fastest know implementations rely on the <b>open addressing</b> <a href="http://www.cs.cmu.edu/%7Edga/papers/memc3-nsdi2013.pdf">MemC3.pdf</a>, so we are basing this proposal on top of that idea.<p>
+        <h3>A. Allow Open Addressing:</h3>
+        <p>When users wish to use the concurrent associative data structure, they are searching for performance and scalability.
+        Fastest known implementations rely on the <b>open addressing</b> <a href="http://www.cs.cmu.edu/%7Edga/papers/memc3-nsdi2013.pdf">MemC3.pdf</a>,
+        so interface of this proposal allows to have Open Addressing implementation under the hood.<p>
 
         <h3>B. No functions that are easy to misuse:</h3>
         <p>In C++17 <code>std::shared_ptr::use_count()</code> function was removed because users were misusing it. Users were hoping that the result of the function is actual
-        at the point were they were trying to use it. However as soon as the result is returned from the function it could expire as someone modifies the value from other thread.</p>
+        at the point where they were trying to use it. However as soon as the result is returned from the function it could expire as someone modifies the value from other thread.</p>
         <p>We followed the C++17 decision and <b>removed all the functions that are useless/dangerous</b> in concurrent
         environments: <code>size()</code>, <code>count()</code>, <code>empty()</code>, <code>buckets_count()</code> and so forth.</p>
 
         <h3>C. No iterators:</h3>
         <p>Iterators must take care of synchronization, otherwise the user can not dereference the iterator at all. If Iterators do some synchronization
-        it <b>affects performance</b>. If Iterators do some synchronization then <b>deadlocks will happen</b>. For example if in first thread we
-        iterate from beginning to the end of container and in the second thread we iterate from the end to the beginning, then the deadlock will
+        it <b>affects performance</b>. Otherwise, if Iterators do some synchronization then <b>deadlocks will happen</b>. For example if in first thread we
+        iterate from begining to the end of the container and in the second thread we iterate from the end to the beginning, then the deadlock will
         happen in the middle as the iterators met.</p>
 
         <p>It is possible to drop the open addressing idea and make the iterators to have shared ownership of buckets. In that case iterator may keep the bucket
         alive. This seems implementable and usable by users, but significantly <b>affects performance</b> by adding multiple additional atomic operations
-        and adding additional indirections.</p>
-
-        <p>We tried to stick to this idea for a long time and minimize the performance impact. Finally we created a list of use-cases for concurrent
-        unordered containers and found out that in all of those use-cases iterators are useless or kill performance of the whole container (so are also useless).
+        and adding additional indirections. We tried to stick to this idea for a long time and minimize the performance impact. Finally we created a list of use-cases for concurrent
+        associative data structures and found out that in all of those use-cases iterators are useless or kill performance of the whole class (so are also useless).
         Instead of that, we came up with an idea of <b>unsynchronized view/policy</b>.</p>
 
         <h3>D. Unsynchronized view/policy with a full interface:</h3>
@@ -81,18 +80,18 @@
                 (ineffective: use multiple <code>const unsynchronized_view</code> instead).</li>
         </ul>
 
-        <h3>E. No node operations and different from <code>std::unordered_map</code> iterator invalidation:</h3>
-        <p>This is a consequence of choosing the open addressing as an underlying technique.</p>
+        <h3>E. No node operations, different from <code>std::unordered_map</code> iterator invalidation:</h3>
+        <p>This is a consequence of allowing the open addressing as an underlying implementation.</p>
 
-        <h3>F. Allow visitation under the synchronization of the container:</h3>
-        <p>This is a very risky decision because it unleashes the way for deadlocking/breaking the container (users may recursively visit the container values; call heavy functions
-        that will damage the overall performance of the container; can call some parallel functions of the standard library that may potentially use same locking as the container implementation...).</p>
+        <h3>F. Allow element visitation using the synchronization of the container:</h3>
+        <p>This is a very risky decision because it unleashes new ways for deadlocking/breaking the container (users may recursively visit the same value; users may call heavy functions
+        that will degrade the overall performance of the container; users can call some parallel functions of the standard library that may potentially use the same mutexes as the container implementation...).</p>
 
         <p>However, there's a lot of use-cases where a value must be updated depending on value that is in the container. Without a visitation, there's no way to do that safely,
         as all the functions return values by copy. See examples <a href="#exampleB">B</a> and <a href="#exampleC">C</a>.</p>
 
         <h2>III. Draft interface and informal description</h2>
-<p><code>concurrent_unordered_map</code> class is a container that provides an effective key-value storage, but does not meet the unordered associative container requirements.
+<p><code>concurrent_unordered_map</code> class is an associative data structure that provides an effective key-value storage and does not meet the unordered associative container requirements.
 Concurrent member functions calls on the same instance of <code>concurrent_unordered_map</code> have well defined behavior.</p>
 
 <pre>
@@ -197,7 +196,7 @@ namespace std {
 
 <p><code>unsynchronized_view</code> class refers <code>concurrent_unordered_map</code> and provides a concurrent unsafe
 interface to <code>concurrent_unordered_map</code> that satisfies unordered associative container requirements (except iterator
-invalidation requirements and node operations).</p>
+invalidation requirements, <code>load_factor</code> functions, <code>size()</code> complexity requirements and node operations).</p>
 <p>[ <i>Note:</i> Concurrent non const member functions calls on the instances of <code>unsynchronized_view</code> referencing
 the same <code>concurrent_unordered_map</code> are not safe! <i>- end note. </i>] </p>
 <p>[ <i>Note:</i> Concurrent member functions calls on the <code>concurrent_unordered_map</code> instance <i>A</i> and on the <code>unsynchronized_view</code> referencing
@@ -328,9 +327,6 @@ the instance <i>A</i> are not safe! <i>- end note. </i>] </p>
     const_local_iterator cend(size_type n) const;
 
     // hash policy:
-    float load_factor() const noexcept;
-    float max_load_factor() const noexcept;
-    void max_load_factor(float z);
     void rehash(size_type n);
   };
 }
