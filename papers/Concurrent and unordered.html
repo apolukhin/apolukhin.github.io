@@ -22,7 +22,7 @@
         </style>
     </head>
     <body bgcolor="#ffffff">
-        <address>Document number: D0652R0</address>
+        <address>Document number: P0652R0</address>
         <address>Project: Programming Language C++</address>
         <address>Audience: SG1 Concurrency</address>
         <address>&nbsp;</address>
@@ -30,7 +30,7 @@
         <address>Anton Malakhov, Intel Corp., &lt;<a href="mailto:anton.malakhov@intel.com">anton.malakhov@intel.com</a>&gt;</address>
         <address>Antony Polukhin, Yandex Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
         <address>&nbsp;</address>
-        <address>Date: 2017-06-07</address>
+        <address>Date: 2017-06-14</address>
         <h1>Concurrent associative data structure with unsynchronized view</h1>
 
         <h2>I. Introduction and Motivation</h2>
@@ -67,7 +67,7 @@
         <p>This is the <b>killer feature</b> of this proposal that attempts to fix all the limitations from above and provide a much more useful interface.</p>
 
         <p>The idea is following: multiple operations on unordered containers make sense only if that container is not concurrently modified. User may take the
-        responsibility that no-one is modifying the container at this point and gain all the operations and iterators.</p></li>
+        responsibility that no-one is modifying the container at this point and gain all the operations and iterators.</p>
 
         <p>Such approach allows to initialize/prepare the data for container <b>without additional synchronization overhead.</b> It also <b>allows advanced usage</b>:
         <ul>
@@ -333,7 +333,7 @@ the instance <i>A</i> are not safe! <i>- end note. </i>] </p>
 </pre>
 
 <p>
-[ <i>Note:</i> Following use-cases are allowed:
+[ <i>Note:</i> Following use-cases are allowed:</p>
 <ul>
     <li>Multiple threads use the same <code>concurrent_unordered_map</code> for reads and writes simultaneously</li>
     <li>Multiple threads use <code>const unsynchronized_view</code> on the same <code>concurrent_unordered_map</code> simultaneously
@@ -341,15 +341,17 @@ the instance <i>A</i> are not safe! <i>- end note. </i>] </p>
     <li>Single thread uses <code>unsynchronized_view</code> (no modifications are allowed from other treads!)</li>
     <li>Multiple threads use the same <code>const concurrent_unordered_map&amp;</code> for reads and multiple threads use <code>const unsynchronized_view</code> on the same concurrent_unordered_map simultaneously (ineffective: use multiple <code>const unsynchronized_view</code> instead).</li>
 </ul>
-<i> - end note.</i> ]
+<p><i> - end note.</i> ]
 </p>
 
 
         <h2>IV. Some usage examples in pseudo code</h2>
         <h3><a name="exampleA">A.</a> User session cache</h3>
-        <p>
-
 <pre>
+#include &lt;concurrent_hash_map&gt;
+#include &lt;string_view&gt;
+#include &lt;memory&gt;
+
 using namespace std;
 void precess_user(string_view name, shared_ptr&lt;const user_t&gt; user);
 auto get_new_user();
@@ -369,7 +371,7 @@ int main() {
 
         for (auto& t: threads) {
             // processing users
-            t = thread([&users, &b]() {
+            t = thread([&amp;users, &amp;b]() {
                 while (--b &gt; 0) {
                     auto [user_name, data] = co_await get_request();
                     auto u = users.find(user_name);
@@ -392,19 +394,20 @@ int main() {
         }
 
         // single threaded processing:
-        unsynchronized_view v{users};
-        count_statistics(v);
-        dump_to_file(v);
-        cleanup(v);
+        auto unsafe_users = users.lock_table();
+        count_statistics(unsafe_users);
+        dump_to_file(unsafe_users);
+        cleanup(unsafe_users);
     }
 }
 </pre>
-        </p>
 
 
         <h3><a name="exampleB">B.</a> Unique events processor/events deduplicator</h3>
-        <p>
 <pre>
+#include &lt;concurrent_hash_map&gt;
+#include &lt;algorithm&gt;
+
 int main() {
     using namespace std;
     using event_id = ...;
@@ -418,14 +421,14 @@ int main() {
 
     // Getting unique events.
     auto event_generators = get_event_generators();
-    for_each(execution::par_unseq, event_generators.begin(), event_generators.end(), [&events](auto& g) {
+    for_each(execution::par_unseq, event_generators.begin(), event_generators.end(), [&amp;events](auto& g) {
         while (1) {
             auto [event_name, data] = co_await g.get_event();
             if (event_name.empty()) {
                 break; // no more events
             }
 
-            events.emplace_or_visit(event_name, [&data](unique_ptr&lt;event_data&gt;&amp; v){
+            events.emplace_or_visit(event_name, [&amp;data](unique_ptr&lt;event_data&gt;&amp; v){
                 if (v || v-&gt;priority() &lt; data-&gt;priority()) {
                     std::swap(data, v);
                 }
@@ -439,11 +442,12 @@ int main() {
     });
 }
 </pre>
-        </p>
 
         <h3><a name="exampleC">C.</a> Gathering statistics</h3>
-        <p>
 <pre>
+#include &lt;concurrent_hash_map&gt;
+#include &lt;utility&gt;
+
 int main() {
     using namespace std;
     using id_t = ...;
@@ -454,7 +458,7 @@ int main() {
     constexpr unsigned threads_count = 10;
     thread threads[threads_count];
     for (auto& t: threads) {
-        t = thread([&stats]() {
+        t = thread([&amp;stats]() {
             while (1) {
                 auto [id, data] = co_await get_something();
                 stats.emplace_or_visit(
@@ -475,12 +479,14 @@ int main() {
     process_stats(events.lock_table());
 }
 </pre>
-        </p>
 
 
         <h3><a name="exampleD">D.</a> HFT Order book</h3>
-        <p>
 <pre>
+#include &lt;concurrent_hash_map&gt;
+#include &lt;unordered_map&gt;
+#include &lt;string_view&gt;
+
 using namespace std;
 
 struct orders_book {
@@ -527,6 +533,8 @@ private:
     orders_book& operator=(const orders_book&) = delete;
 
 public: // Therad safe:
+    orders_book() = default;
+
     void place(order_key_ref o, order_t&& v) {
         const auto guard = set_in_use();
         orders_.insert_or_assign(o, std::move(v));
@@ -538,7 +546,7 @@ public: // Therad safe:
 
     auto try_bet(order_key_ref o) {
         const auto guard = set_in_use();
-        return orders_.extract(o);
+        return orders_.erase(o);
     }
 
 public: // Not thread safe!
@@ -552,18 +560,14 @@ public: // Not thread safe!
     }
 };
 </pre>
-        </p>
-		<h2>V. References</h2>
-		<p>[<a name="MemC3">MemC3</a>] "MemC3: Compact and Concurrent MemCache with Dumber Caching and Smarter Hashing" proposal.
-			Available online at <a href="http://www.cs.cmu.edu/%7Edga/papers/memc3-nsdi2013.pdf">http://www.cs.cmu.edu/%7Edga/papers/memc3-nsdi2013.pdf</a></p>
 
         <script type="text/javascript">
             function colorize_texts(texts) {
                 for (var i = 0; i < texts.length; ++i) {
                     var text = texts[i].innerHTML;
-                    text = text.replace(/namespace|enum|void|constexpr|extern|noexcept|bool|template|class |co_await|struct|auto|const |for |while|using|#endif|#else|#ifndef|#ifdef|typename|continue|if |explicit|public|private|operator|#include|inline| char|typedef|static_assert|static_cast|static/g,"<span class='cppkeyword'>$&</span>");
-                    text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&</span>");
-                    //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&</span>");
+                    text = text.replace(/namespace|enum|void|constexpr|extern|noexcept|bool|template|class |co_await|struct|auto|const |for |while|using|#endif|#else|#ifndef|#ifdef|typename|continue|if |explicit|public|private|operator|#include|inline| char|typedef|static_assert|static_cast|static/g,"<span class='cppkeyword'>$&<\/span>");
+                    text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+                    //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
                     texts[i].innerHTML = text;
                 }
             }

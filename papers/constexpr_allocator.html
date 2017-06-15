@@ -19,14 +19,14 @@
 
 	</head>
 	<body bgcolor="#ffffff">
-		<address>Document number: D0639R0</address>
+		<address>Document number: P0639R0</address>
 		<address>Project: Programming Language C++</address>
 		<address>Audience: Evolution Working Group, Library Evolution Working Group</address>
 		<address>&nbsp;</address>
 		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
 		<address>Alexander Zaitsev &lt;<a href="mailto:zamazan4ik@tut.by">zamazan4ik@tut.by</a>&gt;</address>
 		<address>&nbsp;</address>
-		<address>Date: 2017-04-26</address>
+		<address>Date: 2017-06-14</address>
 		<h1>Changing attack vector of the constexpr_vector</h1>
 
 
@@ -79,25 +79,31 @@ int main() {
 		<h2>IV. Challenges and solutions</h2>
 		<p>Following problems were discovered while implementing the proof of concept prototype:</p>
         <ul>
-            <li>Standard Library containers miss <code>constexpr</code></li>
+            <li>Standard Library containers miss <code>constexpr</code>
                 <ul><li><b>Solution: </b>It is simple to add <code>constexpr</code> all around the container declaration</li></ul>
-            <li>Standard Library containers have non trivial destructors</li>
+            </li>
+            <li>Standard Library containers have non trivial destructors
                 <ul>
                     <li><b>Solution 1:</b> This can be worked around by querying the allocator, checking that it is a constexpr allocator and changing the destructors to trivial ones. That's the solution that was used in the prototype</li>
                     <li><b>Solution 2:</b> This can be fixed in a more general way by allowing non trivial destructors in constant expressions</li>
                 </ul>
+            </li>
 
-            <li>Many utility functions and algorithms miss <code>constexpr</code> specifiers</li>
+            <li>Many utility functions and algorithms miss <code>constexpr</code> specifiers
                 <ul><li><b>Solution:</b> This is solved by <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0202r1.html">P0202R1</a></li></ul>
-            <li><code>try</code> and <code>catch</code> are not allowed in constant expressions</li>
+            </li>
+            <li><code>try</code> and <code>catch</code> are not allowed in constant expressions
                 <ul><li><b>Solution:</b> Exceptions could not be thrown in constant expression so it seems OK to allow <code>try</code> and <code>catch</code> in constant expressions that just do nothing</li></ul>
-            <li>No way to allocate memory in constant expressions</li>
+            </li>
+
+            <li>No way to allocate memory in constant expressions
                 <ul><li><b>Solution 1:</b> That's were the <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0597r0.html">P0597R0</a> is stepping in. Instead of having a magic <code>constexpr_vector</code> that allocates memory, please change it to magic <code>constexpr_allocator</code> that allocates memory in constant expressions.</li>
                 <li><b>Solution 2:</b> Prototype used an array of default initialized objects instead of allocating memory and constructing objects in place. Users may use the similar approach for providing their own constexpr allocators.</li></ul>
-            <li>No way to use <code>placement new</code> in constant expressions, so no way to implement <code>constexpr_allocator::construct</code></li>
+            <li>No way to use <code>placement new</code> in constant expressions, so no way to implement <code>constexpr_allocator::construct</code>
                 <ul><li><b>Solution 1:</b> Instead of placement new use <code>constructor+move_assignment</code>. That's the solution that was used in the prototype</li>
                 <li><b>Solution 2:</b> Allow <code>placement new</code> in constexpr expressions.</li>
                 <li><b>Solution 3:</b> Use same compiler magic as in <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0597r0.html">P0597R0</a></li></ul>
+            </li>
         </ul>
 
 
