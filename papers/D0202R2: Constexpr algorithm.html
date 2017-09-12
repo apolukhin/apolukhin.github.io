@@ -20,7 +20,7 @@
 		<address>&nbsp;</address>
 		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
 		<address>&nbsp;</address>
-		<address>Date: 2016-05-21</address>
+		<address>Date: 2017-09-12</address>
 		<h1>Add Constexpr Modifiers to Functions in &lt;algorithm&gt; and &lt;utility&gt; Headers</h1>
 
 <span class="changed-added">Changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0202r1.html">P0202R1</a> are marked with blue.</span> <button onclick="show_hide_deleted()">Show/Hide deleted lines from P0202R1</button>
@@ -110,11 +110,11 @@ constexpr in this wording.</p>
 
 
 		<h3>D. <span class="changed-added">Do not mark</span><span class="changed-deleted"> Mark</span> <code>ExecutionPolicy&amp;&amp;</code> overloads with <code>constexpr</code>.</h3>
-		<p><span class="changed-added">It seems that N4582 accidentaly</span><span class="changed-deleted">N4582 already</span> marks some of the <code>ExecutionPolicy&amp;&amp;</code> overloads with <code>constexpr</code><span class="changed-deleted">, which
+		<p><span class="changed-added">It seems that N4687 accidentaly</span><span class="changed-deleted">N4687 already</span> marks some of the <code>ExecutionPolicy&amp;&amp;</code> overloads with <code>constexpr</code><span class="changed-deleted">, which
 		may be useful with the <code>sequential</code> execution policy</span>.
-		This wording <span class="changed-deleted">sticks to the existing N4582 practice and marks</span><span class="changed-added">does not mark</span> the <code>ExecutionPolicy&amp;&amp;</code> overloads with <code>constexpr</code>.</p>
+		This wording <span class="changed-deleted">sticks to the existing N4687 practice and marks</span><span class="changed-added">does not mark</span> the <code>ExecutionPolicy&amp;&amp;</code> overloads with <code>constexpr</code>.</p>
 
-		<h2>IV. Proposed wording relative to <span class="changed-deleted">N4582</span> <span class="changed-added">N4594</span></h2>
+		<h2>IV. Proposed wording relative to <span class="changed-deleted">N4687</span> <span class="changed-added">N4594</span></h2>
 		<p>All the additions to the Standard are marked with <span class="addition">underlined green</span>.</p>
 
 		<h3>A. Modifications to "Header &lt;algorithm&gt; synopsis" [algorithms.general]</h3>
@@ -125,65 +125,71 @@ constexpr in this wording.</p>
 
 namespace std {
 
-// 25.3, non-modifying sequence operations:
+// 28.5, non-modifying sequence operations:
+// 28.5.1, all of
 template &lt;class InputIterator, class Predicate&gt;
 <span class="addition">constexpr</span> bool all_of(InputIterator first, InputIterator last, Predicate pred);
 
-template &lt;class ExecutionPolicy, class InputIterator, class Predicate&gt;
-<span class="addition changed-deleted">constexpr</span> bool all_of(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last, Predicate pred);
+template &lt;class ExecutionPolicy, class ForwardIterator, class Predicate&gt;
+<span class="addition changed-deleted">constexpr</span> bool all_of(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, ForwardIterator last, Predicate pred);
 
+// 28.5.2, any of
 template &lt;class InputIterator, class Predicate&gt;
 <span class="addition">constexpr</span> bool any_of(InputIterator first, InputIterator last, Predicate pred);
 
-template &lt;class ExecutionPolicy, class InputIterator, class Predicate&gt;
-<span class="addition changed-deleted">constexpr</span> bool any_of(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last, Predicate pred);
+template &lt;class ExecutionPolicy, class ForwardIterator, class Predicate&gt;
+<span class="addition changed-deleted">constexpr</span> bool any_of(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, ForwardIterator last, Predicate pred);
 
+// 28.5.3, none of
 template &lt;class InputIterator, class Predicate&gt;
 <span class="addition">constexpr</span> bool none_of(InputIterator first, InputIterator last, Predicate pred);
 
-template &lt;class ExecutionPolicy, class InputIterator, class Predicate&gt;
-<span class="addition changed-deleted">constexpr</span> bool none_of(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last, Predicate pred);
+template &lt;class ExecutionPolicy, class ForwardIterator, class Predicate&gt;
+<span class="addition changed-deleted">constexpr</span> bool none_of(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, ForwardIterator last, Predicate pred);
 
+// 28.5.4, for each
 template &lt;class InputIterator, class Function&gt;
 <span class="addition">constexpr</span> Function for_each(InputIterator first, InputIterator last, Function f);
 
-template &lt;class ExecutionPolicy, class InputIterator, class Function&gt;
+template &lt;class ExecutionPolicy, class ForwardIterator, class Function&gt;
 <span class="addition changed-deleted">constexpr</span> void for_each(ExecutionPolicy&amp;&amp; exec,
-    InputIterator first, InputIterator last, Function f);
+    ForwardIterator first, ForwardIterator last, Function f);
 
 template &lt;class InputIterator, class Size, class Function&gt;
 <span class="addition">constexpr</span> InputIterator for_each_n(InputIterator first, Size n, Function f);
 
-template &lt;class ExecutionPolicy, class InputIterator, class Size, class Function&gt;
-<span class="addition changed-deleted">constexpr</span> InputIterator for_each_n(ExecutionPolicy&amp;&amp; exec, InputIterator first, Size n, Function f);
+template &lt;class ExecutionPolicy, class ForwardIterator, class Size, class Function&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator for_each_n(ExecutionPolicy&amp;&amp; exec, ForwardIterator first, Size n, Function f);
 
+// 28.5.5, find
 template&lt;class InputIterator, class T&gt;
 <span class="addition">constexpr</span> InputIterator find(InputIterator first, InputIterator last, const T&amp; value);
 
-template &lt;class ExecutionPolicy, class InputIterator, class T&gt;
-<span class="addition changed-deleted">constexpr</span> InputIterator find(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last,
+template &lt;class ExecutionPolicy, class ForwardIterator, class T&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator find(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, ForwardIterator last,
     const T&amp; value);
 
 template &lt;class InputIterator, class Predicate&gt;
 <span class="addition">constexpr</span> InputIterator find_if(InputIterator first, InputIterator last, Predicate pred);
 
-template &lt;class ExecutionPolicy, class InputIterator, class Predicate&gt;
-<span class="addition changed-deleted">constexpr</span> InputIterator find_if(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last,
+template &lt;class ExecutionPolicy, class ForwardIterator, class Predicate&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator find_if(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, ForwardIterator last,
     Predicate pred);
 
 template &lt;class InputIterator, class Predicate&gt;
 <span class="addition">constexpr</span> InputIterator find_if_not(InputIterator first, InputIterator last, Predicate pred);
 
-template &lt;class ExecutionPolicy, class InputIterator, class Predicate&gt;
-<span class="addition changed-deleted">constexpr</span> InputIterator find_if_not(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last,
+template &lt;class ExecutionPolicy, class ForwardIterator, class Predicate&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator find_if_not(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, ForwardIterator last,
     Predicate pred);
 
+// 28.5.6, find end
 template&lt;class ForwardIterator1, class ForwardIterator2&gt;
 <span class="addition">constexpr</span> ForwardIterator1 find_end(ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2, ForwardIterator2 last2);
 
@@ -191,33 +197,35 @@ template&lt;class ForwardIterator1, class ForwardIterator2, class BinaryPredicat
 <span class="addition">constexpr</span> ForwardIterator1 find_end(ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2, ForwardIterator2 last2, BinaryPredicate pred);
 
 template &lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2&gt;
-<span class="addition changed-deleted">constexpr</span> ForwardIterator1 find_end(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> ForwardIterator1 find_end(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator1 first1, ForwardIterator1 last1,
     ForwardIterator2 first2, ForwardIterator2 last2);
 
 template &lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class BinaryPredicate&gt;
-<span class="addition changed-deleted">constexpr</span> ForwardIterator1 find_end(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> ForwardIterator1 find_end(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator1 first1, ForwardIterator1 last1,
     ForwardIterator2 first2, ForwardIterator2 last2,
     BinaryPredicate pred);
 
+// 28.5.7, find first
 template&lt;class InputIterator, class ForwardIterator&gt;
 <span class="addition">constexpr</span> InputIterator find_first_of(InputIterator first1, InputIterator last1, ForwardIterator first2, ForwardIterator last2);
 
 template&lt;class InputIterator, class ForwardIterator, class BinaryPredicate&gt;
 <span class="addition">constexpr</span> InputIterator find_first_of(InputIterator first1, InputIterator last1, ForwardIterator first2, ForwardIterator last2, BinaryPredicate pred);
 
-template&lt;class ExecutionPolicy, class InputIterator, class ForwardIterator&gt;
-<span class="addition changed-deleted">constexpr</span> InputIterator find_first_of(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first1, InputIterator last1,
-    ForwardIterator first2, ForwardIterator last2);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator1 find_first_of(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, ForwardIterator2 last2);
 
-template&lt;class ExecutionPolicy, class InputIterator, class ForwardIterator, class BinaryPredicate&gt;
-<span class="addition changed-deleted">constexpr</span> InputIterator find_first_of(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first1, InputIterator last1,
-    ForwardIterator first2, ForwardIterator last2,
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class BinaryPredicate&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator find_first_of(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, ForwardIterator2 last2,
     BinaryPredicate pred);
 
+// 28.5.8, adjacent find
 template&lt;class ForwardIterator&gt;
 <span class="addition">constexpr</span> ForwardIterator adjacent_find(ForwardIterator first, ForwardIterator last);
 
@@ -225,30 +233,32 @@ template&lt;class ForwardIterator, class BinaryPredicate&gt;
 <span class="addition">constexpr</span> ForwardIterator adjacent_find(ForwardIterator first, ForwardIterator last, BinaryPredicate pred);
 
 template&lt;class ExecutionPolicy, class ForwardIterator&gt;
-<span class="addition changed-deleted">constexpr</span> ForwardIterator adjacent_find(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> ForwardIterator adjacent_find(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first,
     ForwardIterator last);
 
 template&lt;class ExecutionPolicy, class ForwardIterator, class BinaryPredicate&gt;
-<span class="addition changed-deleted">constexpr</span> ForwardIterator adjacent_find(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> ForwardIterator adjacent_find(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first,
     ForwardIterator last,
     BinaryPredicate pred);
 
+// 28.5.9, count
 template&lt;class InputIterator, class T&gt;
 <span class="addition">constexpr</span> typename iterator_traits&lt;InputIterator&gt;::difference_type count(InputIterator first, InputIterator last, const T&amp; value);
 
-template&lt;class ExecutionPolicy, class InputIterator, class T&gt;
-<span class="addition changed-deleted">constexpr</span> typename iterator_traits&lt;InputIterator&gt;::difference_type count(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last, const T&amp; value);
+template&lt;class ExecutionPolicy, class ForwardIterator, class T&gt;
+<span class="addition changed-deleted">constexpr</span> typename iterator_traits&lt;ForwardIterator&gt;::difference_type count(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, ForwardIterator last, const T&amp; value);
 
 template&lt;class InputIterator, class Predicate&gt;
 <span class="addition">constexpr</span> typename iterator_traits&lt;InputIterator&gt;::difference_type count_if(InputIterator first, InputIterator last, Predicate pred);
 
-template&lt;class ExecutionPolicy, class InputIterator, class Predicate&gt;
-<span class="addition changed-deleted">constexpr</span> typename iterator_traits&lt;InputIterator&gt;::difference_type count_if(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last, Predicate pred);
+template&lt;class ExecutionPolicy, class ForwardIterator, class Predicate&gt;
+<span class="addition changed-deleted">constexpr</span> typename iterator_traits&lt;ForwardIterator&gt;::difference_type count_if(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, ForwardIterator last, Predicate pred);
 
+// 28.5.10, mismatch
 template&lt;class InputIterator1, class InputIterator2&gt;
 <span class="addition">constexpr</span> pair&lt;InputIterator1, InputIterator2&gt;
     mismatch(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2);
@@ -265,32 +275,32 @@ template &lt;class InputIterator1, class InputIterator2, class BinaryPredicate&g
 <span class="addition">constexpr</span> pair&lt;InputIterator1, InputIterator2&gt;
     mismatch(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, InputIterator2 last2, BinaryPredicate pred);
 
-template &lt;class ExecutionPolicy, class InputIterator1, class InputIterator2&gt;
-<span class="addition changed-deleted">constexpr</span> pair &lt;InputIterator1, InputIterator2&gt;
-mismatch(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2);
+template &lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2&gt;
+<span class="addition changed-deleted">constexpr</span> pair &lt;ForwardIterator1, ForwardIterator2&gt;
+mismatch(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2);
 
-template &lt;class ExecutionPolicy, class InputIterator1, class InputIterator2, class BinaryPredicate&gt;
-<span class="addition changed-deleted">constexpr</span> pair &lt;InputIterator1, InputIterator2&gt;
-mismatch(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2, BinaryPredicate pred);
+template &lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class BinaryPredicate&gt;
+<span class="addition changed-deleted">constexpr</span> pair &lt;ForwardIterator1, ForwardIterator2&gt;
+mismatch(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, BinaryPredicate pred);
 
-template &lt;class ExecutionPolicy, class InputIterator1, class InputIterator2&gt;
-<span class="addition changed-deleted">constexpr</span> pair &lt;InputIterator1, InputIterator2&gt;
-mismatch(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2, InputIterator2 last2);
+template &lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2&gt;
+<span class="addition changed-deleted">constexpr</span> pair &lt;ForwardIterator1, ForwardIterator2&gt;
+mismatch(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, ForwardIterator2 last2);
 
-template &lt;class ExecutionPolicy, class InputIterator1, class InputIterator2, class BinaryPredicate&gt;
-<span class="addition changed-deleted">constexpr</span> pair &lt;InputIterator1, InputIterator2&gt;
-mismatch(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2, InputIterator2 last2,
+template &lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class BinaryPredicate&gt;
+<span class="addition changed-deleted">constexpr</span> pair &lt;ForwardIterator1, ForwardIterator2&gt;
+mismatch(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, ForwardIterator2 last2,
     BinaryPredicate pred);
 
-
+// 28.5.11, equal
 template&lt;class InputIterator1, class InputIterator2&gt;
 <span class="addition">constexpr</span> bool equal(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2);
 
@@ -303,27 +313,28 @@ template&lt;class InputIterator1, class InputIterator2&gt;
 template &lt;class InputIterator1, class InputIterator2, class BinaryPredicate&gt;
 <span class="addition">constexpr</span> bool equal(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, InputIterator2 last2, BinaryPredicate pred);
 
-template&lt;class ExecutionPolicy, class InputIterator1, class InputIterator2&gt;
-<span class="addition changed-deleted">constexpr</span> bool equal(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2&gt;
+<span class="addition changed-deleted">constexpr</span> bool equal(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2);
 
-template&lt;class ExecutionPolicy, class InputIterator1, class InputIterator2, class BinaryPredicate&gt;
-<span class="addition changed-deleted">constexpr</span> bool equal(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2, BinaryPredicate pred);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class BinaryPredicate&gt;
+<span class="addition changed-deleted">constexpr</span> bool equal(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, BinaryPredicate pred);
 
-template&lt;class ExecutionPolicy, class InputIterator1, class InputIterator2&gt;
-<span class="addition changed-deleted">constexpr</span> bool equal(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2, InputIterator2 last2);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2&gt;
+<span class="addition changed-deleted">constexpr</span> bool equal(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, ForwardIterator2 last2);
 
-template&lt;class ExecutionPolicy, class InputIterator1, class InputIterator2,class BinaryPredicate&gt;
-<span class="addition changed-deleted">constexpr</span> bool equal(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2, InputIterator2 last2,
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2,class BinaryPredicate&gt;
+<span class="addition changed-deleted">constexpr</span> bool equal(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, ForwardIterator2 last2,
     BinaryPredicate pred);
 
+// 28.5.12, is permutation
 template&lt;class ForwardIterator1, class ForwardIterator2&gt;
 <span class="addition">constexpr</span> bool is_permutation(ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2);
 
@@ -336,7 +347,7 @@ template&lt;class ForwardIterator1, class ForwardIterator2&gt;
 template&lt;class ForwardIterator1, class ForwardIterator2, class BinaryPredicate&gt;
 <span class="addition">constexpr</span> bool is_permutation(ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2, ForwardIterator2 last2, BinaryPredicate pred);
 
-// 25.3.13, search:
+// 28.5.13, search
 template&lt;class ForwardIterator1, class ForwardIterator2&gt;
 <span class="addition">constexpr</span> ForwardIterator1 search( ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2, ForwardIterator2 last2);
 
@@ -345,13 +356,13 @@ template&lt;class ForwardIterator1, class ForwardIterator2, class BinaryPredicat
 
 template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2&gt;
 <span class="addition changed-deleted">constexpr</span> ForwardIterator1 search(
-    ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+    ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator1 first1, ForwardIterator1 last1,
     ForwardIterator2 first2, ForwardIterator2 last2);
 
 template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class BinaryPredicate&gt;
 <span class="addition changed-deleted">constexpr</span> ForwardIterator1 search(
-    ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+    ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator1 first1, ForwardIterator1 last1,
     ForwardIterator2 first2, ForwardIterator2 last2,
     BinaryPredicate pred);
@@ -364,12 +375,12 @@ template &lt;class ForwardIterator, class Size, class T, class BinaryPredicate&g
 <span class="addition">constexpr</span> ForwardIterator search_n(ForwardIterator first, ForwardIterator last, Size count, const T&amp; value, BinaryPredicate pred);
 
 template&lt;class ExecutionPolicy, class ForwardIterator, class Size, class T&gt;
-<span class="addition changed-deleted">constexpr</span> ForwardIterator search_n(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> ForwardIterator search_n(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first, ForwardIterator last,
     Size count, const T&amp; value);
 
 template&lt;class ExecutionPolicy, class ForwardIterator, class Size, class T, class BinaryPredicate&gt;
-<span class="addition changed-deleted">constexpr</span> ForwardIterator search_n(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> ForwardIterator search_n(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first, ForwardIterator last,
     Size count, const T&amp; value,
     BinaryPredicate pred);
@@ -378,82 +389,83 @@ template &lt;class ForwardIterator, class Searcher&gt;
 <span class="addition">constexpr</span> ForwardIterator search(ForwardIterator first, ForwardIterator last,
     const Searcher &amp;searcher);
 
-// 25.4, modifying sequence operations:
-// 25.4.1, copy:
+// 28.6, modifying sequence operations:
+// 28.6.1, copy:
 template&lt;class InputIterator, class OutputIterator&gt;
 <span class="addition">constexpr</span> OutputIterator copy(InputIterator first, InputIterator last, OutputIterator result);
 
-template&lt;class ExecutionPolicy, class InputIterator, class OutputIterator&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator copy(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last,
-    OutputIterator result);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator2 copy(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first, ForwardIterator1 last,
+    ForwardIterator2 result);
 
 template&lt;class InputIterator, class Size, class OutputIterator&gt;
 <span class="addition">constexpr</span> OutputIterator copy_n(InputIterator first, Size n, OutputIterator result);
 
-template&lt;class ExecutionPolicy, class InputIterator, class Size, class OutputIterator&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator copy_n(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, Size n,
-    OutputIterator result);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class Size, class ForwardIterator2&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator2 copy_n(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first, Size n,
+    ForwardIterator2 result);
 
 template&lt;class InputIterator, class OutputIterator, class Predicate&gt;
 <span class="addition">constexpr</span> OutputIterator copy_if(InputIterator first, InputIterator last, OutputIterator result, Predicate pred);
 
-template&lt;class ExecutionPolicy, class InputIterator, class OutputIterator, class Predicate&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator copy_if(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last,
-    OutputIterator result, Predicate pred);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class Predicate&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator2 copy_if(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first, ForwardIterator1 last,
+    ForwardIterator2 result, Predicate pred);
 
 template&lt;class BidirectionalIterator1, class BidirectionalIterator2&gt;
 <span class="addition">constexpr</span> BidirectionalIterator2 copy_backward(BidirectionalIterator1 first, BidirectionalIterator1 last, BidirectionalIterator2 result);
 
-// 25.4.2, move:
+// 28.6.2, move
 template&lt;class InputIterator, class OutputIterator&gt;
 <span class="addition">constexpr</span> OutputIterator move(InputIterator first, InputIterator last, OutputIterator result);
 
-template&lt;class ExecutionPolicy, class InputIterator, class OutputIterator&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator move(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last,
-    OutputIterator result);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator2 move(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first, ForwardIterator1 last,
+    ForwardIterator2 result);
 
 template&lt;class BidirectionalIterator1, class BidirectionalIterator2&gt;
 <span class="addition">constexpr</span> BidirectionalIterator2 move_backward(BidirectionalIterator1 first, BidirectionalIterator1 last, BidirectionalIterator2 result);
 
-// 25.4.3, swap:
+// 28.6.3, swap
 template&lt;class ForwardIterator1, class ForwardIterator2&gt;
 <span class="addition">constexpr</span> ForwardIterator2 swap_ranges(ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2);
 
 template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2&gt;
-<span class="addition changed-deleted">constexpr</span> ForwardIterator2 swap_ranges(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> ForwardIterator2 swap_ranges(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator1 first1, ForwardIterator1 last1,
     ForwardIterator2 first2);
 
 template&lt;class ForwardIterator1, class ForwardIterator2&gt;
 <span class="addition">constexpr</span> void iter_swap(ForwardIterator1 a, ForwardIterator2 b);
 
+// 28.6.4, transform
 template&lt;class InputIterator, class OutputIterator, class UnaryOperation&gt;
 <span class="addition">constexpr</span> OutputIterator transform(InputIterator first, InputIterator last, OutputIterator result, UnaryOperation op);
 
 template&lt;class InputIterator1, class InputIterator2, class OutputIterator, class BinaryOperation&gt;
 <span class="addition">constexpr</span> OutputIterator transform(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, OutputIterator result, BinaryOperation binary_op);
 
-template&lt;class ExecutionPolicy, class InputIterator, class OutputIterator, class UnaryOperation&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator transform(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last,
-    OutputIterator result, UnaryOperation op);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class UnaryOperation&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator2 transform(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first, ForwardIterator1 last,
+    ForwardIterator2 result, UnaryOperation op);
 
-template&lt;class ExecutionPolicy, class InputIterator1, class InputIterator2, class OutputIterator, class BinaryOperation&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator transform(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2, OutputIterator result,
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class ForwardIterator, class BinaryOperation&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator transform(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, ForwardIterator result,
     BinaryOperation binary_op);
 
-
+// 28.6.5, replace
 template&lt;class ForwardIterator, class T&gt;
 <span class="addition">constexpr</span> void replace(ForwardIterator first, ForwardIterator last, const T&amp; old_value, const T&amp; new_value);
 
 template&lt;class ExecutionPolicy, class ForwardIterator, class T&gt;
-<span class="addition changed-deleted">constexpr</span> void replace(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> void replace(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first, ForwardIterator last,
     const T&amp; old_value, const T&amp; new_value);
 
@@ -461,62 +473,65 @@ template&lt;class ForwardIterator, class Predicate, class T&gt;
 <span class="addition">constexpr</span> void replace_if(ForwardIterator first, ForwardIterator last, Predicate pred, const T&amp; new_value);
 
 template&lt;class ExecutionPolicy, class ForwardIterator, class Predicate, class T&gt;
-<span class="addition changed-deleted">constexpr</span> void replace_if(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> void replace_if(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first, ForwardIterator last,
     Predicate pred, const T&amp; new_value);
 
 template&lt;class InputIterator, class OutputIterator, class T&gt;
 <span class="addition">constexpr</span> OutputIterator replace_copy(InputIterator first, InputIterator last, OutputIterator result, const T&amp; old_value, const T&amp; new_value);
 
-template&lt;class ExecutionPolicy, class InputIterator, class OutputIterator, class T&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator replace_copy(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last,
-    OutputIterator result,
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class T&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator2 replace_copy(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first, ForwardIterator1 last,
+    ForwardIterator2 result,
     const T&amp; old_value, const T&amp; new_value);
 
 template&lt;class InputIterator, class OutputIterator, class Predicate, class T&gt;
 <span class="addition">constexpr</span> OutputIterator replace_copy_if(InputIterator first, InputIterator last, OutputIterator result, Predicate pred, const T&amp; new_value);
 
-template&lt;class ExecutionPolicy, class InputIterator, class OutputIterator, class Predicate, class T&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator replace_copy_if(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last,
-    OutputIterator result,
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class Predicate, class T&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator2 replace_copy_if(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first, ForwardIterator1 last,
+    ForwardIterator2 result,
     Predicate pred, const T&amp; new_value);
 
+// 28.6.6, fill
 template&lt;class ForwardIterator, class T&gt;
 <span class="addition">constexpr</span> void fill(ForwardIterator first, ForwardIterator last, const T&amp; value);
 
 template&lt;class ExecutionPolicy, class ForwardIterator, class T&gt;
-<span class="addition changed-deleted">constexpr</span> void fill(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> void fill(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first, ForwardIterator last, const T&amp; value);
 
 template&lt;class OutputIterator, class Size, class T&gt;
 <span class="addition">constexpr</span> OutputIterator fill_n(OutputIterator first, Size n, const T&amp; value);
 
-template&lt;class ExecutionPolicy, class OutputIterator, class Size, class T&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator fill_n(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    OutputIterator first, Size n, const T&amp; value);
+template&lt;class ExecutionPolicy, class ForwardIterator, class Size, class T&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator fill_n(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, Size n, const T&amp; value);
 
+// 28.6.7, generate
 template&lt;class ForwardIterator, class Generator&gt;
 <span class="addition">constexpr</span> void generate(ForwardIterator first, ForwardIterator last, Generator gen);
 
 template&lt;class ExecutionPolicy, class ForwardIterator, class Generator&gt;
-<span class="addition changed-deleted">constexpr</span> void generate(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> void generate(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first, ForwardIterator last,
     Generator gen);
 
 template&lt;class OutputIterator, class Size, class Generator&gt;
 <span class="addition">constexpr</span> OutputIterator generate_n(OutputIterator first, Size n, Generator gen);
 
-template&lt;class ExecutionPolicy, class OutputIterator, class Size, class Generator&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator generate_n(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    OutputIterator first, Size n, Generator gen);
+template&lt;class ExecutionPolicy, class ForwardIterator, class Size, class Generator&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator generate_n(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, Size n, Generator gen);
 
+// 28.6.8, remove
 template&lt;class ForwardIterator, class T&gt;
 <span class="addition">constexpr</span> ForwardIterator remove(ForwardIterator first, ForwardIterator last, const T&amp; value);
 
 template&lt;class ExecutionPolicy, class ForwardIterator, class T&gt;
-<span class="addition changed-deleted">constexpr</span> ForwardIterator remove(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> ForwardIterator remove(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first, ForwardIterator last,
     const T&amp; value);
 
@@ -524,26 +539,27 @@ template&lt;class ForwardIterator, class Predicate&gt;
 <span class="addition">constexpr</span> ForwardIterator remove_if(ForwardIterator first, ForwardIterator last, Predicate pred);
 
 template&lt;class ExecutionPolicy, class ForwardIterator, class Predicate&gt;
-<span class="addition changed-deleted">constexpr</span> ForwardIterator remove_if(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> ForwardIterator remove_if(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first, ForwardIterator last,
     Predicate pred);
 
 template&lt;class InputIterator, class OutputIterator, class T&gt;
 <span class="addition">constexpr</span> OutputIterator remove_copy(InputIterator first, InputIterator last, OutputIterator result, const T&amp; value);
 
-template&lt;class ExecutionPolicy, class InputIterator, class OutputIterator, class T&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator remove_copy(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last,
-    OutputIterator result, const T&amp; value);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class T&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator2 remove_copy(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first, ForwardIterator1 last,
+    ForwardIterator2 result, const T&amp; value);
 
 template&lt;class InputIterator, class OutputIterator, class Predicate&gt;
 <span class="addition">constexpr</span> OutputIterator remove_copy_if(InputIterator first, InputIterator last, OutputIterator result, Predicate pred);
 
-template&lt;class ExecutionPolicy, class InputIterator, class OutputIterator, class Predicate&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator remove_copy_if(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last,
-    OutputIterator result, Predicate pred);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class Predicate&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator2 remove_copy_if(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first, ForwardIterator1 last,
+    ForwardIterator2 result, Predicate pred);
 
+// 28.6.9, unique
 template&lt;class ForwardIterator&gt;
 <span class="addition">constexpr</span> ForwardIterator unique(ForwardIterator first, ForwardIterator last);
 
@@ -551,11 +567,11 @@ template&lt;class ForwardIterator, class BinaryPredicate&gt;
 <span class="addition">constexpr</span> ForwardIterator unique(ForwardIterator first, ForwardIterator last, BinaryPredicate pred);
 
 template&lt;class ExecutionPolicy, class ForwardIterator&gt;
-<span class="addition changed-deleted">constexpr</span> ForwardIterator unique(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> ForwardIterator unique(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first, ForwardIterator last);
 
 template&lt;class ExecutionPolicy, class ForwardIterator, class BinaryPredicate&gt;
-<span class="addition changed-deleted">constexpr</span> ForwardIterator unique(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> ForwardIterator unique(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first, ForwardIterator last,
     BinaryPredicate pred);
 
@@ -565,37 +581,39 @@ template&lt;class InputIterator, class OutputIterator&gt;
 template&lt;class InputIterator, class OutputIterator, class BinaryPredicate&gt;
 <span class="addition">constexpr</span> OutputIterator unique_copy(InputIterator first, InputIterator last, OutputIterator result, BinaryPredicate pred);
 
-template&lt;class ExecutionPolicy, class InputIterator, class OutputIterator&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator unique_copy(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last,
-    OutputIterator result);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator2 unique_copy(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first, ForwardIterator1 last,
+    ForwardIterator2 result);
 
-template&lt;class ExecutionPolicy, class InputIterator, class OutputIterator, class BinaryPredicate&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator unique_copy(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last,
-    OutputIterator result, BinaryPredicate pred);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class BinaryPredicate&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator2 unique_copy(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first, ForwardIterator1 last,
+    ForwardIterator2 result, BinaryPredicate pred);
 
+// 28.6.10, reverse
 template&lt;class BidirectionalIterator&gt;
 <span class="addition">constexpr</span> void reverse(BidirectionalIterator first, BidirectionalIterator last);
 
 template&lt;class ExecutionPolicy, class BidirectionalIterator&gt;
-<span class="addition changed-deleted">constexpr</span> void reverse(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> void reverse(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     BidirectionalIterator first, BidirectionalIterator last);
 
 template&lt;class BidirectionalIterator, class OutputIterator&gt;
 <span class="addition">constexpr</span> OutputIterator reverse_copy(BidirectionalIterator first, BidirectionalIterator last, OutputIterator result);
 
-template&lt;class ExecutionPolicy, class BidirectionalIterator, class OutputIterator&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator reverse_copy(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+template&lt;class ExecutionPolicy, class BidirectionalIterator, class ForwardIterator&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator reverse_copy(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     BidirectionalIterator first,
     BidirectionalIterator last,
-    OutputIterator result);
+    ForwardIterator result);
 
+// 28.6.11, rotate
 template&lt;class ForwardIterator&gt;
 <span class="addition">constexpr</span> ForwardIterator rotate(ForwardIterator first, ForwardIterator middle, ForwardIterator last);
 
 template&lt;class ExecutionPolicy, class ForwardIterator&gt;
-<span class="addition changed-deleted">constexpr</span> ForwardIterator rotate(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> ForwardIterator rotate(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first,
     ForwardIterator middle,
     ForwardIterator last);
@@ -603,36 +621,36 @@ template&lt;class ExecutionPolicy, class ForwardIterator&gt;
 template&lt;class ForwardIterator, class OutputIterator&gt;
 <span class="addition">constexpr</span> OutputIterator rotate_copy(ForwardIterator first, ForwardIterator middle, ForwardIterator last, OutputIterator result);
 
-template&lt;class ExecutionPolicy, class ForwardIterator, class OutputIterator&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator rotate_copy(
-    ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+template&lt;class ExecutionPolicy, class ForwardIterator, class ForwardIterator&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator rotate_copy(
+    ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first, ForwardIterator middle,
-    ForwardIterator last, OutputIterator result);
+    ForwardIterator last, ForwardIterator result);
 
-// 25.4.12, sample:
+// 28.6.12, sample
 template&lt;class PopulationIterator, class SampleIterator, class Distance, class UniformRandomNumberGenerator&gt;
 SampleIterator sample(PopulationIterator first, PopulationIterator last,
     SampleIterator out, Distance n,
     UniformRandomNumberGenerator&amp;&amp; g);
 
-// 25.4.13, shuffle:
+// 28.6.13, shuffle
 template&lt;class RandomAccessIterator, class UniformRandomNumberGenerator&gt;
 void shuffle(RandomAccessIterator first, RandomAccessIterator last, UniformRandomNumberGenerator&amp;&amp; g);
 
 
-// 25.4.14, partitions:
+// 28.7.4, partitions
 template &lt;class InputIterator, class Predicate&gt;
 <span class="addition">constexpr</span> bool is_partitioned(InputIterator first, InputIterator last, Predicate pred);
 
-template &lt;class ExecutionPolicy, class InputIterator, class Predicate&gt;
-<span class="addition changed-deleted">constexpr</span> bool is_partitioned(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last, Predicate pred);
+template &lt;class ExecutionPolicy, class ForwardIterator, class Predicate&gt;
+<span class="addition changed-deleted">constexpr</span> bool is_partitioned(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, ForwardIterator last, Predicate pred);
 
 template&lt;class ForwardIterator, class Predicate&gt;
 <span class="addition">constexpr</span> ForwardIterator partition(ForwardIterator first, ForwardIterator last, Predicate pred);
 
 template&lt;class ExecutionPolicy, class ForwardIterator, class Predicate&gt;
-<span class="addition changed-deleted">constexpr</span> ForwardIterator partition(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> ForwardIterator partition(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first,
     ForwardIterator last,
     Predicate pred);
@@ -641,7 +659,7 @@ template&lt;class BidirectionalIterator, class Predicate&gt;
 BidirectionalIterator stable_partition(BidirectionalIterator first, BidirectionalIterator last, Predicate pred);
 
 template&lt;class ExecutionPolicy, class BidirectionalIterator, class Predicate&gt;
-BidirectionalIterator stable_partition(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+BidirectionalIterator stable_partition(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     BidirectionalIterator first,
     BidirectionalIterator last,
     Predicate pred);
@@ -650,18 +668,18 @@ template &lt;class InputIterator, class OutputIterator1, class OutputIterator2, 
 <span class="addition">constexpr</span> pair&lt;OutputIterator1, OutputIterator2&gt;
     partition_copy(InputIterator first, InputIterator last, OutputIterator1 out_true, OutputIterator2 out_false, Predicate pred);
 
-template &lt;class ExecutionPolicy, class InputIterator, class OutputIterator1, class OutputIterator2, class Predicate&gt;
-<span class="addition changed-deleted">constexpr</span> pair&lt;OutputIterator1, OutputIterator2&gt;
-partition_copy(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last,
-    OutputIterator1 out_true, OutputIterator2 out_false,
+template &lt;class ExecutionPolicy, class ForwardIterator, class ForwardIterator1, class ForwardIterator2, class Predicate&gt;
+<span class="addition changed-deleted">constexpr</span> pair&lt;ForwardIterator1, ForwardIterator2&gt;
+partition_copy(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, ForwardIterator last,
+    ForwardIterator1 out_true, ForwardIterator2 out_false,
     Predicate pred);
 
 template&lt;class ForwardIterator, class Predicate&gt;
 <span class="addition">constexpr</span> ForwardIterator partition_point(ForwardIterator first, ForwardIterator last, Predicate pred);
 
-// 25.5, sorting and related operations:
-// 25.5.1, sorting:
+// 28.7, sorting and related operations
+// 28.7.1, sorting
 template&lt;class RandomAccessIterator&gt;
 <span class="addition">constexpr</span> void sort(RandomAccessIterator first, RandomAccessIterator last);
 
@@ -669,11 +687,11 @@ template&lt;class RandomAccessIterator, class Compare&gt;
 <span class="addition">constexpr</span> void sort(RandomAccessIterator first, RandomAccessIterator last, Compare comp);
 
 template&lt;class ExecutionPolicy, class RandomAccessIterator&gt;
-<span class="addition changed-deleted">constexpr</span> void sort(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> void sort(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     RandomAccessIterator first, RandomAccessIterator last);
 
 template&lt;class ExecutionPolicy, class RandomAccessIterator, class Compare&gt;
-<span class="addition changed-deleted">constexpr</span> void sort(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> void sort(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     RandomAccessIterator first, RandomAccessIterator last,
     Compare comp);
 
@@ -684,11 +702,11 @@ template&lt;class RandomAccessIterator, class Compare&gt;
 void stable_sort(RandomAccessIterator first, RandomAccessIterator last, Compare comp);
 
 template&lt;class ExecutionPolicy, class RandomAccessIterator&gt;
-void stable_sort(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+void stable_sort(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     RandomAccessIterator first, RandomAccessIterator last);
 
 template&lt;class ExecutionPolicy, class RandomAccessIterator, class Compare&gt;
-void stable_sort(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+void stable_sort(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     RandomAccessIterator first, RandomAccessIterator last,
     Compare comp);
 
@@ -699,13 +717,13 @@ template&lt;class RandomAccessIterator, class Compare&gt;
 <span class="addition">constexpr</span> void partial_sort(RandomAccessIterator first, RandomAccessIterator middle, RandomAccessIterator last, Compare comp);
 
 template&lt;class ExecutionPolicy, class RandomAccessIterator&gt;
-<span class="addition changed-deleted">constexpr</span> void partial_sort(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> void partial_sort(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     RandomAccessIterator first,
     RandomAccessIterator middle,
     RandomAccessIterator last);
 
 template&lt;class ExecutionPolicy, class RandomAccessIterator, class Compare&gt;
-<span class="addition changed-deleted">constexpr</span> void partial_sort(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> void partial_sort(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     RandomAccessIterator first,
     RandomAccessIterator middle,
     RandomAccessIterator last, Compare comp);
@@ -716,17 +734,17 @@ template&lt;class InputIterator, class RandomAccessIterator&gt;
 template&lt;class InputIterator, class RandomAccessIterator, class Compare&gt;
 <span class="addition">constexpr</span> RandomAccessIterator partial_sort_copy(InputIterator first, InputIterator last, RandomAccessIterator result_first, RandomAccessIterator result_last, Compare comp);
 
-template&lt;class ExecutionPolicy, class InputIterator, class RandomAccessIterator&gt;
+template&lt;class ExecutionPolicy, class ForwardIterator, class RandomAccessIterator&gt;
 <span class="addition changed-deleted">constexpr</span> RandomAccessIterator partial_sort_copy(
-    ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last,
+    ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, ForwardIterator last,
     RandomAccessIterator result_first,
     RandomAccessIterator result_last);
 
-template&lt;class ExecutionPolicy, class InputIterator, class RandomAccessIterator, class Compare&gt;
+template&lt;class ExecutionPolicy, class ForwardIterator, class RandomAccessIterator, class Compare&gt;
 <span class="addition changed-deleted">constexpr</span> RandomAccessIterator partial_sort_copy(
-    ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator first, InputIterator last,
+    ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, ForwardIterator last,
     RandomAccessIterator result_first,
     RandomAccessIterator result_last,
     Compare comp);
@@ -738,11 +756,11 @@ template&lt;class ForwardIterator, class Compare&gt;
 <span class="addition">constexpr</span> bool is_sorted(ForwardIterator first, ForwardIterator last, Compare comp);
 
 template&lt;class ExecutionPolicy, class ForwardIterator&gt;
-<span class="addition changed-deleted">constexpr</span> bool is_sorted(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> bool is_sorted(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first, ForwardIterator last);
 
 template&lt;class ExecutionPolicy, class ForwardIterator, class Compare&gt;
-<span class="addition changed-deleted">constexpr</span> bool is_sorted(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> bool is_sorted(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first, ForwardIterator last,
     Compare comp);
 
@@ -753,14 +771,15 @@ template&lt;class ForwardIterator, class Compare&gt;
 <span class="addition">constexpr</span> ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last, Compare comp);
 
 template&lt;class ExecutionPolicy, class ForwardIterator&gt;
-<span class="addition changed-deleted">constexpr</span> ForwardIterator is_sorted_until(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> ForwardIterator is_sorted_until(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first, ForwardIterator last);
 
 template&lt;class ExecutionPolicy, class ForwardIterator, class Compare&gt;
-<span class="addition changed-deleted">constexpr</span> ForwardIterator is_sorted_until(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> ForwardIterator is_sorted_until(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first, ForwardIterator last,
     Compare comp);
 
+// 28.7.2, Nth element
 template&lt;class RandomAccessIterator&gt;
 <span class="addition">constexpr</span> void nth_element(RandomAccessIterator first, RandomAccessIterator nth, RandomAccessIterator last);
 
@@ -768,16 +787,16 @@ template&lt;class RandomAccessIterator, class Compare&gt;
 <span class="addition">constexpr</span> void nth_element(RandomAccessIterator first, RandomAccessIterator nth, RandomAccessIterator last, Compare comp);
 
 template&lt;class ExecutionPolicy, class RandomAccessIterator&gt;
-<span class="addition changed-deleted">constexpr</span> void nth_element(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> void nth_element(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     RandomAccessIterator first, RandomAccessIterator nth,
     RandomAccessIterator last);
 
 template&lt;class ExecutionPolicy, class RandomAccessIterator, class Compare&gt;
-<span class="addition changed-deleted">constexpr</span> void nth_element(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> void nth_element(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     RandomAccessIterator first, RandomAccessIterator nth,
     RandomAccessIterator last, Compare comp);
 
-// 25.5.3, binary search:
+// 28.7.3, binary search
 template&lt;class ForwardIterator, class T&gt;
 <span class="addition">constexpr</span> ForwardIterator lower_bound(ForwardIterator first, ForwardIterator last, const T&amp; value);
 
@@ -804,24 +823,24 @@ template&lt;class ForwardIterator, class T&gt;
 template&lt;class ForwardIterator, class T, class Compare&gt;
 <span class="addition">constexpr</span> bool binary_search(ForwardIterator first, ForwardIterator last, const T&amp; value, Compare comp);
 
-// 25.5.4, merge:
+// 28.7.5, merge
 template&lt;class InputIterator1, class InputIterator2, class OutputIterator&gt;
 <span class="addition">constexpr</span> OutputIterator merge(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, InputIterator2 last2, OutputIterator result);
 
 template&lt;class InputIterator1, class InputIterator2, class OutputIterator, class Compare&gt;
 <span class="addition">constexpr</span> OutputIterator merge(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, InputIterator2 last2, OutputIterator result, Compare comp);
 
-template&lt;class ExecutionPolicy, class InputIterator1, class InputIterator2, class OutputIterator&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator merge(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2, InputIterator2 last2,
-    OutputIterator result);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class ForwardIterator&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator merge(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, ForwardIterator2 last2,
+    ForwardIterator result);
 
-template&lt;class ExecutionPolicy, class InputIterator1, class InputIterator2, class OutputIterator, class Compare&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator merge(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2, InputIterator2 last2,
-    OutputIterator result, Compare comp);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class ForwardIterator, class Compare&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator merge(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, ForwardIterator2 last2,
+    ForwardIterator result, Compare comp);
 
 template&lt;class BidirectionalIterator&gt;
 void inplace_merge(BidirectionalIterator first, BidirectionalIterator middle, BidirectionalIterator last);
@@ -830,32 +849,32 @@ template&lt;class BidirectionalIterator, class Compare&gt;
 void inplace_merge(BidirectionalIterator first, BidirectionalIterator middle, BidirectionalIterator last, Compare comp);
 
 template&lt;class ExecutionPolicy, class BidirectionalIterator&gt;
-void inplace_merge(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+void inplace_merge(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     BidirectionalIterator first,
     BidirectionalIterator middle,
     BidirectionalIterator last);
 
 template&lt;class ExecutionPolicy, class BidirectionalIterator, class Compare&gt;
-void inplace_merge(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+void inplace_merge(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     BidirectionalIterator first,
     BidirectionalIterator middle,
     BidirectionalIterator last, Compare comp);
 
-// 25.5.5, set operations:
+// 28.7.6, set operations
 template&lt;class InputIterator1, class InputIterator2&gt;
 <span class="addition">constexpr</span> bool includes(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, InputIterator2 last2);
 
 template&lt;class InputIterator1, class InputIterator2, class Compare&gt;
 <span class="addition">constexpr</span> bool includes(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, InputIterator2 last2, Compare comp);
 
-template&lt;class ExecutionPolicy, class InputIterator1, class InputIterator2&gt;
-<span class="addition changed-deleted">constexpr</span> bool includes(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2, InputIterator2 last2);
-template&lt;class ExecutionPolicy, class InputIterator1, class InputIterator2, class Compare&gt;
-<span class="addition changed-deleted">constexpr</span> bool includes(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2, InputIterator2 last2, Compare comp);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2&gt;
+<span class="addition changed-deleted">constexpr</span> bool includes(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, ForwardIterator2 last2);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class Compare&gt;
+<span class="addition changed-deleted">constexpr</span> bool includes(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, ForwardIterator2 last2, Compare comp);
 
 template&lt;class InputIterator1, class InputIterator2, class OutputIterator&gt;
 <span class="addition">constexpr</span> OutputIterator set_union(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, InputIterator2 last2, OutputIterator result);
@@ -863,17 +882,17 @@ template&lt;class InputIterator1, class InputIterator2, class OutputIterator&gt;
 template&lt;class InputIterator1, class InputIterator2, class OutputIterator, class Compare&gt;
 <span class="addition">constexpr</span> OutputIterator set_union(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, InputIterator2 last2, OutputIterator result, Compare comp);
 
-template&lt;class ExecutionPolicy, class InputIterator1, class InputIterator2, class OutputIterator&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator set_union(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2, InputIterator2 last2,
-    OutputIterator result);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class ForwardIterator&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator set_union(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, ForwardIterator2 last2,
+    ForwardIterator result);
 
-template&lt;class ExecutionPolicy, class InputIterator1, class InputIterator2, class OutputIterator, class Compare&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator set_union(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2, InputIterator2 last2,
-    OutputIterator result, Compare comp);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class ForwardIterator, class Compare&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator set_union(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, ForwardIterator2 last2,
+    ForwardIterator result, Compare comp);
 
 template&lt;class InputIterator1, class InputIterator2, class OutputIterator&gt;
 <span class="addition">constexpr</span> OutputIterator set_intersection(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, InputIterator2 last2, OutputIterator result);
@@ -881,19 +900,19 @@ template&lt;class InputIterator1, class InputIterator2, class OutputIterator&gt;
 template&lt;class InputIterator1, class InputIterator2, class OutputIterator, class Compare&gt;
 <span class="addition">constexpr</span> OutputIterator set_intersection(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, InputIterator2 last2, OutputIterator result, Compare comp);
 
-template&lt;class ExecutionPolicy, class InputIterator1, class InputIterator2, class OutputIterator&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator set_intersection(
-    ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2, InputIterator2 last2,
-    OutputIterator result);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class ForwardIterator&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator set_intersection(
+    ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, ForwardIterator2 last2,
+    ForwardIterator result);
 
-template&lt;class ExecutionPolicy, class InputIterator1, class InputIterator2, class OutputIterator, class Compare&gt;
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class ForwardIterator, class Compare&gt;
 <span class="addition changed-deleted">constexpr</span> OutputIterator set_intersection(
-    ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2, InputIterator2 last2,
-    OutputIterator result, Compare comp);
+    ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, ForwardIterator2 last2,
+    ForwardIterator result, Compare comp);
 
 template&lt;class InputIterator1, class InputIterator2, class OutputIterator&gt;
 <span class="addition">constexpr</span> OutputIterator set_difference(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, InputIterator2 last2, OutputIterator result);
@@ -901,19 +920,19 @@ template&lt;class InputIterator1, class InputIterator2, class OutputIterator&gt;
 template&lt;class InputIterator1, class InputIterator2, class OutputIterator, class Compare&gt;
 <span class="addition">constexpr</span> OutputIterator set_difference(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, InputIterator2 last2, OutputIterator result, Compare comp);
 
-template&lt;class ExecutionPolicy, class InputIterator1, class InputIterator2, class OutputIterator&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator set_difference(
-    ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2, InputIterator2 last2,
-    OutputIterator result);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class ForwardIterator&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator set_difference(
+    ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, ForwardIterator2 last2,
+    ForwardIterator result);
 
-template&lt;class ExecutionPolicy, class InputIterator1, class InputIterator2, class OutputIterator, class Compare&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator set_difference(
-    ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2, InputIterator2 last2,
-    OutputIterator result, Compare comp);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class ForwardIterator, class Compare&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator set_difference(
+    ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, ForwardIterator2 last2,
+    ForwardIterator result, Compare comp);
 
 template&lt;class InputIterator1, class InputIterator2, class OutputIterator&gt;
 <span class="addition">constexpr</span> OutputIterator set_symmetric_difference(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, InputIterator2 last2, OutputIterator result);
@@ -921,21 +940,21 @@ template&lt;class InputIterator1, class InputIterator2, class OutputIterator&gt;
 template&lt;class InputIterator1, class InputIterator2, class OutputIterator, class Compare&gt;
 <span class="addition">constexpr</span> OutputIterator set_symmetric_difference(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, InputIterator2 last2, OutputIterator result, Compare comp);
 
-template&lt;class ExecutionPolicy, class InputIterator1, class InputIterator2, class OutputIterator&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator set_symmetric_difference(
-    ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2, InputIterator2 last2,
-    OutputIterator result);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class ForwardIterator&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator set_symmetric_difference(
+    ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, ForwardIterator2 last2,
+    ForwardIterator result);
 
-template&lt;class ExecutionPolicy, class InputIterator1, class InputIterator2, class OutputIterator, class Compare&gt;
-<span class="addition changed-deleted">constexpr</span> OutputIterator set_symmetric_difference(
-    ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2, InputIterator2 last2,
-    OutputIterator result, Compare comp);
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class ForwardIterator, class Compare&gt;
+<span class="addition changed-deleted">constexpr</span> ForwardIterator set_symmetric_difference(
+    ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, ForwardIterator2 last2,
+    ForwardIterator result, Compare comp);
 
-// 25.5.6, heap operations:
+// 28.7.7, heap operations
 template&lt;class RandomAccessIterator&gt;
 <span class="addition">constexpr</span> void push_heap(RandomAccessIterator first, RandomAccessIterator last);
 
@@ -967,11 +986,11 @@ template&lt;class RandomAccessIterator, class Compare&gt;
 <span class="addition">constexpr</span> bool is_heap(RandomAccessIterator first, RandomAccessIterator last, Compare comp);
 
 template&lt;class ExecutionPolicy, class RandomAccessIterator&gt;
-<span class="addition changed-deleted">constexpr</span> bool is_heap(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> bool is_heap(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     RandomAccessIterator first, RandomAccessIterator last);
 
 template&lt;class ExecutionPolicy, class RandomAccessIterator, class Compare&gt;
-<span class="addition changed-deleted">constexpr</span> bool is_heap(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> bool is_heap(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     RandomAccessIterator first, RandomAccessIterator last, Compare comp);
 
 template&lt;class RandomAccessIterator&gt;
@@ -981,15 +1000,15 @@ template&lt;class RandomAccessIterator, class Compare&gt;
 <span class="addition">constexpr</span> RandomAccessIterator is_heap_until(RandomAccessIterator first, RandomAccessIterator last, Compare comp);
 
 template&lt;class ExecutionPolicy, class RandomAccessIterator&gt;
-<span class="addition changed-deleted">constexpr</span> RandomAccessIterator is_heap_until(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> RandomAccessIterator is_heap_until(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     RandomAccessIterator first, RandomAccessIterator last);
 
 template&lt;class ExecutionPolicy, class RandomAccessIterator, class Compare&gt;
-<span class="addition changed-deleted">constexpr</span> RandomAccessIterator is_heap_until(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+<span class="addition changed-deleted">constexpr</span> RandomAccessIterator is_heap_until(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     RandomAccessIterator first, RandomAccessIterator last,
     Compare comp);
 
-// 25.5.7, minimum and maximum:
+// 28.7.8, minimum and maximum
 template&lt;class T&gt; constexpr const T&amp; min(const T&amp; a, const T&amp; b);
 
 template&lt;class T, class Compare&gt;
@@ -1030,11 +1049,11 @@ template&lt;class ForwardIterator, class Compare&gt;
 constexpr ForwardIterator min_element(ForwardIterator first, ForwardIterator last, Compare comp);
 
 template&lt;class ExecutionPolicy, class ForwardIterator&gt;
-constexpr ForwardIterator min_element(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+constexpr ForwardIterator min_element(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first, ForwardIterator last);
 
 template&lt;class ExecutionPolicy, class ForwardIterator, class Compare&gt;
-constexpr ForwardIterator min_element(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+constexpr ForwardIterator min_element(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first, ForwardIterator last,
     Compare comp);
 
@@ -1045,11 +1064,11 @@ template&lt;class ForwardIterator, class Compare&gt;
 constexpr ForwardIterator max_element(ForwardIterator first, ForwardIterator last, Compare comp);
 
 template&lt;class ExecutionPolicy, class ForwardIterator&gt;
-constexpr ForwardIterator max_element(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+constexpr ForwardIterator max_element(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first, ForwardIterator last);
 
 template&lt;class ExecutionPolicy, class ForwardIterator, class Compare&gt;
-constexpr ForwardIterator max_element(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+constexpr ForwardIterator max_element(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first, ForwardIterator last,
     Compare comp);
 
@@ -1062,41 +1081,41 @@ constexpr pair&lt;ForwardIterator, ForwardIterator&gt;
     minmax_element(ForwardIterator first, ForwardIterator last, Compare comp);
 
 template&lt;class ExecutionPolicy, class ForwardIterator&gt;
-constexpr pair&lt;ForwardIterator, ForwardIterator&gt; minmax_element(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+constexpr pair&lt;ForwardIterator, ForwardIterator&gt; minmax_element(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first, ForwardIterator last);
 
 template&lt;class ExecutionPolicy, class ForwardIterator, class Compare&gt;
-constexpr pair&lt;ForwardIterator, ForwardIterator&gt; minmax_element(ExecutionPolicy&amp;&amp; exec, // see 25.2.5
+constexpr pair&lt;ForwardIterator, ForwardIterator&gt; minmax_element(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
     ForwardIterator first, ForwardIterator last, Compare comp);
 
-// 25.5.8, bounded value
+// 28.7.9, bounded value
 template&lt;class T&gt;
 constexpr const T&amp; clamp(const T&amp; v, const T&amp; lo, const T&amp; hi);
 
 template&lt;class T, class Compare&gt;
 constexpr const T&amp; clamp(const T&amp; v, const T&amp; lo, const T&amp; hi, Compare comp);
 
-// 25.5.9, lexicographical comparison
+// 28.7.10, lexicographical comparison
 template&lt;class InputIterator1, class InputIterator2&gt;
 <span class="addition">constexpr</span> bool lexicographical_compare(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, InputIterator2 last2);
 
 template&lt;class InputIterator1, class InputIterator2, class Compare&gt;
 <span class="addition">constexpr</span> bool lexicographical_compare(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, InputIterator2 last2, Compare comp);
 
-template&lt;class ExecutionPolicy, class InputIterator1, class InputIterator2&gt;
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2&gt;
 <span class="addition changed-deleted">constexpr</span> bool lexicographical_compare(
-    ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2, InputIterator2 last2);
+    ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, ForwardIterator2 last2);
 
-template&lt;class ExecutionPolicy, class InputIterator1, class InputIterator2, class Compare&gt;
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2, class Compare&gt;
 <span class="addition changed-deleted">constexpr</span> bool lexicographical_compare(
-    ExecutionPolicy&amp;&amp; exec, // see 25.2.5
-    InputIterator1 first1, InputIterator1 last1,
-    InputIterator2 first2, InputIterator2 last2,
+    ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2, ForwardIterator2 last2,
     Compare comp);
 
-// 25.5.10, permutations:
+// 28.7.11, permutations
 template&lt;class BidirectionalIterator&gt;
 <span class="addition">constexpr</span> bool next_permutation(BidirectionalIterator first, BidirectionalIterator last);
 
@@ -1113,16 +1132,20 @@ template&lt;class BidirectionalIterator, class Compare&gt;
 		</pre>
 
 
-		<h3>B. Modifications to remaining parts of "25 Algorithms library" 
+		<h3>B. Modifications to remaining parts of "28 Algorithms library" 
 [algorithms] (all sections except "Header &lt;algorithm&gt; synopsis" 
-and "25.6 C library algorithms" [alg.c.library]) </h3>
+and "28.8 C library algorithms" [alg.c.library]) </h3>
 		<p><b>Note for editor:</b> All the functions marked with <code>constexpr</code> in previous paragraph of this document must be accordingly marked with <code>constexpr</code> in detailed algorithm description.
-			For shortness only modifications to "25.3.1 All of" [alg.all_of] are shown in this paper.
+			For shortness only modifications to "28.5.1 All of" [alg.all_of] are shown in this paper.
 		</p>
-		<pre>25.3.1 All of [alg.all_of]
+		<pre>28.5.1 All of [alg.all_of]
 
 template &lt;class InputIterator, class Predicate&gt;
 <span class="addition">constexpr</span> bool all_of(InputIterator first, InputIterator last, Predicate pred);
+
+template &lt;class ExecutionPolicy, class ForwardIterator, class Predicate&lt;
+bool all_of(ExecutionPolicy&amp;&amp; exec, ForwardIterator first, ForwardIterator last,
+    Predicate pred);
 
 Returns: true if [first,last) is empty or if pred(*i) is true for every iterator i in the range
     [first,last), and false otherwise.
@@ -1131,42 +1154,41 @@ Complexity: At most last - first applications of the predicate.
 		</pre>
 
 
-		<h3>C. Modifications to "20.2 Utility components" [utility]</h3>
-		<pre>// 20.2.2, swap:
+		<h3>C. Modifications to "23.2 Utility components" [utility]</h3>
+		<pre>// 23.2.3, swap:
 template&lt;class T&gt;
 <span class="addition">constexpr</span> void swap(T&amp; a, T&amp; b) noexcept(see below );
 
 template &lt;class T, size_t N&gt;
 <span class="addition">constexpr</span> void swap(T (&amp;a)[N], T (&amp;b)[N]) noexcept(noexcept(swap(*a, *b)));
 
-// 20.2.3, exchange:
+// 23.2.4, exchange:
 template &lt;class T, class U=T&gt;
 <span class="addition">constexpr</span> T exchange(T&amp; obj, U&amp;&amp; new_val);
 		</pre>
 
 
-		<h3>D. Modifications to "20.2.2 swap" [utility.swap]</h3>
+		<h3>D. Modifications to "23.2.3 swap" [utility.swap]</h3>
 		<pre>template&lt;class T&gt; <span class="addition">constexpr</span> void swap(T&amp; a, T&amp; b) noexcept(see below );
 
-Remark: This function shall not participate in overload resolution unless is_move_constructible&lt;T&gt;::value
-is true and is_move_assignable&lt;T&gt;::value is true. The expression inside noexcept is equivalent to:
-    is_nothrow_move_constructible&lt;T&gt;::value &amp;&amp;
-    is_nothrow_move_assignable&lt;T&gt;::value
+Remark: This function shall not participate in overload resolution unless is_move_constructible_v&lt;T&gt;
+is true and is_move_assignable_v&lt;T&gt; is true. The expression inside noexcept is equivalent to:
+    is_nothrow_move_constructible_v&lt;T&gt; &amp;&amp; is_nothrow_move_assignable_v&lt;T&gt;
 
 Requires: Type T shall be MoveConstructible (Table 20) and MoveAssignable (Table 22).
 Effects: Exchanges values stored in two locations.
 
 template&lt;class T, size_t N&gt;
-<span class="addition">constexpr</span> void swap(T (&amp;a)[N], T (&amp;b)[N]) noexcept(noexcept(swap(*a, *b)));
+<span class="addition">constexpr</span> void swap(T (&amp;a)[N], T (&amp;b)[N]) noexcept(is_nothrow_swappable_v&lt;T&gt;);
 
 Remarks: This function shall not participate in overload resolution unless is_swappable_v&lt;T&gt; is true.
 
-Requires: a[i] shall be swappable with (17.6.3.2) b[i] for all i in the range [0,N).
+Requires: a[i] shall be swappable with (20.5.3.2) b[i] for all i in the range [0,N).
 Effects: As if by swap_ranges(a, a + N, b).
 		</pre>
 
 
-		<h3>E. Modifications to "20.2.3 exchange" [utility.exchange]</h3>
+		<h3>E. Modifications to "23.2.4 exchange" [utility.exchange]</h3>
 		<pre>template &lt;class T, class U=T&gt; <span class="addition">constexpr</span> T exchange(T&amp; obj, U&amp;&amp; new_val);
 
 Effects: Equivalent to:
@@ -1187,7 +1209,7 @@ Effects: Equivalent to:
 				Do not add constexpr to the <code>ExecutionPolicy</code> overloads.
 			</li>
 			<li>
-				Updated wording to use N4594.
+				Updated wording to use N4687.
 			</li>
 		</ul>
 
@@ -1237,8 +1259,8 @@ Resolution: needs_updated_proposal</pre>
 
 
 		<h2>VI. References</h2>
-		<p>[<a name="N4582">N4582</a>] Working Draft, Standard for Programming Language C++. Available online at
-					<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/n4582.pdf">www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/n4582.pdf</a></p>
+		<p>[<a name="N4687">N4687</a>] Working Draft, Standard for Programming Language C++. Available online at
+					<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/n4687.pdf">www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/n4687.pdf</a></p>
 		<p>[<a name="P0031R0">P0031R0</a>] A Proposal to Add Constexpr Modifiers to reverse_iterator, move_iterator, array and Range Access. Available online at
 					<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/p0031r0.html">www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/p0031r0.html</a></p>
 		<p>[<a name="rhalbersma">rhalbersma</a><a>] Proof of concept for some functions.
