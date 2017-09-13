@@ -1,9 +1,9 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html><head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 		<title>A Proposal to add Classes and Functions Required for Dynamic Library Load</title>
 		<meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
 		<meta http-equiv="Content-Language" content="en-us">
-		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 		<style type="text/css">
 			.addition { color: green; }
@@ -25,11 +25,11 @@
 	<body bgcolor="#ffffff">
 		<address>Document number: D0275R2</address>
 		<address>Project: Programming Language C++</address>
-		<address>Audience: Library Evolution Working Group</address>
+		<address>Audience: Library Evolution Working Group<span class='changed-added'>, Evolution Working Group</span></address>
 		<address>&nbsp;</address>
 		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
 		<address>&nbsp;</address>
-		<address>Date: 2017-09-01</address>
+		<address>Date: 2017-09-12</address>
 		<h1>A Proposal to add Classes and Functions Required for Dynamic Library Load</h1>
 
 
@@ -44,9 +44,9 @@
             Loading (DLL). This proposal attempts to fix that and provide a simple to
             use classes and functions for DLL.</p>
 		<p class="changed-added">A quick survey at one of <a href="https://habrahabr.ru/company/yandex/blog/323972/">the popular Russian IT sites</a> shows that ~41% of people use
-		dynamic library loading in company or their own projects. Any wrapper around platfrom specific DLL involves multiple macro, reinterpret_casts,
+		dynamic library loading in company or their own projects. Any wrapper around platform specific DLL involves multiple macro, reinterpret_casts,
 	    work with platform specific decorations, and even UBs due to
-		OS API designs. Examples: <a href="https://github.com/STEllAR-GROUP/hpx/blob/release/hpx/util/plugin/detail/dll_dlopen.hpp">HPX<a>, <a href="https://github.com/pocoproject/poco/tree/develop/Foundation/src">POCO (see SharedLibrary* files)</a>, <a href="https://github.com/qt/qtbase/blob/5.3/src/corelib/plugin/">Qt(see qlibrary_*.cpp files)</a>.
+		OS API designs. Examples: <a href="https://github.com/STEllAR-GROUP/hpx/blob/release/hpx/util/plugin/detail/dll_dlopen.hpp">HPX</a>, <a href="https://github.com/pocoproject/poco/tree/develop/Foundation/src">POCO (see SharedLibrary* files)</a>, <a href="https://github.com/qt/qtbase/blob/5.3/src/corelib/plugin/">Qt(see qlibrary_*.cpp files)</a>.
 		</p>
 		<p>This proposal is based on the <a href="https://github.com/boostorg/dll">Boost.DLL</a> library. <span class="changed-added">Unlike many other libraries the Boost.DLL
 		does not force a specific type for the imported symbols, does not include project specific stuff into the classes. It's just a
@@ -55,9 +55,15 @@
 
 		<h2>II. Impact on the Standard</h2>
 		<p>This proposal is a pure library extension. It does not propose changes to
-			existing headers. It does not require any changes in the core
-			language and it could be implemented in standard C++.
+			existing headers. <span class='changed-deleted'>It does not require any changes in the core
+			language and it could be implemented in standard C++.</span>
 		</p>
+		<p class='changed-added'>This proposal tries hard to be a library only extension and avoid adding a description of shared libraries machinery as much as possible.
+		EWG has to decide:</p>
+		<ul class='changed-added'>
+		    <li>is it acceptable to describe usage of shared library files without any mention of how to construct them?</li>
+		    <li>is it acceptable to have an unspecified behavior for shared library's TLS, globals, ADL, exceptions, ODR violations, global allocators?</li>
+		</ul>
 
 		<h2>III. Design Decisions</h2>
 		<h3>A. Usage of <code>std::filesystem::path</code></h3>
@@ -125,7 +131,7 @@ try {
             operating systems search
             system paths even if relative path is provided, the 
             requirement to not do that is implicitly described in proposed wording.</p>
-		<h3>F. Minimal modifications for the N4618 wording.</h3>
+		<h3>F. Minimal modifications for the N4687 wording.</h3>
         <p>There have been a lot of shared library related proposals:</p>
         <ul>
         <li><a href="http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2002/n1400.html">N1400: Toward standardization of dynamic libraries</a></li>
@@ -137,17 +143,17 @@ try {
         <li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2407.html">N2407: C++ Dynamic Library Support</a></li>
         </ul>
 
-        <p>The proposal you're reading attempts to avoid issues of the proposals from above, minifying the changes to the N4618 wording. The proposal you're reading:</p>
+        <p>The proposal you're reading attempts to avoid issues of the proposals from above, minifying the changes to the N4687 wording. The proposal you're reading:</p>
         <ul>
         <li>is a pure library extension (does not modify Basic Concepts [basic] and does not add new keywords)</li>
-        <li>does not add platform requiremnt for shared libraries suport</li>
+        <li>does not add platform requirement for shared libraries support</li>
         </ul>
 
-        <h3 class="changed-added">G. Overaloads take <code>char*</code> and <code>string&amp;</code>, not <code>string_view</code>.</h3>
+        <h3 class="changed-added">G. Overloads take <code>const char*</code> and <code>const string&amp;</code>, not <code>string_view</code>.</h3>
         <p class="changed-added">OS specific API usually accepts symbol name as a zero terminated char array. <code>string_view</code> has no zero termination
         guarantee so it requires copying of the input parameter and zero termination. <code>char*</code> and <code>string&amp;</code> is a more efficient API design.</p>
 
-		<h2>IV. Proposed wording relative to N4618</h2>
+		<h2>IV. Proposed wording relative to N4687</h2>
 
 <h3>?? Dynamic library load support library<span class="right">[dll]</span></h3>
 <h4>??.1 General <span class="right">[dll.general]</span></h4>
@@ -167,9 +173,9 @@ try {
     that header</span> term 'symbol' relates to a
     function, reference, class member or object that can be obtained from shared library file at runtime.
     Term 'symbol name' relates to a character identifier of a symbol, using
-    which symbol can be obtained from shared library file. For symbols declared with <code>extern
+    which symbol can be obtained from shared library file. <i class="changed-added">[ Note:</i> For symbols declared with <code>extern
     "C"</code> in code of shared library file, 'symbol name' is the name of the
-    entity. 'symbol name' for entities without <code>extern "C"</code> are unspecified <i>[ Note:</i> Typically symbol names of those entities are mangled entity names<i> — end note ]</i>.
+    entity. 'symbol name' for entities without <code>extern "C"</code> are unspecified. <i  class="changed-deleted">[ Note:</i> Typically symbol names of those entities are mangled entity names<i> — end note ]</i>.
 </p>
 
 <h4>??.2 Error reporting <span class="right">[dll.errors]</span></h4>
@@ -180,7 +186,7 @@ try {
     prevents the function from meeting its specifications, an exception of type system_error is thrown.</li>
 
     <li>Failure to allocate storage is reported by throwing an exception as described in the C++ standard,
-    17.5.5.12[res.on.exception.handling].</li>
+    20.5.5.12[res.on.exception.handling].</li>
 
     <li>Destructors throw nothing.</li>
     </ul>
@@ -192,7 +198,7 @@ try {
     appropriate for the specific error. Otherwise, <code>clear()</code> is called on the <code>error_code&amp;</code> argument.</li>
 
     <li>Failure to allocate storage is reported by throwing an exception
-         as described in the C++ standard, 17.5.5.12
+         as described in the C++ standard, 20.5.5.12
         [res.on.exception.handling].</li>
     </ul>
 
@@ -243,8 +249,8 @@ try {
     filesystem::path this_line_location(error_code&amp; ec);
     filesystem::path this_line_location();
 
-    filesystem::path program_location(error_code&amp; ec);<span class="changed-deleted">
-    filesystem::path program_location();</span>
+    filesystem::path program_location(error_code&amp; ec);
+    filesystem::path program_location();
 
   }
   }
@@ -507,11 +513,11 @@ shared_library(const filesystem::path&amp; library_path, dll_mode mode, error_co
 <h4>??.4.4 shared_library destructor <span class="right">[dll.shared_library.destr]</span></h4>
 <pre>~shared_library();</pre>
 <div class="desc">
-    <i>Effects:</i> Destroys the <code>shared_library</code> by calling <code>reset()</code>. If
+    <i>Effects:</i> Destroys the <code>shared_library</code> by calling <code>reset()</code>.<span class="changed-deleted"> If
     the shared library file is referenced by different instances of
     <code>shared_library</code>,
     the shared library file won't be unloaded until there is at least one 
-    instance of <code>shared_library</code> referencing it.
+    instance of <code>shared_library</code> referencing it.</span>
 </div>
 
 
@@ -523,7 +529,7 @@ shared_library(const filesystem::path&amp; library_path, dll_mode mode, error_co
 
 <pre>shared_library&amp; operator=(shared_library&amp;&amp; lib) noexcept;</pre>
     <div class="desc"><i>Effects:</i> If <code>*this</code> then calls
- reset()</code>. Assigns the state of <code>lib</code> to <code>*this</code> and sets <code>lib</code> 
+ <code>reset()</code>. Assigns the state of <code>lib</code> to <code>*this</code> and sets <code>lib</code> 
 to a default constructed state.</div>
     <div class="desc"><i>Remarks:</i> Does not invalidate symbols previously obtained from <code>lib</code>.</div>
     <div class="desc"><i>Postconditions:</i> <code>lib</code> is <code>false</code>, <code>*this</code> is <code>true</code>.</div>
@@ -546,7 +552,7 @@ void load(const filesystem::path&amp; library_path, dll_mode mode, error_code&am
 <pre>void reset() noexcept;</pre>
     <div class="desc"><i>Effects:</i> Sets <code>*this</code> to a default constructed state. If <code>*this</code> was the last instance of <code>shared_library</code> referencing the shared library file,
     then all the resources associated with shared library file shall be released.</div>
-    <div class="desc"><i>Remarks:</i> Symbols obtained from shared library file remain valid until there is at least one instance of <code>shared_library</code> referencing the shared library file.</div>
+    <div class="desc"><i>Remarks:</i> Symbols obtained from shared library file remain valid <span class="changed-deleted">until</span><span class="changed-added">if</span> there is at least one instance of <code>shared_library</code> referencing the shared library file.</div>
     <div class="desc"><i>Postconditions:</i> <code>*this</code> is <code>false</code>.</div>
 
 <pre>explicit operator bool() const noexcept;</pre>
@@ -594,7 +600,7 @@ filesystem::path location(error_code&amp; ec) const;</pre>
 <h4>??.4.7 shared_library static members<span class="right">[dll.shared_library.static]</span></h4>
 
 <pre>static constexpr bool platform_supports_dll() noexcept;</pre>
-    <div class="desc"><i>Returns:</i> true if platform supports loading of shared library files into the momery of program.
+    <div class="desc"><i>Returns:</i> true if platform supports loading of shared library files into the memory of program.
     [ Note: If this function returns <code>false</code>, then any attempt to load a shared library file will fail at runtime. This function could be used to ensure platform capabilities at
     compile time: <code>static_assert(shared_library::platform_supports_dll(), "DLL required for this program");</code> — end note ]</div>
 
@@ -629,7 +635,7 @@ filesystem::path location(error_code&amp; ec) const;</pre>
 <h4>??.4.9 shared_library hash support<span class="right">[dll.shared_library.hash]</span></h4>
 <pre>template &lt;&gt; struct hash&lt;experimental::shared_library&gt;;</pre><p>
     <div class="desc">
-        The specialization is enabled (20.14.14).
+        The specialization is enabled (23.14.15).
     </div>
 
 
@@ -727,7 +733,7 @@ imported_t&lt;SymbolT&gt; import(shared_library&amp;&amp; library, const string&
 
 
 		<h2>V. Feature-testing macro</h2>
-		<p class="changed-deleted">For the purposes of SG10 it is sufficient to check for header 
+		<p class="changed-deleted">For the purposes of SG10 it is sufficient to check for header
         &lt;experimental/dll&gt; or &lt;experimental/import&gt; using __has_include.
         </p>
         <p class="changed-added">For the purposes of SG10, we recommend the feature-testing macro name __cpp_lib_shared_library.</p>
@@ -736,9 +742,20 @@ imported_t&lt;SymbolT&gt; import(shared_library&amp;&amp; library, const string&
 		<h2>VI. Revision History</h2>
 		<p class="changed-added">Revision 2:</p>
 		<ul class="changed-added">
-			<li>
-				
-			</li>
+			<li>Added EWG questions</li>
+			<li>Added motivation for not using <code>string_view</code></li>
+			<li>Return pointer from get</li>
+			<li>Some usage numbers and examples</li>
+			<li>Specified and reduced load modes</li>
+			<li>Fixed "must" usage in proposal</li>
+			<li>Dropped <code>load()</code> functions</li>
+			<li>Revised constructor overloads</li>
+			<li>Dropped <code>import</code> functions</li>
+			<li>Added feature testing macro</li>
+			<li>"append_decorations" => "add_decorations"</li>
+			<li><code>dll_mode</code> description rewritten</li>
+			<li>Multiple minor improvements</li>
+			<li>Rebased to N4687</li>
 		</ul>
 		<p>Revision 1:</p>
 		<ul>
@@ -789,9 +806,9 @@ imported_t&lt;SymbolT&gt; import(shared_library&amp;&amp; library, const string&
             function colorize_texts(texts) {
                 for (var i = 0; i < texts.length; ++i) {
                     var text = texts[i].innerHTML;
-                    text = text.replace(/namespace|enum|void|constexpr|extern|noexcept|bool|template|class |struct|auto|const|typename|explicit|public|private|operator|#include|char|typedef|static_assert|static_cast|static/g,"<span class='cppkeyword'>$&</span>");
-                    text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&</span>");
-                    //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&</span>");
+                    text = text.replace(/namespace|enum|void|constexpr|extern|noexcept|bool|template|class |struct|auto|const|typename|explicit|public|private|operator|#include|char|typedef|static_assert|static_cast|static/g,"<span class='cppkeyword'>$&<\/span>");
+                    text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+                    //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
                     texts[i].innerHTML = text;
                 }
             }
