@@ -1,0 +1,496 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+		<title>Constexpr for swap and swap related functions</title>
+		<meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+		<meta http-equiv="Content-Language" content="en-us">
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+		<style type="text/css">
+			.addition { color: green; text-decoration: underline; }
+			.changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+			.addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+			.changed-added { background-color: #CFF0FC ;}
+			body {max-width: 1024px; margin-left: 25px;}
+		</style>
+</head>
+	<body bgcolor="#ffffff">
+		<address>Document number: D????R0</address>
+		<address>Project: Programming Language C++</address>
+		<address>Audience: Library Working Group</address>
+		<address>&nbsp;</address>
+		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+		<address>&nbsp;</address>
+		<address>Date: 2017-11-13</address>
+		<h1>Constexpr for swap and swap related functions</h1>
+
+		<!--p class='changed-added'>Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0202r2.html">P0202R2</a> are marked with blue.</p-->
+		<!--p class="changed-added"><input type="checkbox" id="show_deletions" onchange="show_hide_deleted()">Show deleted lines.</p-->
+		<h2>I. Introduction and Motivation</h2>
+		<p>The Standard Library provides a great collection of algorithms, many of which currently lack constexpr support.
+			Even a simple <code>constexpr</code> usage requires reimplementing a big bunch of the Standard Library. Consider the simple example:</p>
+		<p></p><blockquote><pre>#include &lt;array&gt;
+#include &lt;algorithm&gt;
+ 
+int main() {
+	// OK
+	constexpr std::array&lt;char, 6&gt; a { 'H', 'e', 'l', 'l', 'o' };
+
+	// Failures:
+	// * std::find is not constexpr
+	constexpr auto it = std::find(a.rbegin(), a.rend(), 'H');
+}
+</pre></blockquote><p></p>
+		<p>All the required algorithms already were approved by LEWG in <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0202r2.html">P0202R2</a>, however P0202R2 was
+		reduced and acceped as <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0202r3.html">P0202R3</a> because of the <a href="http://wiki.edg.com/pub/Wg21albuquerque/CoreWorkingGroup/cwg_active.html#1581">CWG 1581</a>.
+		Now, when CWG 1581 is fixed this paper provides wording for makring with constexpr the algorithms that were not marked by P0202R3 but were in P0202R2.
+		</p>
+
+		<p>Adding <code>constexpr</code> to algorithms that use numeric algorithms, searchers, some of the functions in char_traits
+		and functions that relay on <code>constexpr</code> algorithms (like <code>std::array</code>s comparison operators) will be covered in separate papers.</p>
+
+
+		<h2>II. Impact on the Standard</h2>
+		<p>This proposal is a pure library extension. It proposes changes to
+			existing headers <code>&lt;utility&gt;</code> and <code>&lt;algorithm&gt;</code> such that the changes do not break existing code
+			and do not degrade performance. It does not require any changes in the core 
+			language in simple cases of non assembly optimized Standard Library, and it could be implemented in standard C++.
+		</p>
+
+		<h2>III. Design Decisions</h2>
+		<h3>A. <code>&lt;cstring&gt;</code> must not have <code>constexpr</code> additions</h3>
+		<h3>B. Assumption that it is possible to implement all the proposed changes without affecting language core, especially [expr.const]</h3>
+			There are many Standard Library implementations nowadays, including 
+some proprietary. It is impossible to investigate all of them to be 100%
+ sure that
+			no performance degradation possible.<p></p>
+			<p>This proposal assumes that:
+			</p><ul>
+				<li>If algorithm uses compiler intrinsics, then those intrinsics could be made <code>constexpr</code> by compiler vendors.</li>
+				<li>If algorithm uses assembly optimization, then that assembly could be turned into <code>constexpr</code> compiler intrinsic.</li>
+				<li>If algorithm uses external functions, then those functions could be made inline and marked <code>constexpr</code> or could be replaced with intrinsics.</li>
+				<li>Modern compilers are good in code optimization, so a decently small amount of algorithms use assembly or intrinsics.</li>
+			</ul><p></p>
+
+
+		<h3>C. Analysis of existing <code>&lt;algorithm&gt;</code> implementations.</h3>
+		<p>Algorithms <code>stable_partition</code>, <code>inplace_merge</code> and <code>stable_sort</code> allocate memory, construct variables using
+		placement new, use <code>unique_ptr</code> and do other things not acceptable in constexpr expressions. Making those algorithms constexpr 
+		seems to be a hard task that would require a lot of intrinsics. Those algorithms are not marked with constexpr in this wording.</p>
+
+		<p>Algorithms <code>shuffle</code> and <code>sample</code> rely upon <code>uniform_int_distribution</code> that has no constexpr functions.
+		Those algorithms are not marked with constexpr in this wording.</p>
+
+		<p>libc++ uses <code>goto</code> in some algorithms, this must be pretty simple to fix without affecting performance.</p>
+
+
+		<h3>D. Do not mark <code>ExecutionPolicy&amp;&amp;</code> overloads with <code>constexpr</code>.</h3>
+		<p>It seems that N4687 accidentaly marks some of the <code>ExecutionPolicy&amp;&amp;</code> overloads with <code>constexpr</code> execution policy</span>.
+		This wording does not mark the <code>ExecutionPolicy&amp;&amp;</code> overloads with <code>constexpr</code>.</p>
+
+
+		<h2>IV. Proposed wording relative to N4594</h2>
+		<p>All the additions to the Standard are marked with <span class="addition">underlined green</span>.</p>
+
+		<h3>A. Modifications to "Header &lt;algorithm&gt; synopsis" [algorithms.general]</h3>
+		<p><b>Note for editor:</b> All the functions in [algorithms.general] must be marked with <code>constexpr</code>, except functions
+		<code>shuffle</code>, <code>sample</code>, <code>stable_sort</code>, <code>stable_partition</code>, <code>inplace_merge</code>, functions accepting <code>ExecutionPolicy</code>.
+		<pre>
+
+// 28.6.3, swap
+template&lt;class ForwardIterator1, class ForwardIterator2&gt;
+<span class="addition">constexpr</span> ForwardIterator2 swap_ranges(ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2);
+
+template&lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2&gt;
+ForwardIterator2 swap_ranges(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator1 first1, ForwardIterator1 last1,
+    ForwardIterator2 first2);
+
+template&lt;class ForwardIterator1, class ForwardIterator2&gt;
+<span class="addition">constexpr</span> void iter_swap(ForwardIterator1 a, ForwardIterator2 b);
+
+
+// 28.6.10, reverse
+template&lt;class BidirectionalIterator&gt;
+<span class="addition">constexpr</span> void reverse(BidirectionalIterator first, BidirectionalIterator last);
+
+template&lt;class ExecutionPolicy, class BidirectionalIterator&gt;
+void reverse(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    BidirectionalIterator first, BidirectionalIterator last);
+
+template&lt;class BidirectionalIterator, class OutputIterator&gt;
+constexpr OutputIterator reverse_copy(BidirectionalIterator first, BidirectionalIterator last, OutputIterator result);
+
+template&lt;class ExecutionPolicy, class BidirectionalIterator, class ForwardIterator&gt;
+ForwardIterator reverse_copy(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    BidirectionalIterator first,
+    BidirectionalIterator last,
+    ForwardIterator result);
+
+// 28.6.11, rotate
+template&lt;class ForwardIterator&gt;
+<span class="addition">constexpr</span> ForwardIterator rotate(ForwardIterator first, ForwardIterator middle, ForwardIterator last);
+
+template&lt;class ExecutionPolicy, class ForwardIterator&gt;
+ForwardIterator rotate(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first,
+    ForwardIterator middle,
+    ForwardIterator last);
+
+template&lt;class ForwardIterator, class OutputIterator&gt;
+constexpr OutputIterator rotate_copy(ForwardIterator first, ForwardIterator middle, ForwardIterator last, OutputIterator result);
+
+template&lt;class ExecutionPolicy, class ForwardIterator, class ForwardIterator&gt;
+ForwardIterator rotate_copy(
+    ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, ForwardIterator middle,
+    ForwardIterator last, ForwardIterator result);
+
+
+// 28.7.4, partitions
+template &lt;class InputIterator, class Predicate&gt;
+constexpr bool is_partitioned(InputIterator first, InputIterator last, Predicate pred);
+
+template &lt;class ExecutionPolicy, class ForwardIterator, class Predicate&gt;
+bool is_partitioned(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, ForwardIterator last, Predicate pred);
+
+template&lt;class ForwardIterator, class Predicate&gt;
+<span class="addition">constexpr</span> ForwardIterator partition(ForwardIterator first, ForwardIterator last, Predicate pred);
+
+template&lt;class ExecutionPolicy, class ForwardIterator, class Predicate&gt;
+ForwardIterator partition(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first,
+    ForwardIterator last,
+    Predicate pred);
+
+template&lt;class BidirectionalIterator, class Predicate&gt;
+BidirectionalIterator stable_partition(BidirectionalIterator first, BidirectionalIterator last, Predicate pred);
+
+template&lt;class ExecutionPolicy, class BidirectionalIterator, class Predicate&gt;
+BidirectionalIterator stable_partition(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    BidirectionalIterator first,
+    BidirectionalIterator last,
+    Predicate pred);
+
+template &lt;class InputIterator, class OutputIterator1, class OutputIterator2, class Predicate&gt;
+constexpr pair&lt;OutputIterator1, OutputIterator2&gt;
+    partition_copy(InputIterator first, InputIterator last, OutputIterator1 out_true, OutputIterator2 out_false, Predicate pred);
+
+template &lt;class ExecutionPolicy, class ForwardIterator, class ForwardIterator1, class ForwardIterator2, class Predicate&gt;
+pair&lt;ForwardIterator1, ForwardIterator2&gt;
+partition_copy(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, ForwardIterator last,
+    ForwardIterator1 out_true, ForwardIterator2 out_false,
+    Predicate pred);
+
+template&lt;class ForwardIterator, class Predicate&gt;
+constexpr ForwardIterator partition_point(ForwardIterator first, ForwardIterator last, Predicate pred);
+
+// 28.7, sorting and related operations
+// 28.7.1, sorting
+template&lt;class RandomAccessIterator&gt;
+<span class="addition">constexpr</span> void sort(RandomAccessIterator first, RandomAccessIterator last);
+
+template&lt;class RandomAccessIterator, class Compare&gt;
+<span class="addition">constexpr</span> void sort(RandomAccessIterator first, RandomAccessIterator last, Compare comp);
+
+template&lt;class ExecutionPolicy, class RandomAccessIterator&gt;
+void sort(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    RandomAccessIterator first, RandomAccessIterator last);
+
+template&lt;class ExecutionPolicy, class RandomAccessIterator, class Compare&gt;
+void sort(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    RandomAccessIterator first, RandomAccessIterator last,
+    Compare comp);
+
+template&lt;class RandomAccessIterator&gt;
+void stable_sort(RandomAccessIterator first, RandomAccessIterator last);
+
+template&lt;class RandomAccessIterator, class Compare&gt;
+void stable_sort(RandomAccessIterator first, RandomAccessIterator last, Compare comp);
+
+template&lt;class ExecutionPolicy, class RandomAccessIterator&gt;
+void stable_sort(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    RandomAccessIterator first, RandomAccessIterator last);
+
+template&lt;class ExecutionPolicy, class RandomAccessIterator, class Compare&gt;
+void stable_sort(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    RandomAccessIterator first, RandomAccessIterator last,
+    Compare comp);
+
+template&lt;class RandomAccessIterator&gt;
+<span class="addition">constexpr</span> void partial_sort(RandomAccessIterator first, RandomAccessIterator middle, RandomAccessIterator last);
+
+template&lt;class RandomAccessIterator, class Compare&gt;
+<span class="addition">constexpr</span> void partial_sort(RandomAccessIterator first, RandomAccessIterator middle, RandomAccessIterator last, Compare comp);
+
+template&lt;class ExecutionPolicy, class RandomAccessIterator&gt;
+void partial_sort(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    RandomAccessIterator first,
+    RandomAccessIterator middle,
+    RandomAccessIterator last);
+
+template&lt;class ExecutionPolicy, class RandomAccessIterator, class Compare&gt;
+void partial_sort(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    RandomAccessIterator first,
+    RandomAccessIterator middle,
+    RandomAccessIterator last, Compare comp);
+
+template&lt;class InputIterator, class RandomAccessIterator&gt;
+<span class="addition">constexpr</span> RandomAccessIterator partial_sort_copy(InputIterator first, InputIterator last, RandomAccessIterator result_first, RandomAccessIterator result_last);
+
+template&lt;class InputIterator, class RandomAccessIterator, class Compare&gt;
+<span class="addition">constexpr</span> RandomAccessIterator partial_sort_copy(InputIterator first, InputIterator last, RandomAccessIterator result_first, RandomAccessIterator result_last, Compare comp);
+
+template&lt;class ExecutionPolicy, class ForwardIterator, class RandomAccessIterator&gt;
+RandomAccessIterator partial_sort_copy(
+    ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, ForwardIterator last,
+    RandomAccessIterator result_first,
+    RandomAccessIterator result_last);
+
+template&lt;class ExecutionPolicy, class ForwardIterator, class RandomAccessIterator, class Compare&gt;
+RandomAccessIterator partial_sort_copy(
+    ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, ForwardIterator last,
+    RandomAccessIterator result_first,
+    RandomAccessIterator result_last,
+    Compare comp);
+
+template&lt;class ForwardIterator&gt;
+constexpr bool is_sorted(ForwardIterator first, ForwardIterator last);
+
+template&lt;class ForwardIterator, class Compare&gt;
+constexpr bool is_sorted(ForwardIterator first, ForwardIterator last, Compare comp);
+
+template&lt;class ExecutionPolicy, class ForwardIterator&gt;
+bool is_sorted(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, ForwardIterator last);
+
+template&lt;class ExecutionPolicy, class ForwardIterator, class Compare&gt;
+bool is_sorted(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, ForwardIterator last,
+    Compare comp);
+
+template&lt;class ForwardIterator&gt;
+constexpr ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last);
+
+template&lt;class ForwardIterator, class Compare&gt;
+constexpr ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last, Compare comp);
+
+template&lt;class ExecutionPolicy, class ForwardIterator&gt;
+ForwardIterator is_sorted_until(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, ForwardIterator last);
+
+template&lt;class ExecutionPolicy, class ForwardIterator, class Compare&gt;
+ForwardIterator is_sorted_until(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    ForwardIterator first, ForwardIterator last,
+    Compare comp);
+
+// 28.7.2, Nth element
+template&lt;class RandomAccessIterator&gt;
+<span class="addition">constexpr</span> void nth_element(RandomAccessIterator first, RandomAccessIterator nth, RandomAccessIterator last);
+
+template&lt;class RandomAccessIterator, class Compare&gt;
+<span class="addition">constexpr</span> void nth_element(RandomAccessIterator first, RandomAccessIterator nth, RandomAccessIterator last, Compare comp);
+
+template&lt;class ExecutionPolicy, class RandomAccessIterator&gt;
+void nth_element(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    RandomAccessIterator first, RandomAccessIterator nth,
+    RandomAccessIterator last);
+
+template&lt;class ExecutionPolicy, class RandomAccessIterator, class Compare&gt;
+void nth_element(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    RandomAccessIterator first, RandomAccessIterator nth,
+    RandomAccessIterator last, Compare comp);
+
+
+// 28.7.7, heap operations
+template&lt;class RandomAccessIterator&gt;
+<span class="addition">constexpr</span> void push_heap(RandomAccessIterator first, RandomAccessIterator last);
+
+template&lt;class RandomAccessIterator, class Compare&gt;
+<span class="addition">constexpr</span> void push_heap(RandomAccessIterator first, RandomAccessIterator last, Compare comp);
+
+template&lt;class RandomAccessIterator&gt;
+<span class="addition">constexpr</span> void pop_heap(RandomAccessIterator first, RandomAccessIterator last);
+
+template&lt;class RandomAccessIterator, class Compare&gt;
+<span class="addition">constexpr</span> void pop_heap(RandomAccessIterator first, RandomAccessIterator last, Compare comp);
+
+template&lt;class RandomAccessIterator&gt;
+<span class="addition">constexpr</span> void make_heap(RandomAccessIterator first, RandomAccessIterator last);
+
+template&lt;class RandomAccessIterator, class Compare&gt;
+<span class="addition">constexpr</span> void make_heap(RandomAccessIterator first, RandomAccessIterator last, Compare comp);
+
+template&lt;class RandomAccessIterator&gt;
+<span class="addition">constexpr</span> void sort_heap(RandomAccessIterator first, RandomAccessIterator last);
+
+template&lt;class RandomAccessIterator, class Compare&gt;
+<span class="addition">constexpr</span> void sort_heap(RandomAccessIterator first, RandomAccessIterator last, Compare comp);
+
+template&lt;class RandomAccessIterator&gt;
+constexpr bool is_heap(RandomAccessIterator first, RandomAccessIterator last);
+
+template&lt;class RandomAccessIterator, class Compare&gt;
+constexpr bool is_heap(RandomAccessIterator first, RandomAccessIterator last, Compare comp);
+
+template&lt;class ExecutionPolicy, class RandomAccessIterator&gt;
+bool is_heap(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    RandomAccessIterator first, RandomAccessIterator last);
+
+template&lt;class ExecutionPolicy, class RandomAccessIterator, class Compare&gt;
+bool is_heap(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    RandomAccessIterator first, RandomAccessIterator last, Compare comp);
+
+template&lt;class RandomAccessIterator&gt;
+constexpr RandomAccessIterator is_heap_until(RandomAccessIterator first, RandomAccessIterator last);
+
+template&lt;class RandomAccessIterator, class Compare&gt;
+constexpr RandomAccessIterator is_heap_until(RandomAccessIterator first, RandomAccessIterator last, Compare comp);
+
+template&lt;class ExecutionPolicy, class RandomAccessIterator&gt;
+RandomAccessIterator is_heap_until(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    RandomAccessIterator first, RandomAccessIterator last);
+
+template&lt;class ExecutionPolicy, class RandomAccessIterator, class Compare&gt;
+RandomAccessIterator is_heap_until(ExecutionPolicy&amp;&amp; exec, // see 28.4.5
+    RandomAccessIterator first, RandomAccessIterator last,
+    Compare comp);
+
+
+// 28.7.11, permutations
+template&lt;class BidirectionalIterator&gt;
+<span class="addition">constexpr</span> bool next_permutation(BidirectionalIterator first, BidirectionalIterator last);
+
+template&lt;class BidirectionalIterator, class Compare&gt;
+<span class="addition">constexpr</span> bool next_permutation(BidirectionalIterator first, BidirectionalIterator last, Compare comp);
+
+template&lt;class BidirectionalIterator&gt;
+<span class="addition">constexpr</span> bool prev_permutation(BidirectionalIterator first, BidirectionalIterator last);
+
+template&lt;class BidirectionalIterator, class Compare&gt;
+<span class="addition">constexpr</span> bool prev_permutation(BidirectionalIterator first, BidirectionalIterator last, Compare comp);
+
+}
+		</pre>
+
+
+		<h3>B. Modifications to remaining parts of "28 Algorithms library" 
+[algorithms] (all sections except "Header &lt;algorithm&gt; synopsis" 
+and "28.8 C library algorithms" [alg.c.library]) </h3>
+		<p><b>Note for editor:</b> All the functions marked with <code>constexpr</code> in previous paragraph of this document must be accordingly marked with <code>constexpr</code> in detailed algorithm description.
+			For shortness only modifications to "28.6.3 Swap" [alg.swap] are shown in this paper.
+		</p>
+		<pre>28.6.3 Swap [alg.swap]
+
+
+template &lt;class ForwardIterator1, class ForwardIterator2&gt;
+  ForwardIterator2
+    <span class="addition">constexpr</span> swap_ranges(ForwardIterator1 first1, ForwardIterator1 last1,
+                          ForwardIterator2 first2);
+
+template &lt;class ExecutionPolicy, class ForwardIterator1, class ForwardIterator2&gt;
+ForwardIterator2 swap_ranges(ExecutionPolicy&amp;&amp; exec, ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2);
+
+Requires: The two ranges [first1, last1) and [first2, first2 + (last1 - first1)) shall not overlap. *(first1 + n) shall be swappable with (20.5.3.2) *(first2 + n).
+Effects: For each non-negative integer n &lt; (last1 - first1) performs: swap(*(first1 + n), *(first2 + n)).
+Returns: first2 + (last1 - first1).
+Complexity: Exactly last1 - first1 swaps.
+
+
+template &lt;class ForwardIterator1, class ForwardIterator2&gt;
+  <span class="addition">constexpr</span> void iter_swap(ForwardIterator1 a, ForwardIterator2 b);
+
+Requires: a and b shall be dereferenceable. *a shall be swappable with (20.5.3.2) *b.
+Effects: As if by swap(*a, *b).
+		</pre>
+
+
+		<h3>C. Modifications to "23.2 Utility components" [utility]</h3>
+		<pre>// 23.2.3, swap:
+template&lt;class T&gt;
+<span class="addition">constexpr</span> void swap(T&amp; a, T&amp; b) noexcept(see below );
+
+template &lt;class T, size_t N&gt;
+<span class="addition">constexpr</span> void swap(T (&amp;a)[N], T (&amp;b)[N]) noexcept(noexcept(swap(*a, *b)));
+
+// 23.2.4, exchange:
+template &lt;class T, class U=T&gt;
+constexpr T exchange(T&amp; obj, U&amp;&amp; new_val);
+		</pre>
+
+
+		<h3>D. Modifications to "23.2.3 swap" [utility.swap]</h3>
+		<pre>template&lt;class T&gt; <span class="addition">constexpr</span> void swap(T&amp; a, T&amp; b) noexcept(see below );
+
+Remark: This function shall not participate in overload resolution unless is_move_constructible_v&lt;T&gt;
+is true and is_move_assignable_v&lt;T&gt; is true. The expression inside noexcept is equivalent to:
+    is_nothrow_move_constructible_v&lt;T&gt; &amp;&amp; is_nothrow_move_assignable_v&lt;T&gt;
+
+Requires: Type T shall be MoveConstructible (Table 20) and MoveAssignable (Table 22).
+Effects: Exchanges values stored in two locations.
+
+template&lt;class T, size_t N&gt;
+<span class="addition">constexpr</span> void swap(T (&amp;a)[N], T (&amp;b)[N]) noexcept(is_nothrow_swappable_v&lt;T&gt;);
+
+Remarks: This function shall not participate in overload resolution unless is_swappable_v&lt;T&gt; is true.
+
+Requires: a[i] shall be swappable with (20.5.3.2) b[i] for all i in the range [0,N).
+Effects: As if by swap_ranges(a, a + N, b).
+		</pre>
+
+
+		<h3>E. Feature-testing macro</h3>
+		<p>For the purposes of SG10, we recommend the feature-testing macro name <code>__cpp_lib_constexpr_swap_algorithms</code>.</p>
+
+
+		<h2>V. Revision History</h2>
+
+		<p>Revision 0:</p>
+		<ul>
+			<li>
+				Initial proposal
+			</li>
+			<li>
+                Jacksonville voting on P0202R0:<pre>Approve of adding constexpr to the algorithms?
+SF F N A SA
+9  4 3 0 0
+
+Approve of adding constexpr to algorithms that need some compiler intrinsics, pending some compiler vendors approving?
+SF F N A SA
+2  8 5 1 0</pre>
+			</li>
+		</ul>
+
+
+		<h2>VI. References</h2>
+		<p>[<a name="N4687">N4687</a>] Working Draft, Standard for Programming Language C++. Available online at
+					<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/n4687.pdf">www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/n4687.pdf</a></p>
+		<p>[<a name="rhalbersma">rhalbersma</a><a>] Proof of concept for some functions.
+			Available online at </a><a href="https://bitbucket.org/rhalbersma/xstd/src/bbb5b04459f7b7ef02d3b6de7dfb0e90b5127177/include/xstd/algorithm.hpp">
+				https://bitbucket.org/rhalbersma/xstd/src/42553df6107623c71163f104b6f3cc550c245b4b/include/xstd/algorithm.hpp</a>
+			and <a href="https://bitbucket.org/rhalbersma/xstd/src/42553df6107623c71163f104b6f3cc550c245b4b/include/xstd/utility.hpp">
+				https://bitbucket.org/rhalbersma/xstd/src/42553df6107623c71163f104b6f3cc550c245b4b/include/xstd/utility.hpp</a></p>
+		<p>[<a name="Boost.Algorithm">Boost.Algorithm</a>] Constexpr modifiers for Boost Algorithm library.
+			Available online at <a href="https://github.com/boostorg/algorithm/pull/13">https://github.com/boostorg/algorithm/pull/13</a></p>
+		<p>[<a name="Discussion">Discussion</a>] A call to discuss asm in constexpr and constexpr &lt;algorithm&gt;. Available online at
+			<a href="https://groups.google.com/a/isocpp.org/forum/#%21topic/std-proposals/9sTJWsOpptE">https://groups.google.com/a/isocpp.org/forum/#!topic/std-proposals/9sTJWsOpptE</a></p>
+		<p>[<a name="P0202R0">P0202R0</a>] Add Constexpr Modifiers to Functions in &lt;algorithm&gt; and &lt;cstring&gt; Headers. Available online at
+			<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0202r0.html">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0202r0.html</a></p>
+		<p>&nbsp;</p>
+
+
+		<script type="text/javascript">
+            function show_hide_deleted() {
+                var to_change = document.getElementsByClassName('changed-deleted');
+                for (var i = 0; i < to_change.length; ++i) {
+                    to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
+                }
+            }
+            show_hide_deleted()
+		</script>
+
+
+</body></html>
