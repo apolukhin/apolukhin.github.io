@@ -195,7 +195,7 @@ std::string testing() {
     <ol>
         <li>reserve space on the stack for storing result of the <code>foo()</code> call</li>
         <li>call <code>foo()</code></li>
-        <li>move construct result from <code>*foo()</code>(<code>optional::operator*() &&</code> is used, so the resulting value is move constructed)</li>
+        <li>move construct result from <code>*foo()</code> ("<code>optional::operator*() &&</code>" is used, so the resulting value is move constructed)</li>
         <li>call to the destructor for <code>optional</code> is usually optimized out</li>
     </ol>
 
@@ -328,9 +328,9 @@ std::string testing() {
 
 
         <h2>V. Generic solution for relaxing [class.copy.elision]</h2>
-        <p>Allow treating source as target if call of copy/move constructor followed by call of destructor for source.</p>
+        <p>Allow treating source as target if call to the copy/move constructor followed by the call of destructor for the source.</p>
         <p>This will allow optimizing <code>std::pair</code>, <code>std::tuple</code>, all the aggregate initializable types AND <code>std::variant</code>,
-        <code>std::optional</code>, almost all user provided classes.</p>
+        <code>std::optional</code>, many user provided classes.</p>
 
         <h2>VI. Minor points</h2>
         <p>It would be wrong to guarantee above optimizations as they are highly dependent on inlining abilities of the compiler, implementation of the standard library
