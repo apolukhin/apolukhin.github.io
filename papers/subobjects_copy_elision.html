@@ -1,0 +1,370 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+        <title>Subobjects copy elision</title>
+        <meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+        <meta http-equiv="Content-Language" content="en-us">
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+        <style type="text/css">
+            .addition { color: green; }
+            .right { float:right }
+            .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+            .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+            .changed-added { background-color: #CFF0FC ;}
+            .notes { background-color: #90F090 ;}
+            pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
+            .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; }
+            body {max-width: 1024px; margin-left: 25px;}
+            .cppkeyword { color: blue; }
+            .cppcomment { color: green; }
+            .cppcomment > .cppkeyword{ color: green; }
+            .cpptext { color: #2E8B57; }
+        </style>
+    </head>
+    <body bgcolor="#ffffff">
+        <address>Document number: D????R0</address>
+        <address>Project: Programming Language C++</address>
+        <address>Audience: Evolution Working group</address>
+        <address>&nbsp;</address>
+        <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+        <address>&nbsp;</address>
+        <address>Date: 2017-11-23</address>
+        <h1>Subobjects copy elision</h1>
+
+        <!--p class='changed-added'>Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r1.html">P0539R1</a> are marked with blue.<p-->
+        <!--p><input type="checkbox" id="show_deletions" onchange="show_hide_deleted()"/> Show deleted lines from P0275R1.</p-->
+
+        <h2>I. Quick Introduction</h2>
+        <p>Current working draft has strict rules in [class.copy.elision] that disallow certain optimizations. This paper attempts to motivate for relaxing those rules.</p>
+
+        <h2>II. Motivating example #1</h2>
+        <p>Consider the following code:</p>
+<pre>
+#include &lt;utility&gt;
+class some_type {
+    long long i;
+public:
+    some_type(const some_type &) noexcept;
+    ~some_type();
+};
+
+std::pair&lt;some_type, some_type&gt; foo();
+
+some_type testing() {
+    return foo().second;
+}
+</pre>
+    <p>Currently compilers compile <code>testing()</code> to follow steps:</p>
+    <ol>
+        <li>call <code>foo()</code></li>
+        <li>copy construct result from <code>foo().second</code></li>
+        <li>call destructor for <code>foo().second</code> and <code>foo().first</code></li>
+        <li>return, restoring the stack</li>
+    </ol>
+    <table  border="1" width="100%">
+        <tr><th width="10%">Step No</th><th width="23%">1</th><th width="23%">2</th><th width="23%">3</th><th width="23%">4</th></tr>
+        <tr valign="bottom"><th>Stack</th><td height="200px">
+            <table border="1" width="100%">
+                <tr><td><b>foo().first</b></td></tr>
+                <tr><td><b>foo().second</b></td></tr>
+                <tr><td>return address</td></tr>
+                <tr><td><i>place-for-result</i></td></tr>
+                <tr><td>other stack data</td></tr>
+            </table>
+        </td><td>
+            <table border="1" width="100%">
+                <tr><td>foo().first</td></tr>
+                <tr><td>foo().second</td></tr>
+                <tr><td>return address</td></tr>
+                <tr><td><b>foo().second copy</b></td></tr>
+                <tr><td>other stack data</td></tr>
+            </table>
+        </td><td>
+            <table border="1" width="100%">
+                <tr><td><b>destroyed foo().first</b></td></tr>
+                <tr><td><b>destroyed foo().second</b></td></tr>
+                <tr><td>return address</td></tr>
+                <tr><td>foo().second copy</td></tr>
+                <tr><td>other stack data</td></tr>
+            </table>
+        </td><td>
+            <table border="1" width="100%">
+                <tr><td>foo().second copy</td></tr>
+                <tr><td>other stack data</td></tr>
+            </table>
+        </td></tr>
+    </table>
+
+
+<p>However, compilers potentially could do much better if copy elision for subobjects is allowed and place for result for `testing()` is always on the stack right below the return address:</p>
+    <ol>
+        <li>store return address in other place and adjust place for return</li>
+        <li>call <code>foo()</code></li>
+        <li>call destructor for <code>foo().first</code></li>
+        <li>return, restoring the stack</li>
+    </ol>
+    <table  border="1" width="100%">
+        <tr><th width="10%">Step No</th><th width="23%">1</th><th width="23%">2</th><th width="23%">3</th><th width="23%">4</th></tr>
+        <tr valign="bottom"><th>Stack</th><td height="200px">
+            <table border="1" width="100%">
+                <tr><td><b>return address</b></td></tr>
+                <tr><td>return address</td></tr>
+                <tr><td><i>place-for-result</i></td></tr>
+                <tr><td>other stack data</td></tr>
+            </table>
+        </td><td>
+            <table border="1" width="100%">
+                <tr><td>return address</td></tr>
+                <tr><td><b>foo().first</b></td></tr>
+                <tr><td><b>foo().second</b></td></tr>
+                <tr><td>other stack data</td></tr>
+            </table>
+        </td><td>
+            <table border="1" width="100%">
+                <tr><td>return address</td></tr>
+                <tr><td><b>destroyed foo().first</b></td></tr>
+                <tr><td>foo().second</td></tr>
+                <tr><td>other stack data</td></tr>
+            </table>
+        </td><td>
+            <table border="1" width="100%">
+                <tr><td>foo().second</td></tr>
+                <tr><td>other stack data</td></tr>
+            </table>
+        </td></tr>
+    </table>
+
+<h3 class="notes"><b>Pros:</b> Avoided copy construction, avoided destructor call, less stack usage, smaller binary.</h3>
+
+<p>Here's how approximate assemblies would look like without and with optimization:</p>
+<table>
+<tr><th>Without optimization</th><th>With optimization</th></tr>
+<tr>
+    <td valign="top" style="border-right: solid 1px #000;"><pre>
+testing():
+        push    rbp
+        push    rbx
+        mov     rbx, rdi
+        sub     rsp, 24
+        lea     rbp, [rsp+8]
+        mov     rdi, rsp
+        call    foo()
+        mov     rsi, rbp
+        mov     rdi, rbx
+        call    some_type::some_type(some_type const&)
+        mov     rdi, rbp
+        call    some_type::~some_type()
+        mov     rdi, rsp
+        call    some_type::~some_type()
+        add     rsp, 24
+        mov     rax, rbx
+        pop     rbx
+        pop     rbp
+        ret
+    </pre></td>
+    <td valign="top"><pre>
+testing():
+        push    QWORD PTR [rsp]     ; storing return address (once more)
+                                    ; now the storage of the original ret address could be reused
+        push    rbx
+        sub     rdi, 8
+        mov     rbx, rdi
+        call    foo()
+        mov     rdi, rbx            ; rdi points to .first
+        call    some_type::~some_type()
+        lea     rax, [rbx+8]
+        pop     rbx
+        ret     8                   ; popping extended storage
+
+    </pre></td>
+</tr>
+</table>
+
+        <h2>III. Motivating example #2</h2>
+        <p>Consider the following code:</p>
+<pre>
+#include &lt;optional&gt;
+#include &lt;string&gt;
+std::optional&lt;std::string&gt; foo();
+
+std::string testing() {
+    return *foo();
+}
+</pre>
+    <p>Currently compilers inline <code>testing()</code> function and produce following steps:</p>
+    <ol>
+        <li>reserve space on the stack for storing result of the <code>foo()</code> call</li>
+        <li>call <code>foo()</code></li>
+        <li>move construct result from <code>*foo()</code>(<code>optional::operator*() &&</code> is used, so the resulting value is move constructed)</li>
+        <li>call to the destructor for <code>optional</code> is usually optimized out</li>
+    </ol>
+
+    <p>Here's how your stack looks like over steps:</p>
+    <table  border="1" width="100%">
+        <tr><th width="10%">Step No</th><th width="23%">1</th><th width="23%">2</th><th width="23%">3</th><th width="23%">4</th></tr>
+        <tr valign="bottom"><th>Stack</th><td height="200px">
+            <table border="1" width="100%">
+                <tr><td><i><b>place-for-string</b></i></td></tr>
+                <tr><td><i><b>place-for-bool</b></i></td></tr>
+                <tr><td><i>place-for-result</i></td></tr>
+                <tr><td>other stack data</td></tr>
+            </table>
+        </td><td>
+            <table border="1" width="100%">
+                <tr><td><b>foo()'s string</b></td></tr>
+                <tr><td><b>foo()'s bool</b></td></tr>
+                <tr><td><i>place-for-result</i></td></tr>
+                <tr><td>other stack data</td></tr>
+            </table>
+        </td><td>
+            <table border="1" width="100%">
+                <tr><td>foo()'s string <b>(empty)</b></td></tr>
+                <tr><td>foo()'s bool</td></tr>
+                <tr><td><b>foo()'s moved string</b></td></tr>
+                <tr><td>other stack data</td></tr>
+            </table>
+        </td><td>
+            <table border="1" width="100%">
+                <tr><td>foo()'s moved string</td></tr>
+                <tr><td>other stack data</td></tr>
+            </table>
+        </td></tr>
+    </table>
+
+<p>However, compilers potentially could do much better if copy elision for subobjects is allowed:</p>
+    <ol>
+        <li>reserve enough space in caller to store the <code>optional</code></li>
+        <li>call <code>foo()</code></li>
+        <li>reuse stack</li>
+    </ol>
+
+    <table  border="1" width="100%">
+        <tr><th width="10%">Step No</th><th width="23%">1</th><th width="23%">2</th><th></th></tr>
+        <tr valign="bottom"><th>Stack</th><td height="200px">
+            <table border="1" width="100%">
+                <tr><td><i><b>place-for-string</b></i></td></tr>
+                <tr><td><i><b>place-for-bool</b></i></td></tr>
+                <tr><td>other stack data</td></tr>
+            </table>
+        </td><td>
+            <table border="1" width="100%">
+                <tr><td><b>foo()'s string</b></td></tr>
+                <tr><td><b>foo()'s bool</b></td></tr>
+                <tr><td>other stack data</td></tr>
+            </table>
+        </td><td>
+            <table border="1" width="100%">
+                <tr><td>foo()'s string</td></tr>
+                <tr><td><b><i>could be reused</i></b></td></tr>
+                <tr><td>other stack data</td></tr>
+            </table>
+        </td></tr>
+    </table>
+
+<h3 class="notes"><b>Pros:</b> Avoided move construction, smaller binary.</h3>
+
+<p>Here's how approximate assemblies would look like:</p>
+<table>
+<tr><th>Without optimization</th><th>With optimization</th></tr>
+<tr>
+    <td valign="top" style="border-right: solid 1px #000;"><pre>
+        push    rbx
+        sub     rsp, 80
+        lea     rdi, [rsp+32]
+        call    foo[abi:cxx11]()
+        ; instruction mess from inlined std::string's move constructor and inlined destructor
+        mov     rdi, QWORD PTR [rsp+32]
+        lea     rax, [rsp+48]
+        cmp     rdi, rax
+        je      .L6
+        mov     rax, QWORD PTR [rsp+48]
+        lea     rdx, [rsp+16]
+        mov     QWORD PTR [rsp], rdi
+        cmp     rdi, rdx
+        mov     QWORD PTR [rsp+16], rax
+        mov     rax, QWORD PTR [rsp+40]
+        mov     QWORD PTR [rsp+8], rax
+        je      .L1
+        call    operator delete(void*)
+.L1:
+        add     rsp, 80
+        mov     eax, ebx
+        pop     rbx
+        ret
+.L6:
+        movsx   ebx, BYTE PTR [rsp+48]
+        add     rsp, 80
+        mov     eax, ebx
+        pop     rbx
+        ret
+    </pre></td>
+    <td valign="top"><pre>
+        sub     rsp, 72
+        lea     rdi, [rsp+16]
+        call    foo[abi:cxx11]()
+        cmp     BYTE PTR [rsp+48], 0
+        mov     rdi, QWORD PTR [rsp+16]
+        ; instruction mess from inlined std::string's destructor
+        je      .L1
+        lea     rdx, [rsp+32]
+        cmp     rdi, rdx
+        jne     .L8
+.L1:
+        add     rsp, 72
+        ret
+.L8:
+        mov     DWORD PTR [rsp+12], eax
+        call    operator delete(void*)
+        mov     eax, DWORD PTR [rsp+12]
+        add     rsp, 72
+        ret    </pre></td>
+</tr>
+</table>
+
+
+        <h2>IV. Simple solution for relaxing [class.copy.elision]</h2>
+        <p>Allow elision of subobjects if the owning object has defaulted destructor.</p>
+        <p>This will allow optimizing <code>std::pair</code>, <code>std::tuple</code> and all the aggregate initializable types.</p>
+
+
+        <h2>V. Generic solution for relaxing [class.copy.elision]</h2>
+        <p>Allow treating source as target if call of copy/move constructor followed by call of destructor for source.</p>
+        <p>This will allow optimizing <code>std::pair</code>, <code>std::tuple</code>, all the aggregate initializable types AND <code>std::variant</code>,
+        <code>std::optional</code>, almost all user provided classes.</p>
+
+        <h2>VI. Minor points</h2>
+        <p>It would be wrong to guarantee above optimizations as they are highly dependent on inlining abilities of the compiler, implementation of the standard library
+        (optimization is sensitive to fields order in the class) and stack growth direction.</p>
+
+        <p>Copy elision of subobjects could be useful in many cases. Compiler vendors may invent much more optimizations than was shown in above simple examples.</p>
+
+
+        <h2>VII. Acknowledgements</h2>
+        <p>Great thanks to Vyacheslav Napadovsky for helping with assembly and optimizations.</p>
+        <p>Thanks to Marc Glisse for pointing me to the forbidden copy elision cases. Thanks to Thomas Köppe and Peter Dimov for
+        participating in early discussion and helping me to put my thoughts together.</p>
+
+
+        <script type="text/javascript">
+            function colorize_texts(texts) {
+                for (var i = 0; i < texts.length; ++i) {
+                    var text = texts[i].innerHTML;
+                    text = text.replace(/namespace|sizeof|long|enum|void|constexpr|extern|noexcept|bool|template|class |struct|auto|const|typename|explicit|public|private|operator|#include|inline| char|typedef|static_assert|static_cast|static/g,"<span class='cppkeyword'>$&<\/span>");
+                    text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+                    //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
+                    texts[i].innerHTML = text;
+                }
+            }
+/*
+            colorize_texts(document.getElementsByTagName("pre"));
+            colorize_texts(document.getElementsByTagName("code"));
+*/
+            function show_hide_deleted() {
+                var to_change = document.getElementsByClassName('changed-deleted');
+                for (var i = 0; i < to_change.length; ++i) {
+                    to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
+                }
+            }
+            show_hide_deleted()
+        </script>
+</body></html>

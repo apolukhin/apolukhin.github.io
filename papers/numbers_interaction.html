@@ -1,0 +1,196 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+        <title>Numbers interaction</title>
+        <meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+        <meta http-equiv="Content-Language" content="en-us">
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+        <style type="text/css">
+            .addition { color: green; }
+            .right { float:right; }
+            .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+            .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+            .changed-added { background-color: #CFF0FC ;}
+            .notes { background-color: #80D080 ;}
+            pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
+            .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; }
+            body {max-width: 1024px; margin-left: 25px;}
+            .cppkeyword { color: blue; }
+            .cppcomment { color: green; }
+            .cppcomment > .cppkeyword{ color: green; }
+            .cpptext { color: #2E8B57; }
+        </style>
+    </head>
+    <body bgcolor="#ffffff">
+        <address>Document number: D????R0</address>
+        <address>Project: Programming Language C++</address>
+        <address>Audience: SG6 Numerics</address>
+        <address>&nbsp;</address>
+        <address>Igor Klevanets &lt;<a href="mailto:cerevra@yandex.ru">cerevra@yandex.ru</a>&gt;, &lt;<a href="mailto:cerevra@yandex-team.ru">cerevra@yandex-team.ru</a>&gt;</address>
+        <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+        <address>&nbsp;</address>
+        <address>Date: 2017-11-20</address>
+        <h1>Numbers interaction</h1>
+
+        <!--p class='changed-added'>Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r1.html">P0539R1</a> are marked with blue.<p-->
+        <!--p><input type="checkbox" id="show_deletions" onchange="show_hide_deleted()"/> Show deleted lines from P0275R1.</p-->
+        <p class='notes'>Green lines are notes for the <b>editor</b> or for the <b>SG6</b> that must not be treated as part of the wording.</p>
+        <h2>I. Introduction and Motivation</h2>
+        <p>SG6 currently works on multiple new classes that represent numbers (see <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r2.html">P0539R2</a>
+        and <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0037r4.md">P0037R4</a> for examples). However, those new classes do not interract well with each other.</p>
+        <p>This paper attempts to solve the problem in a generic way on a library level and provide wording for interactions of different new numeric types.</p>
+        <p>A proof of concept implementation available at: <a href="https://github.com/cerevra/int/tree/master/v3">https://github.com/cerevra/int/tree/master/v3</a>.
+        </p>
+
+        <h2>II. Changelog</h2>
+        <ul>
+            <li>Initial version (split of the <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r2.html">P0539R2</a> paper)</li>
+        </ul>
+
+
+        <h2>III. Design</h2>
+        <p>Imagine that we have numeric classes <code>A</code>, <code>B</code> and <code>C</code> and wish to provide wording for all the interactions of those types.
+        in that case we'll have to describe 126 functions ((A, B, C) x (*, /, -, +, %, &, |, ^, <, >, <=, >=, ==, !=) x (A, B, C)). Such description tends to be error prone and scales badly.
+        Addition of one more numeric class will force us to describe 224 functions.</p>
+
+        <p>To avoid that issue the proposal defines:</p>
+        <ul>
+            <li><code>Arithmetic</code> and <code>Integral</code> concepts that depend on <code>std::numeric_limits&lt;Arithmetic&gt;::is_specialized</code> and <code>std::numeric_limits&lt;Integral&gt;::is_integer</code></li>
+            <li>converts different numeric types to a single type using <code>common_type_t</code></li>
+        </ul>
+
+        <p>Now we can define a all the operations for numeric classes like this:</p>
+<pre>template&lt;typename Arithmetic1, typename Arithmetic2&gt;
+  common_type_t&lt;Arithmetic1, Arithmetic2&gt;
+  constexpr operator*(const Arithmetic1&amp; lhs, const Arithmetic2&amp; rhs);</pre>
+<div class="desc"><i>Returns:</i> <code>common_type_t&lt;Arithmetic1, Arithmetic2&gt;(lhs) * common_type_t&lt;Arithmetic1, Arithmetic2&gt;(rhs)</code>.</div>
+
+        <p>Each paper that proposes new numeric type has to specialize <code>numeric_limits</code> and <code>common_type</code> to get the interactions.</p>
+
+
+        <h2>IV. Proposed wording</h2>
+
+
+<h3>26.2 Definitions<span class="right">[numerics.defns]</span></h3>
+<p class="notes"><b><i>[Note to editor:</i></b> Add the following paragraph to the end of [numerics.defns] <i><b>- end note]</b></i></p>
+<p>Define <code>CT</code> as <code>common_type_t&lt;A, B&gt;</code>, where <code>A</code> and <code>B</code> are the types of the two function arguments.</p>
+
+
+<h3>26.3 Numeric type requirements<span class="right">[numeric.requirements]</span></h3>
+<p class="notes"><b><i>[Note to editor:</i></b> Add the following paragraphs to the end of [numeric.requirements] <i><b>- end note]</b></i></p>
+<p>Functions that accept template parameters starting with <code>Arithmetic</code> shall not participate in overload resolution unless <code>std::numeric_limits&lt;Arithmetic&gt;::is_specialized</code> is true.</p>
+<p>Functions that accept template parameters starting with <code>Integral</code> shall not participate in overload resolution unless <code>std::numeric_limits&lt;Integral&gt;::is_integer</code> is true.</p>
+
+
+<h3>26.4 Numeric types interoperability<span class="right">[numeric.interop]</span></h3>
+<div>
+
+<p>Following operators are defined for types <code>T</code> and <code>U</code> if <code>T</code> and <code>U</code> have a defined <code>common_type_t&lt;T, U&gt;</code> and satisfy the <code>Arithmetic</code> or <code>Integral</code> requirements from [numeric.requirements] <i>[Note:</i> Implementations are encouraged to provide optimized specializations of the following operators <i>- end note]</i>:</p>
+<p class="notes"><b><i>[Note to SG6:</i></b> We may add to <code>Arithmetic</code> and <code>Integral</code> concepts additional requirement that <code>std::numeric_limits&lt;<i>Integral-or-Arithmetic</i>&gt;::is_interoprable</code> shall be true. In that case no user code will be broken even if user already added following operators. However this seems to be an overkill. <i><b>- end note]</b></i></p>
+
+
+<pre>template&lt;typename Arithmetic1, typename Arithmetic2&gt;
+  common_type_t&lt;Arithmetic1, Arithmetic2&gt;
+  constexpr operator*(const Arithmetic1&amp; lhs, const Arithmetic2&amp; rhs);</pre>
+<div class="desc"><i>Returns:</i> <code>CT(lhs) * CT(rhs)</code>.</div>
+
+<pre>template&lt;typename Arithmetic1, typename Arithmetic2&gt;
+  common_type_t&lt;Arithmetic1, Arithmetic2&gt;
+  constexpr operator/(const Arithmetic1&amp; lhs, const Arithmetic2&amp; rhs);</pre>
+<div class="desc"><i>Returns:</i> <code>CT(lhs) / CT(rhs)</code>.</div>
+
+<pre>template&lt;typename Arithmetic1, typename Arithmetic2&gt;
+  common_type_t&lt;Arithmetic1, Arithmetic2&gt;
+  constexpr operator+(const Arithmetic1&amp; lhs, const Arithmetic2&amp; rhs);</pre>
+<div class="desc"><i>Returns:</i> <code>CT(lhs) + CT(rhs)</code>.</div>
+
+<pre>template&lt;typename Arithmetic1, typename Arithmetic2&gt;
+  common_type_t&lt;Arithmetic1, Arithmetic2&gt;
+  constexpr operator-(const Arithmetic1&amp; lhs, const Arithmetic2&amp; rhs);</pre>
+<div class="desc"><i>Returns:</i> <code>CT(lhs) - CT(rhs)</code>.</div>
+
+<pre>template&lt;typename Integral1, typename Integral2&gt;
+  common_type_t&lt;Integral1, Integral2&gt;
+  constexpr operator%(const Integral1&amp; lhs, const Integral2&amp; rhs);</pre>
+<div class="desc"><i>Returns:</i> <code>CT(lhs) % CT(rhs)</code>.</div>
+
+<pre>template&lt;typename Integral1, typename Integral2&gt;
+  common_type_t&lt;Integral1, Integral2&gt;
+  constexpr operator&amp;(const Integral1&amp; lhs, const Integral2&amp; rhs);</pre>
+<div class="desc"><i>Returns:</i> <code>CT(lhs) &amp; CT(rhs)</code>.</div>
+
+<pre>template&lt;typename Integral1, typename Integral2&gt;
+  common_type_t&lt;Integral1, Integral2&gt;
+  constexpr operator|(const Integral1&amp; lhs, const Integral2&amp; rhs);</pre>
+<div class="desc"><i>Returns:</i> <code>CT(lhs) | CT(rhs)</code>.</div>
+
+<pre>template&lt;typename Integral1, typename Integral2&gt;
+  common_type_t&lt;Integral1, Integral2&gt;
+  constexpr operator^(const Integral1&amp; lhs, const Integral2&amp; rhs);</pre>
+<div class="desc"><i>Returns:</i> <code>CT(lhs) ^ CT(rhs)</code>.</div>
+
+<pre>template&lt;typename Integral1, typename Integral2&gt;
+  common_type_t&lt;Integral1, size_t&gt;
+  constexpr operator&lt;&lt;(const Integral1&amp; lhs, const Integral2&amp; rhs);</pre>
+<div class="desc"><i>Returns:</i> <code>common_type_t&lt;Integral1, size_t&gt;(lhs) &lt;&lt; static_cast&lt;size_t&gt;(rhs)</code>.</div>
+
+<pre>template&lt;typename Integral1, typename Integral2&gt;
+  common_type_t&lt;Integral1, size_t&gt;
+  constexpr operator&gt;&gt;(const Integral1&amp; lhs, const Integral2&amp; rhs);</pre>
+<div class="desc"><i>Returns:</i> <code>common_type_t&lt;Integral1, size_t&gt;(lhs) &gt;&gt; static_cast&lt;size_t&gt;(rhs)</code>.</div>
+
+<pre>template&lt;typename Arithmetic1, typename Arithmetic2&gt;
+  constexpr bool operator&lt;(const Arithmetic1&amp; lhs, const Arithmetic2&amp; rhs);</pre>
+<div class="desc"><i>Returns:</i> <code>CT(lhs) &lt; CT(rhs)</code>.</div>
+
+<pre>template&lt;typename Arithmetic1, typename Arithmetic2&gt;
+  constexpr bool operator&gt;(const Arithmetic1&amp; lhs, const Arithmetic2&amp; rhs);</pre>
+<div class="desc"><i>Returns:</i> <code>CT(lhs) &gt; CT(rhs)</code>.</div>
+
+<pre>template&lt;typename Arithmetic1, typename Arithmetic2&gt;
+  constexpr bool operator&lt;=(const Arithmetic1&amp; lhs, const Arithmetic2&amp; rhs);</pre>
+<div class="desc"><i>Returns:</i> <code>CT(lhs) &lt;= CT(rhs)</code>.</div>
+
+<pre>template&lt;typename Arithmetic1, typename Arithmetic2&gt;
+  constexpr bool operator&gt;=(const Arithmetic1&amp; lhs, const Arithmetic2&amp; rhs);</pre>
+<div class="desc"><i>Returns:</i> <code>CT(lhs) &gt;= CT(rhs)</code>.</div>
+
+<pre>template&lt;typename Arithmetic1, typename Arithmetic2&gt;
+  constexpr bool operator==(const Arithmetic1&amp; lhs, const Arithmetic2&amp; rhs);</pre>
+<div class="desc"><i>Returns:</i> <code>CT(lhs) == CT(rhs)</code>.</div>
+
+<pre>template&lt;typename Arithmetic1, typename Arithmetic2&gt;
+  constexpr bool operator!=(const Arithmetic1&amp; lhs, const Arithmetic2&amp; rhs);</pre>
+<div class="desc"><i>Returns:</i> <code>!(lhs == rhs)</code>.</div>
+
+
+</div>
+
+
+        <h2>V. Feature-testing macro</h2>
+        <p>For the purposes of SG10 we recommend the feature-testing macro name <code>__cpp_lib_num_interop</code>.</p>
+
+
+        <script type="text/javascript">
+            function colorize_texts(texts) {
+                for (var i = 0; i < texts.length; ++i) {
+                    var text = texts[i].innerHTML;
+                    text = text.replace(/namespace|sizeof|long|enum|void|constexpr|extern|noexcept|bool|template|class |struct|auto|const|typename|explicit|public|private|operator|#include|inline| char|typedef|static_assert|static_cast|static/g,"<span class='cppkeyword'>$&<\/span>");
+                    text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+                    //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
+                    texts[i].innerHTML = text;
+                }
+            }
+
+            colorize_texts(document.getElementsByTagName("pre"));
+            colorize_texts(document.getElementsByTagName("code"));
+
+            function show_hide_deleted() {
+                var to_change = document.getElementsByClassName('changed-deleted');
+                for (var i = 0; i < to_change.length; ++i) {
+                    to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
+                }
+            }
+            show_hide_deleted()
+        </script>
+</body></html>
