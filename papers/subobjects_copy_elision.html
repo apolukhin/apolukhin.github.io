@@ -1,370 +1,734 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html><head>
-        <title>Subobjects copy elision</title>
-        <meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
-        <meta http-equiv="Content-Language" content="en-us">
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Subobjects copy elision</title>
+    <meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+    <meta http-equiv="Content-Language" content="en-us">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
-        <style type="text/css">
-            .addition { color: green; }
-            .right { float:right }
-            .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
-            .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
-            .changed-added { background-color: #CFF0FC ;}
-            .notes { background-color: #90F090 ;}
-            pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
-            .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; }
-            body {max-width: 1024px; margin-left: 25px;}
-            .cppkeyword { color: blue; }
-            .cppcomment { color: green; }
-            .cppcomment > .cppkeyword{ color: green; }
-            .cpptext { color: #2E8B57; }
-        </style>
+    <style type="text/css">
+        .addition { color: green; }
+        .right { float:right }
+        .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+        .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+        .changed-added { background-color: #CFF0FC ;}
+        .notes { background-color: #90F090 ;}
+        pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
+        .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; }
+        body {max-width: 1024px; margin-left: 25px;}
+        .lmargin50{margin-left: 50px;}
+        .cppkeyword { color: blue; }
+        .asmcostly { color: red; }
+        .cppcomment { color: green; }
+        .cppcomment > .cppkeyword{ color: green; }
+        .cpptext { color: #2E8B57; }
+        .cppaddition { background-color: #CFC; }
+        .stdquote { background-color: #ECECEC; }
+    </style>
     </head>
     <body bgcolor="#ffffff">
-        <address>Document number: D????R0</address>
-        <address>Project: Programming Language C++</address>
-        <address>Audience: Evolution Working group</address>
-        <address>&nbsp;</address>
-        <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
-        <address>&nbsp;</address>
-        <address>Date: 2017-11-23</address>
-        <h1>Subobjects copy elision</h1>
+    <address>Document number: D????R0</address>
+    <address>Project: Programming Language C++</address>
+    <address>Audience: Evolution Working group</address>
+    <address>&nbsp;</address>
+    <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+    <address>&nbsp;</address>
+    <address>Date: 2017-11-24</address>
+    <h1>Subobjects copy elision</h1>
 
-        <!--p class='changed-added'>Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r1.html">P0539R1</a> are marked with blue.<p-->
-        <!--p><input type="checkbox" id="show_deletions" onchange="show_hide_deleted()"/> Show deleted lines from P0275R1.</p-->
+    <!--p class='changed-added'>Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r1.html">P0539R1</a> are marked with blue.<p-->
+    <!--p><input type="checkbox" id="show_deletions" onchange="show_hide_deleted()"/> Show deleted lines from P0275R1.</p-->
 
-        <h2>I. Quick Introduction</h2>
-        <p>Current working draft has strict rules in [class.copy.elision] that disallow certain optimizations. This paper attempts to motivate for relaxing those rules.</p>
+    <h2>I. Quick Introduction</h2>
+    <p>Current working draft has strict rules in [class.copy.elision] that disallow certain optimizations. This paper attempts to motivate for relaxing those rules.</p>
 
-        <h2>II. Motivating example #1</h2>
-        <p>Consider the following code:</p>
-<pre>
+    <h2>II. Motivating example #1</h2>
+    <p>Consider the following code:</p>
+<pre class="lmargin50">
 #include &lt;utility&gt;
-class some_type {
-    long long i;
-public:
-    some_type(const some_type &) noexcept;
-    ~some_type();
-};
-
-std::pair&lt;some_type, some_type&gt; foo();
-
-some_type testing() {
-    return foo().second;
-}
-</pre>
-    <p>Currently compilers compile <code>testing()</code> to follow steps:</p>
-    <ol>
-        <li>call <code>foo()</code></li>
-        <li>copy construct result from <code>foo().second</code></li>
-        <li>call destructor for <code>foo().second</code> and <code>foo().first</code></li>
-        <li>return, restoring the stack</li>
-    </ol>
-    <table  border="1" width="100%">
-        <tr><th width="10%">Step No</th><th width="23%">1</th><th width="23%">2</th><th width="23%">3</th><th width="23%">4</th></tr>
-        <tr valign="bottom"><th>Stack</th><td height="200px">
-            <table border="1" width="100%">
-                <tr><td><b>foo().first</b></td></tr>
-                <tr><td><b>foo().second</b></td></tr>
-                <tr><td>return address</td></tr>
-                <tr><td><i>place-for-result</i></td></tr>
-                <tr><td>other stack data</td></tr>
-            </table>
-        </td><td>
-            <table border="1" width="100%">
-                <tr><td>foo().first</td></tr>
-                <tr><td>foo().second</td></tr>
-                <tr><td>return address</td></tr>
-                <tr><td><b>foo().second copy</b></td></tr>
-                <tr><td>other stack data</td></tr>
-            </table>
-        </td><td>
-            <table border="1" width="100%">
-                <tr><td><b>destroyed foo().first</b></td></tr>
-                <tr><td><b>destroyed foo().second</b></td></tr>
-                <tr><td>return address</td></tr>
-                <tr><td>foo().second copy</td></tr>
-                <tr><td>other stack data</td></tr>
-            </table>
-        </td><td>
-            <table border="1" width="100%">
-                <tr><td>foo().second copy</td></tr>
-                <tr><td>other stack data</td></tr>
-            </table>
-        </td></tr>
-    </table>
-
-
-<p>However, compilers potentially could do much better if copy elision for subobjects is allowed and place for result for `testing()` is always on the stack right below the return address:</p>
-    <ol>
-        <li>store return address in other place and adjust place for return</li>
-        <li>call <code>foo()</code></li>
-        <li>call destructor for <code>foo().first</code></li>
-        <li>return, restoring the stack</li>
-    </ol>
-    <table  border="1" width="100%">
-        <tr><th width="10%">Step No</th><th width="23%">1</th><th width="23%">2</th><th width="23%">3</th><th width="23%">4</th></tr>
-        <tr valign="bottom"><th>Stack</th><td height="200px">
-            <table border="1" width="100%">
-                <tr><td><b>return address</b></td></tr>
-                <tr><td>return address</td></tr>
-                <tr><td><i>place-for-result</i></td></tr>
-                <tr><td>other stack data</td></tr>
-            </table>
-        </td><td>
-            <table border="1" width="100%">
-                <tr><td>return address</td></tr>
-                <tr><td><b>foo().first</b></td></tr>
-                <tr><td><b>foo().second</b></td></tr>
-                <tr><td>other stack data</td></tr>
-            </table>
-        </td><td>
-            <table border="1" width="100%">
-                <tr><td>return address</td></tr>
-                <tr><td><b>destroyed foo().first</b></td></tr>
-                <tr><td>foo().second</td></tr>
-                <tr><td>other stack data</td></tr>
-            </table>
-        </td><td>
-            <table border="1" width="100%">
-                <tr><td>foo().second</td></tr>
-                <tr><td>other stack data</td></tr>
-            </table>
-        </td></tr>
-    </table>
-
-<h3 class="notes"><b>Pros:</b> Avoided copy construction, avoided destructor call, less stack usage, smaller binary.</h3>
-
-<p>Here's how approximate assemblies would look like without and with optimization:</p>
-<table>
-<tr><th>Without optimization</th><th>With optimization</th></tr>
-<tr>
-    <td valign="top" style="border-right: solid 1px #000;"><pre>
-testing():
-        push    rbp
-        push    rbx
-        mov     rbx, rdi
-        sub     rsp, 24
-        lea     rbp, [rsp+8]
-        mov     rdi, rsp
-        call    foo()
-        mov     rsi, rbp
-        mov     rdi, rbx
-        call    some_type::some_type(some_type const&)
-        mov     rdi, rbp
-        call    some_type::~some_type()
-        mov     rdi, rsp
-        call    some_type::~some_type()
-        add     rsp, 24
-        mov     rax, rbx
-        pop     rbx
-        pop     rbp
-        ret
-    </pre></td>
-    <td valign="top"><pre>
-testing():
-        push    QWORD PTR [rsp]     ; storing return address (once more)
-                                    ; now the storage of the original ret address could be reused
-        push    rbx
-        sub     rdi, 8
-        mov     rbx, rdi
-        call    foo()
-        mov     rdi, rbx            ; rdi points to .first
-        call    some_type::~some_type()
-        lea     rax, [rbx+8]
-        pop     rbx
-        ret     8                   ; popping extended storage
-
-    </pre></td>
-</tr>
-</table>
-
-        <h2>III. Motivating example #2</h2>
-        <p>Consider the following code:</p>
-<pre>
-#include &lt;optional&gt;
 #include &lt;string&gt;
-std::optional&lt;std::string&gt; foo();
 
-std::string testing() {
-    return *foo();
+std::pair&lt;std::string, std::string&gt; produce();
+
+static std::string first_non_empty() {
+    auto v = produce();
+    if (!v.first.empty()) {
+        return v.first;
+    }
+    return v.second;
+}
+
+int example_1() {
+    return first_non_empty().size();
 }
 </pre>
-    <p>Currently compilers inline <code>testing()</code> function and produce following steps:</p>
+    <p>Currently compilers compile <code>example_1()</code> to following steps:</p>
     <ol>
-        <li>reserve space on the stack for storing result of the <code>foo()</code> call</li>
-        <li>call <code>foo()</code></li>
-        <li>move construct result from <code>*foo()</code> ("<code>optional::operator*() &&</code>" is used, so the resulting value is move constructed)</li>
-        <li>call to the destructor for <code>optional</code> is usually optimized out</li>
+    <li>call <code>produce()</code></li>
+    <li>evaluate the condition of the <code>if</code> statement</li>
+    <li>copy construct <code>std::string</code> from either <code>v.first</code> or <code>v.second</code></li>
+    <li>call destructor for <code>v</code></li>
+    <li>return the size of the copy constructed <code>std::string</code></li>
     </ol>
+<p>User may try to optimize the <code>first_non_empty()</code> by adding <code>std::move</code> to turn the copy construction of the string into a move construction.</p>
 
-    <p>Here's how your stack looks like over steps:</p>
-    <table  border="1" width="100%">
-        <tr><th width="10%">Step No</th><th width="23%">1</th><th width="23%">2</th><th width="23%">3</th><th width="23%">4</th></tr>
-        <tr valign="bottom"><th>Stack</th><td height="200px">
-            <table border="1" width="100%">
-                <tr><td><i><b>place-for-string</b></i></td></tr>
-                <tr><td><i><b>place-for-bool</b></i></td></tr>
-                <tr><td><i>place-for-result</i></td></tr>
-                <tr><td>other stack data</td></tr>
-            </table>
-        </td><td>
-            <table border="1" width="100%">
-                <tr><td><b>foo()'s string</b></td></tr>
-                <tr><td><b>foo()'s bool</b></td></tr>
-                <tr><td><i>place-for-result</i></td></tr>
-                <tr><td>other stack data</td></tr>
-            </table>
-        </td><td>
-            <table border="1" width="100%">
-                <tr><td>foo()'s string <b>(empty)</b></td></tr>
-                <tr><td>foo()'s bool</td></tr>
-                <tr><td><b>foo()'s moved string</b></td></tr>
-                <tr><td>other stack data</td></tr>
-            </table>
-        </td><td>
-            <table border="1" width="100%">
-                <tr><td>foo()'s moved string</td></tr>
-                <tr><td>other stack data</td></tr>
-            </table>
-        </td></tr>
-    </table>
+<pre class="lmargin50">
+#include &lt;utility&gt;
+#include &lt;string&gt;
 
-<p>However, compilers potentially could do much better if copy elision for subobjects is allowed:</p>
-    <ol>
-        <li>reserve enough space in caller to store the <code>optional</code></li>
-        <li>call <code>foo()</code></li>
-        <li>reuse stack</li>
-    </ol>
+std::pair&lt;std::string, std::string&gt; produce();
 
-    <table  border="1" width="100%">
-        <tr><th width="10%">Step No</th><th width="23%">1</th><th width="23%">2</th><th></th></tr>
-        <tr valign="bottom"><th>Stack</th><td height="200px">
-            <table border="1" width="100%">
-                <tr><td><i><b>place-for-string</b></i></td></tr>
-                <tr><td><i><b>place-for-bool</b></i></td></tr>
-                <tr><td>other stack data</td></tr>
-            </table>
-        </td><td>
-            <table border="1" width="100%">
-                <tr><td><b>foo()'s string</b></td></tr>
-                <tr><td><b>foo()'s bool</b></td></tr>
-                <tr><td>other stack data</td></tr>
-            </table>
-        </td><td>
-            <table border="1" width="100%">
-                <tr><td>foo()'s string</td></tr>
-                <tr><td><b><i>could be reused</i></b></td></tr>
-                <tr><td>other stack data</td></tr>
-            </table>
-        </td></tr>
-    </table>
+static std::string first_non_empty_move() {
+    auto v = produce();
+    if (!v.first.empty()) {
+        return <span class="cppaddition">std::move(</span>v.first<span class="cppaddition">)</span>;
+    }
+    return <span class="cppaddition">std::move(</span>v.second<span class="cppaddition">)</span>;
+}
 
-<h3 class="notes"><b>Pros:</b> Avoided move construction, smaller binary.</h3>
+int example_1_move() {
+    return first_non_empty_move().size();
+}
+</pre>
 
-<p>Here's how approximate assemblies would look like:</p>
-<table>
-<tr><th>Without optimization</th><th>With optimization</th></tr>
+<p>Bad thing is that the above optimization <b>requires highly experienced user</b> and still <b>does not produce perfect result</b>, as the compilers still not always able to optimize out all the unnecessary operations after inlining.</p>
+
+<p>Out of the box solution would be to allow compilers optimize away subobjects copying. In that case the compiler would be able to optimize the code to the following:</p>
+
+<pre class="lmargin50">
+#include &lt;utility&gt;
+#include &lt;string&gt;
+
+std::pair&lt;std::string, std::string&gt; produce();
+
+int example_1_optimized() {
+    auto v = produce();
+    if (!v.first.empty()) {
+        return v.first.size();
+    }
+    return v.second.size();
+}
+</pre>
+
+<p>Currently [class.copy.elision] prevents that optimization:</p>
+<pre class="lmargin50 stdquote">
+This elision of copy/move operations, called copy elision, is permitted in the following
+circumstances (which may be combined to eliminate multiple copies):
+
+  - in a return statement in a function with a class return type, when the expression <b>is the name of
+    a non-volatile automatic object</b> (other than a function parameter or a variable introduced by the
+    exception-declaration of a handler (18.3)) with the same type (ignoring cv-qualification) as the function
+    return type, the copy/move operation can be omitted by constructing the automatic object directly
+    into the function call’s return object
+</pre>
+
+
+
+<p>Here's how the compiler optimized assemblies for the above 3 code snippets look like:</p>
+<table border="1" rules="cols" style="width: 100%">
+<tr><th style="width: 33%">example_1()</th><th style="width: 33%">example_1_move()</th><th style="width: 33%">example_1_optimized()</th></tr>
+<tr><th><a href="https://godbolt.org/g/V6KqWv">https://godbolt.org/g/V6KqWv</a></th><th><a href="https://godbolt.org/g/3xZvtw">https://godbolt.org/g/3xZvtw</a></th><th><a href="https://godbolt.org/g/RiTmPE">https://godbolt.org/g/RiTmPE</a></th></tr>
 <tr>
     <td valign="top" style="border-right: solid 1px #000;"><pre>
-        push    rbx
-        sub     rsp, 80
-        lea     rdi, [rsp+32]
-        call    foo[abi:cxx11]()
-        ; instruction mess from inlined std::string's move constructor and inlined destructor
-        mov     rdi, QWORD PTR [rsp+32]
-        lea     rax, [rsp+48]
-        cmp     rdi, rax
-        je      .L6
-        mov     rax, QWORD PTR [rsp+48]
-        lea     rdx, [rsp+16]
-        mov     QWORD PTR [rsp], rdi
-        cmp     rdi, rdx
-        mov     QWORD PTR [rsp+16], rax
-        mov     rax, QWORD PTR [rsp+40]
-        mov     QWORD PTR [rsp+8], rax
-        je      .L1
-        call    operator delete(void*)
-.L1:
-        add     rsp, 80
-        mov     eax, ebx
-        pop     rbx
-        ret
-.L6:
-        movsx   ebx, BYTE PTR [rsp+48]
-        add     rsp, 80
-        mov     eax, ebx
-        pop     rbx
-        ret
+.LC0:
+    .string "basic_string::_M_construct
+        null not valid"
+.LC1:
+    .string "basic_string::_M_create"
+&lt;skip&gt;::_M_construct(&lt;skip&gt;)
+    push    rbp
+    push    rbx
+    mov     rbp, rdi
+    sub     rsp, 24
+    test    rsi, rsi
+    jne     .L2
+    test    rdx, rdx
+    jne     .L19
+.L2:
+    mov     rbx, rdx
+    sub     rbx, rsi
+    cmp     rbx, 15
+    ja      .L20
+    mov     rdx, QWORD PTR [rbp+0]
+    cmp     rbx, 1
+    mov     rax, rdx
+    je      .L21
+    test    rbx, rbx
+    jne     .L5
+    mov     QWORD PTR [rbp+8], rbx
+    mov     BYTE PTR [rdx+rbx], 0
+    add     rsp, 24
+    pop     rbx
+    pop     rbp
+    ret
+.L21:
+    movzx   eax, BYTE PTR [rsi]
+    mov     BYTE PTR [rdx], al
+    mov     rdx, QWORD PTR [rbp+0]
+    mov     QWORD PTR [rbp+8], rbx
+    mov     BYTE PTR [rdx+rbx], 0
+    add     rsp, 24
+    pop     rbx
+    pop     rbp
+    ret
+.L20:
+    test    rbx, rbx
+    js      .L22
+    lea     rdi, [rbx+1]
+    mov     QWORD PTR [rsp+8], rsi
+    call    operator new(unsigned long)
+    mov     rsi, QWORD PTR [rsp+8]
+    mov     QWORD PTR [rbp+0], rax
+    mov     QWORD PTR [rbp+16], rbx
+.L5:
+    mov     rdx, rbx
+    mov     rdi, rax
+    call    memcpy
+    mov     rdx, QWORD PTR [rbp+0]
+    mov     QWORD PTR [rbp+8], rbx
+    mov     BYTE PTR [rdx+rbx], 0
+    add     rsp, 24
+    pop     rbx
+    pop     rbp
+    ret
+.L19:
+    mov     edi, OFFSET FLAT:.LC0
+    call    std::__throw_logic_error
+.L22:
+    mov     edi, OFFSET FLAT:.LC1
+    call    std::__throw_length_error
+example_1():
+    push    rbp
+    push    rbx
+    sub     rsp, 104
+    lea     rdi, [rsp+32]
+    mov     rbx, rsp
+    call    produce[abi:cxx11]()
+    mov     rdx, QWORD PTR [rsp+40]
+    lea     rax, [rbx+16]
+    mov     QWORD PTR [rsp], rax
+    test    rdx, rdx
+    je      .L24
+    mov     rsi, QWORD PTR [rsp+32]
+    mov     rdi, rbx
+    add     rdx, rsi
+    call    &lt;skip&gt;::_M_construct(&lt;skip&gt;)
+.L27:
+    mov     rdi, QWORD PTR [rsp+64]
+    lea     rax, [rsp+80]
+    cmp     rdi, rax
+    je      .L26
+    call    operator delete(void*)
+.L26:
+    mov     rdi, QWORD PTR [rsp+32]
+    lea     rax, [rsp+48]
+    cmp     rdi, rax
+    je      .L28
+    call    operator delete(void*)
+.L28:
+    mov     rdi, QWORD PTR [rsp]
+    add     rbx, 16
+    mov     rbp, QWORD PTR [rsp+8]
+    cmp     rdi, rbx
+    je      .L23
+    call    operator delete(void*)
+.L23:
+    add     rsp, 104
+    mov     eax, ebp
+    pop     rbx
+    pop     rbp
+    ret
+.L24:
+    mov     rsi, QWORD PTR [rsp+64]
+    mov     rdx, QWORD PTR [rsp+72]
+    mov     rdi, rbx
+    add     rdx, rsi
+    call    &lt;skip&gt;::_M_construct(&lt;skip&gt;)
+    jmp     .L27
+    mov     rdi, QWORD PTR [rsp+64]
+    mov     rbx, rax
+    lea     rax, [rsp+80]
+    cmp     rdi, rax
+    je      .L32
+    call    operator delete(void*)
+.L32:
+    mov     rdi, QWORD PTR [rsp+32]
+    lea     rax, [rsp+48]
+    cmp     rdi, rax
+    je      .L33
+    call    operator delete(void*)
+.L33:
+    mov     rdi, rbx
+    call    _Unwind_Resume
     </pre></td>
-    <td valign="top"><pre>
-        sub     rsp, 72
-        lea     rdi, [rsp+16]
-        call    foo[abi:cxx11]()
-        cmp     BYTE PTR [rsp+48], 0
-        mov     rdi, QWORD PTR [rsp+16]
-        ; instruction mess from inlined std::string's destructor
-        je      .L1
-        lea     rdx, [rsp+32]
-        cmp     rdi, rdx
-        jne     .L8
-.L1:
-        add     rsp, 72
-        ret
+    <td valign="top" style="border-right: solid 1px #000;"><pre>
+example_1_move():
+    push    rbp
+    push    rbx
+    sub     rsp, 104
+    lea     rdi, [rsp+32]
+    mov     rbx, rsp
+    call    produce[abi:cxx11]()
+    mov     rax, QWORD PTR [rsp+40]
+    test    rax, rax
+    je      .L2
+    lea     rdx, [rbx+16]
+    lea     rcx, [rsp+48]
+    mov     QWORD PTR [rsp], rdx
+    mov     rdx, QWORD PTR [rsp+32]
+    cmp     rdx, rcx
+    je      .L13
+    mov     QWORD PTR [rsp], rdx
+    mov     rdx, QWORD PTR [rsp+48]
+    mov     QWORD PTR [rsp+16], rdx
+.L4:
+    mov     QWORD PTR [rsp+8], rax
+    lea     rax, [rsp+48]
+    mov     rdi, QWORD PTR [rsp+64]
+    mov     QWORD PTR [rsp+40], 0
+    mov     BYTE PTR [rsp+48], 0
+    mov     QWORD PTR [rsp+32], rax
+    lea     rax, [rsp+80]
+    cmp     rdi, rax
+    je      .L6
+    call    operator delete(void*)
+    jmp     .L6
+.L2:
+    lea     rax, [rbx+16]
+    lea     rdx, [rsp+80]
+    mov     QWORD PTR [rsp], rax
+    mov     rax, QWORD PTR [rsp+64]
+    cmp     rax, rdx
+    je      .L14
+    mov     QWORD PTR [rsp], rax
+    mov     rax, QWORD PTR [rsp+80]
+    mov     QWORD PTR [rsp+16], rax
 .L8:
-        mov     DWORD PTR [rsp+12], eax
-        call    operator delete(void*)
-        mov     eax, DWORD PTR [rsp+12]
-        add     rsp, 72
-        ret    </pre></td>
+    mov     rax, QWORD PTR [rsp+72]
+    mov     QWORD PTR [rsp+8], rax
+.L6:
+    mov     rdi, QWORD PTR [rsp+32]
+    lea     rax, [rsp+48]
+    cmp     rdi, rax
+    je      .L9
+    call    operator delete(void*)
+.L9:
+    mov     rdi, QWORD PTR [rsp]
+    add     rbx, 16
+    mov     rbp, QWORD PTR [rsp+8]
+    cmp     rdi, rbx
+    je      .L1
+    call    operator delete(void*)
+.L1:
+    add     rsp, 104
+    mov     eax, ebp
+    pop     rbx
+    pop     rbp
+    ret
+.L14:
+    movdqa  xmm0, XMMWORD PTR [rsp+80]
+    movaps  XMMWORD PTR [rsp+16], xmm0
+    jmp     .L8
+.L13:
+    movdqa  xmm0, XMMWORD PTR [rsp+48]
+    movaps  XMMWORD PTR [rsp+16], xmm0
+    jmp     .L4
+    </pre></td>
+    <td valign="top" style="border-right: solid 1px #000;"><pre>
+    example_1_optimized():
+    push    rbx
+    sub     rsp, 64
+    mov     rdi, rsp
+    call    produce[abi:cxx11]()
+    mov     rax, QWORD PTR [rsp+8]
+    test    rax, rax
+    mov     ebx, eax
+    jne     .L3
+    mov     ebx, DWORD PTR [rsp+40]
+.L3:
+    mov     rdi, QWORD PTR [rsp+32]
+    lea     rax, [rsp+48]
+    cmp     rdi, rax
+    je      .L4
+    call    operator delete(void*)
+.L4:
+    mov     rdi, QWORD PTR [rsp]
+    lea     rdx, [rsp+16]
+    cmp     rdi, rdx
+    je      .L1
+    call    operator delete(void*)
+.L1:
+    add     rsp, 64
+    mov     eax, ebx
+    pop     rbx
+    ret
+    </pre></td>
+</tr>
+</table>
+<h3 class="notes"><b>example_1_optimized() pros:</b> avoided copy construction, avoided destructor call, smaller binary, faster code.</h3>
+
+    <h2>III. Motivating example #2</h2>
+    <p>Let's change the above example to use <code>std::variant</code>:</p>
+<pre class="lmargin50">
+#include &lt;variant&gt;
+#include &lt;string&gt;
+std::variant&lt;int, std::string&gt; produce();
+
+static std::string get_string() {
+    auto v = produce();
+    if (auto* p = std::get_if&lt;std::string&gt;(&amp;v)) {
+        return *p;
+    }
+    return {};
+}
+
+int example_2() {
+    return get_string().size();
+}
+</pre>
+
+<p>Without user help compilers are forced to copy construct <code>std::string</code> from <code>*p</code>. Experienced users may change the above code to be more optimal:</p>
+
+<pre class="lmargin50">
+#include &lt;variant&gt;
+#include &lt;string&gt;
+std::variant&lt;int, std::string&gt; produce();
+
+static std::string get_string_move() {
+    auto v = produce();
+    if (auto* p = std::get_if&lt;std::string&gt;(&amp;v)) {
+        return <span class="cppaddition">std::move(</span>*p<span class="cppaddition">)</span>;
+    }
+    return {};
+}
+
+int example_2_move() {
+    return get_string_move().size();
+}
+</pre>
+
+<p>Bad thing is that the above optimization <b>requires highly experienced user</b> and just like in the first example does not produce perfect result.</p>
+<p>There is an assumption, that allowing copy elision for subobjects may allow compilers to transform <code>example_2()</code> into the code that is close to the following:</p>
+
+<pre class="lmargin50">
+#include &lt;variant&gt;
+#include &lt;string&gt;
+std::variant&lt;int, std::string&gt; produce();
+
+int example_2_optimized() {
+    auto v = produce();
+    if (auto* p = std::get_if&lt;std::string&gt;(&amp;v)) {
+        return p->size();
+    }
+    return 0;
+}
+</pre>
+
+<p>Currently [class.copy.elision] prevents that optimization:</p>
+<pre class="lmargin50 stdquote">
+This elision of copy/move operations, called copy elision, is permitted in the following
+circumstances (which may be combined to eliminate multiple copies):
+
+  - in a return statement in a function with a class return type, when the expression <b>is the name of
+    a non-volatile automatic object</b> (other than a function parameter or a variable introduced by the
+    exception-declaration of a handler (18.3)) <b>with the same type</b> (ignoring cv-qualification) as the function
+    return type, the copy/move operation can be omitted by constructing the automatic object directly
+    into the function call’s return object
+</pre>
+
+<p>Here's how the compiler optimized assemblies for the above 3 code snippets look like:</p>
+<table border="1" rules="cols" style="width: 100%">
+<tr><th style="width: 33%">example_2()</th><th style="width: 33%">example_2_move()</th><th style="width: 33%">example_2_optimized()</th></tr>
+<tr><th><a href="https://godbolt.org/g/BMC1QY">https://godbolt.org/g/BMC1QY</a></th><th><a href="https://godbolt.org/g/WaV79e">https://godbolt.org/g/WaV79e</a></th><th><a href="https://godbolt.org/g/aT1Zmm">https://godbolt.org/g/aT1Zmm</a></th></tr>
+<tr>
+    <td valign="top" style="border-right: solid 1px #000;"><pre>
+__erased_dtor<&lt;skip&gt;, 0ul>:
+    rep ret
+__erased_dtor<&lt;skip&gt;, 1ul>:
+    mov     rdx, QWORD PTR [rdi]
+    lea     rax, [rdi+16]
+    cmp     rdx, rax
+    je      .L3
+    mov     rdi, rdx
+    jmp     operator delete(void*)
+.L3:
+    rep ret
+.LC0:
+    .string "basic_string::_M_construct
+        null not valid"
+.LC1:
+    .string "basic_string::_M_create"
+example_2():
+    push    r12
+    push    rbp
+    push    rbx
+    sub     rsp, 80
+    lea     rdi, [rsp+32]
+    mov     rbx, rsp
+    call    produce[abi:cxx11]()
+    movzx   eax, BYTE PTR [rsp+64]
+    cmp     al, 1
+    je      .L35
+    lea     rdx, [rbx+16]
+    mov     QWORD PTR [rsp+8], 0
+    mov     BYTE PTR [rsp+16], 0
+    mov     QWORD PTR [rsp], rdx
+.L13:
+    cmp     al, -1
+    je      .L14
+    lea     rdi, [rsp+32]
+    call    [QWORD PTR _Variant_stg[0+rax*8]]
+.L14:
+    mov     rdi, QWORD PTR [rsp]
+    add     rbx, 16
+    mov     rbp, QWORD PTR [rsp+8]
+    cmp     rdi, rbx
+    je      .L5
+    call    operator delete(void*)
+.L5:
+    add     rsp, 80
+    mov     eax, ebp
+    pop     rbx
+    pop     rbp
+    pop     r12
+    ret
+.L35:
+    mov     r12, QWORD PTR [rsp+32]
+    lea     rax, [rbx+16]
+    mov     rbp, QWORD PTR [rsp+40]
+    mov     QWORD PTR [rsp], rax
+    mov     rax, r12
+    add     rax, rbp
+    je      .L7
+    test    r12, r12
+    je      .L36
+.L7:
+    cmp     rbp, 15
+    ja      .L37
+    cmp     rbp, 1
+    je      .L38
+    test    rbp, rbp
+    jne     .L19
+.L34:
+    mov     rax, QWORD PTR [rsp]
+.L12:
+    mov     QWORD PTR [rsp+8], rbp
+    mov     BYTE PTR [rax+rbp], 0
+    movzx   eax, BYTE PTR [rsp+64]
+    jmp     .L13
+.L38:
+    movzx   eax, BYTE PTR [r12]
+    mov     BYTE PTR [rsp+16], al
+    lea     rax, [rbx+16]
+    jmp     .L12
+.L37:
+    test    rbp, rbp
+    js      .L39
+    lea     rdi, [rbp+1]
+    call    operator new(unsigned long)
+    mov     QWORD PTR [rsp], rax
+    mov     QWORD PTR [rsp+16], rbp
+.L10:
+    mov     rdx, rbp
+    mov     rsi, r12
+    mov     rdi, rax
+    call    memcpy
+    jmp     .L34
+.L19:
+    lea     rax, [rbx+16]
+    jmp     .L10
+.L36:
+    mov     edi, OFFSET FLAT:.LC0
+    call    std::__throw_logic_error
+    movzx   edx, BYTE PTR [rsp+64]
+    mov     rbx, rax
+    cmp     dl, -1
+    je      .L18
+    lea     rdi, [rsp+32]
+    call    [QWORD PTR _Variant_stg[0+rdx*8]]
+.L18:
+    mov     rdi, rbx
+    call    _Unwind_Resume
+.L39:
+    mov     edi, OFFSET FLAT:.LC1
+    call    std::__throw_length_error
+_Variant_stg:
+    .quad   __erased_dtor<&lt;skip&gt;, 0ul>
+    .quad   __erased_dtor<&lt;skip&gt;, 1ul>
+    </pre></td>
+
+
+    <td valign="top" style="border-right: solid 1px #000;"><pre>
+__erased_dtor<&lt;skip&gt;, 0ul>:
+    rep ret
+__erased_dtor<&lt;skip&gt;, 1ul>:
+    mov     rdx, QWORD PTR [rdi]
+    lea     rax, [rdi+16]
+    cmp     rdx, rax
+    je      .L3
+    mov     rdi, rdx
+    jmp     operator delete(void*)
+.L3:
+    rep ret
+example_2_move():
+    push    rbp
+    push    rbx
+    sub     rsp, 88
+    lea     rdi, [rsp+32]
+    mov     rbx, rsp
+    call    produce[abi:cxx11]()
+    movzx   eax, BYTE PTR [rsp+64]
+    lea     rdx, [rbx+16]
+    mov     QWORD PTR [rsp], rdx
+    cmp     al, 1
+    je      .L16
+    cmp     al, -1
+    mov     QWORD PTR [rsp+8], 0
+    mov     BYTE PTR [rsp+16], 0
+    je      .L10
+.L9:
+    lea     rdi, [rsp+32]
+    call    [QWORD PTR _Variant_stg[0+rax*8]]
+.L10:
+    mov     rdi, QWORD PTR [rsp]
+    add     rbx, 16
+    mov     rbp, QWORD PTR [rsp+8]
+    cmp     rdi, rbx
+    je      .L5
+    call    operator delete(void*)
+.L5:
+    add     rsp, 88
+    mov     eax, ebp
+    pop     rbx
+    pop     rbp
+    ret
+.L16:
+    mov     rdx, QWORD PTR [rsp+32]
+    lea     rcx, [rsp+48]
+    cmp     rdx, rcx
+    je      .L17
+    mov     QWORD PTR [rsp], rdx
+    mov     rdx, QWORD PTR [rsp+48]
+    mov     QWORD PTR [rsp+16], rdx
+.L8:
+    mov     rdx, QWORD PTR [rsp+40]
+    mov     BYTE PTR [rsp+48], 0
+    mov     QWORD PTR [rsp+40], 0
+    mov     QWORD PTR [rsp+8], rdx
+    lea     rdx, [rsp+48]
+    mov     QWORD PTR [rsp+32], rdx
+    jmp     .L9
+.L17:
+    movdqa  xmm0, XMMWORD PTR [rsp+48]
+    movaps  XMMWORD PTR [rsp+16], xmm0
+    jmp     .L8
+_Variant_stg:
+    .quad   __erased_dtor<&lt;skip&gt;, 0ul>
+    .quad   __erased_dtor<&lt;skip&gt;, 1ul>
+    </pre></td>
+
+
+    <td valign="top" style="border-right: solid 1px #000;"><pre>
+__erased_dtor<&lt;skip&gt;, 0ul>:
+    rep ret
+__erased_dtor<&lt;skip&gt;, 1ul>:
+    mov     rdx, QWORD PTR [rdi]
+    lea     rax, [rdi+16]
+    cmp     rdx, rax
+    je      .L3
+    mov     rdi, rdx
+    jmp     operator delete(void*)
+.L3:
+    rep ret
+example_2_optimized():
+    push    rbx
+    xor     ebx, ebx
+    sub     rsp, 48
+    mov     rdi, rsp
+    call    produce[abi:cxx11]()
+    movzx   edx, BYTE PTR [rsp+32]
+    cmp     dl, -1
+    je      .L5
+    cmp     dl, 1
+    je      .L12
+.L7:
+    mov     rdi, rsp
+    call    [QWORD PTR _Variant_stg[0+rdx*8]]
+.L5:
+    add     rsp, 48
+    mov     eax, ebx
+    pop     rbx
+    ret
+.L12:
+    mov     ebx, DWORD PTR [rsp+8]
+    jmp     .L7
+_Variant_stg:
+    .quad   __erased_dtor<&lt;skip&gt;, 0ul>
+    .quad   __erased_dtor<&lt;skip&gt;, 1ul>
+    </pre></td>
 </tr>
 </table>
 
-
-        <h2>IV. Simple solution for relaxing [class.copy.elision]</h2>
-        <p>Allow elision of subobjects if the owning object has defaulted destructor.</p>
-        <p>This will allow optimizing <code>std::pair</code>, <code>std::tuple</code> and all the aggregate initializable types.</p>
+<h3 class="notes"><b>Pros:</b> Avoided copy construction, avoided destructor call, smaller binary, faster code.</h3>
 
 
-        <h2>V. Generic solution for relaxing [class.copy.elision]</h2>
-        <p>Allow treating source as target if call to the copy/move constructor followed by the call of destructor for the source.</p>
-        <p>This will allow optimizing <code>std::pair</code>, <code>std::tuple</code>, all the aggregate initializable types AND <code>std::variant</code>,
-        <code>std::optional</code>, many user provided classes.</p>
-
-        <h2>VI. Minor points</h2>
-        <p>It would be wrong to guarantee above optimizations as they are highly dependent on inlining abilities of the compiler, implementation of the standard library
-        (optimization is sensitive to fields order in the class) and stack growth direction.</p>
-
-        <p>Copy elision of subobjects could be useful in many cases. Compiler vendors may invent much more optimizations than was shown in above simple examples.</p>
+    <h2>IV. Simple solution for relaxing [class.copy.elision]</h2>
+    <p class="notes">Allow copy/move elision of subobjects if the owning object has defaulted destructor. [<i>Note:</i> Instead of calling the destructor for owner,
+    implementations are permitted to call the destructors of non-elided subobjects and treat target as another way to refer to the source subobject. <i>-end note.</i>].</p>
+    <p>This will allow optimizing <code>std::pair</code>, <code>std::tuple</code> and all the aggregate initializable types.</p>
 
 
-        <h2>VII. Acknowledgements</h2>
-        <p>Great thanks to Vyacheslav Napadovsky for helping with assembly and optimizations.</p>
-        <p>Thanks to Marc Glisse for pointing me to the forbidden copy elision cases. Thanks to Thomas Köppe and Peter Dimov for
-        participating in early discussion and helping me to put my thoughts together.</p>
+    <h2>V. Generic solution for relaxing [class.copy.elision]</h2>
+    <p class="notes">Allow treating source as target if source object is not accessed  between a copy/move construction of it and its destruction.</p>
+    <p>This will allow optimizing <code>std::pair</code>, <code>std::tuple</code>, all the aggregate initializable types AND probably <code>std::variant</code>,
+    <code>std::optional</code>, many user provided classes.</p>
+
+    <h2>VI. Minor points</h2>
+    <p>It would be wrong to guarantee above optimizations as they are highly dependent on inlining abilities of the compiler.</p>
+
+    <p>Copy elision of subobjects could be useful in many cases. Compiler vendors may invent much more optimizations than was shown in above examples.</p>
 
 
-        <script type="text/javascript">
-            function colorize_texts(texts) {
-                for (var i = 0; i < texts.length; ++i) {
-                    var text = texts[i].innerHTML;
-                    text = text.replace(/namespace|sizeof|long|enum|void|constexpr|extern|noexcept|bool|template|class |struct|auto|const|typename|explicit|public|private|operator|#include|inline| char|typedef|static_assert|static_cast|static/g,"<span class='cppkeyword'>$&<\/span>");
-                    text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
-                    //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
-                    texts[i].innerHTML = text;
-                }
-            }
+    <h2>VII. Acknowledgements</h2>
+    <p>Great thanks to Vyacheslav Napadovsky for helping with assembly and optimizations.</p>
+    <p>Thanks to Marc Glisse for pointing me to the forbidden copy elision cases. Thanks to Thomas Köppe, Peter Dimov, Richard Smith for
+    participating in early discussion and helping me to put my thoughts together.</p>
+
+
+    <script type="text/javascript">
+        function colorize_texts(texts) {
+        for (var i = 0; i < texts.length; ++i) {
+            var text = texts[i].innerHTML;
+            text = text.replace(/namespace|sizeof|long|enum|void|constexpr|extern|noexcept|bool|template|class |struct|auto|const|typename|explicit|public|private|operator|#include|inline| char|typedef|static_assert|static_cast|static/g,"<span class='cppkeyword'>$&<\/span>");
+            text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+            //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
+            texts[i].innerHTML = text;
+        }
+        }
 /*
-            colorize_texts(document.getElementsByTagName("pre"));
-            colorize_texts(document.getElementsByTagName("code"));
+        colorize_texts(document.getElementsByTagName("pre"));
+        colorize_texts(document.getElementsByTagName("code"));
 */
-            function show_hide_deleted() {
-                var to_change = document.getElementsByClassName('changed-deleted');
-                for (var i = 0; i < to_change.length; ++i) {
-                    to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
-                }
-            }
-            show_hide_deleted()
-        </script>
+
+
+        function colorize_asm(texts) {
+        for (var i = 0; i < texts.length; ++i) {
+            var text = texts[i].innerHTML;
+            text = text.replace(/operator new|std::__throw_length_error|std::__throw_logic_error|operator delete|div/g,"<span class='asmcostly'>$&<\/span>");
+            text = text.replace(/jmp|ja|je|mov[a-z]* |call|lea|cmp|rep|push|sub|add|ret|xor|pop|test|jne|js/g,"<span class='cppkeyword'>$&<\/span>");
+            text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+            //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
+            texts[i].innerHTML = text;
+        }
+        }
+
+        colorize_asm(document.getElementsByTagName("td"));
+
+        function show_hide_deleted() {
+        var to_change = document.getElementsByClassName('changed-deleted');
+        for (var i = 0; i < to_change.length; ++i) {
+            to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
+        }
+        }
+        show_hide_deleted()
+    </script>
 </body></html>
