@@ -1,0 +1,86 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+  <head>
+    <title>Constexpr iterator requirements</title>
+    <meta http-equiv="Content-Language" content="en-us">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <style type="text/css">
+      .addition { color: green; text-decoration: underline; }
+      .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+      .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+      .changed-added { background-color: #CFF0FC ;}
+      body {max-width: 1024px; margin-left: 25px;}
+    </style>
+  </head>
+  <body>
+    <address>Document number: P0858R0</address>
+    <address>Project: Programming Language C++</address>
+    <address>Audience: Library Evolution Working Group, Library Working Group</address>
+    <address>&nbsp;</address>
+    <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+    <address>&nbsp;</address>
+    <address>Date: 2017-11-11</address>
+
+    <h1>Constexpr iterator requirements</h1>
+
+    <h2>I. Introduction and Motivation</h2>
+    <p>This proposal resolves issues <a href="https://cplusplus.github.io/LWG/lwg-active.html#2897">LWG 2897</a>
+      and <a href="https://cplusplus.github.io/LWG/lwg-active.html#2938">LWG 2938</a>, which
+      intend to make the iterators of some classes usable in constant expressions. We expect more constexpr usable containers soon from reflection proposals
+      and from work that goes on for an accepted <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0639r0.html">P0639R0:
+	Changing attack vector of the constexpr_vector</a> proposal.</p>
+
+    <p>This proposal follows the LWG recommendation and attempts to solve both issues in a generic way by introducing the <i>constexpr iterator</i> requirement.</p>
+    <p>Such requirement will easily allow to make constexpr usable iterators by only adding a few words to the iterator requirements of a container.</p>
+
+    <p>Note that <code>swap</code> is excluded from constexpr iterator requirement until <a href="http://wiki.edg.com/pub/Wg21albuquerque/CoreWorkingGroup/cwg_active.html#1581">CWG 1581</a>
+      is resolved. Without that resolution making <code>swap</code> constexpr may break user code.</p>
+
+
+    <h2>II. Impact on the Standard</h2>
+    <p>This proposal is a pure library extension. It proposes changes that do not break existing code
+      and do not degrade performance. It does not require any changes in the core
+      language.
+    </p>
+
+
+    <h2>III. Proposed wording relative to the Working Draft N4687.</h2>
+    <p>Add a new paragraph at the end of 27.2.1 [iterator.requirements.general] as indicated:</p>
+    <p style="padding-left:2em">-12- An invalid iterator is an iterator that may be singular.(footnote: [&hellip;])</p>
+    <p style="padding-left:2em"><span class="addition">Iterators are called <em>constexpr iterator</em>s
+        if all operations provided to satisfy iterator category operations are constexpr functions, except for</span></p>
+    <ul class="addition" style="padding-left:3em">
+      <li><code>swap</code>,</li>
+      <li>a pseudo-destructor call (8.2.4 [expr.pseudo]), and</li>
+      <li>the construction of an iterator with a singular value.</li>
+    </ul>
+    <p class="addition">
+      [<i>Note</i>: For example, the types "pointer to <code>int</code>" and <code>reverse_iterator&lt;int*&gt;</code>
+      are constexpr iterators. &ndash; <i>end note</i>]
+    </p>
+    <p style="padding-left:2em">-13- In the following sections, a and b denote [&hellip;]</p>
+    <p>Add a new paragraph at the end of 26.3.7.1 [array.overview]:</p>
+    <p style="padding-left:2em">-3- An array satisfies all of the requirements of a container [&hellip;]</p>
+    <p style="padding-left:2em"><span class="addition">-?- iterator and const_iterator satisfy the constexpr
+        iterator requirements (27.2.1 [iterator.requirements.general]).</span></p>
+    <p>Add to the end of the 24.4.2 [string.view.template] section:</p>
+    <p style="padding-left:2em">-1- In every specialization basic_string_view&lt;charT, traits&gt;,
+      the type traits shall satisfy the character traits requirements (21.2), 
+      and the type traits::char_type shall name the same type as charT.
+    <p style="padding-left:2em"><span class="addition">-?- iterator satisfies the constexpr iterator
+        requirements (27.2.1 [iterator.requirements.general]).</span></p>
+
+
+    <h2>IV. Feature-testing macros</h2>
+    <p>For the purposes of SG10, we recommend updating the values of the feature-testing macros
+      <code>__cpp_lib_string_view</code> and <code>__cpp_lib_array_constexpr</code> to the date of
+      adoption (expected: <code>201803</code>).</p>
+
+
+    <h2>V. References</h2>
+    <p>[<a name="N4687">N4687</a>] Working Draft, Standard for Programming Language C++. Available online at
+      <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/n4687.pdf">www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/n4687.pdf</a>.</p>
+
+</body>
+</html>

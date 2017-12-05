@@ -1,0 +1,353 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+		<title>Constexpr for std::complex</title>
+		<meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+		<meta http-equiv="Content-Language" content="en-us">
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+		<style type="text/css">
+			.addition { color: green; text-decoration: underline; }
+			.changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+			.addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+			.changed-added { background-color: #CFF0FC ;}
+			body {max-width: 1024px; margin-left: 25px;}
+		</style>
+	</head>
+	<body bgcolor="#ffffff">
+		<address>Document number: P0415R1</address>
+		<address>Project: Programming Language C++</address>
+		<address>Audience: Library Evolution Working Group</address>
+		<address>&nbsp;</address>
+		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+		<address>&nbsp;</address>
+		<address>Date: 2016-11-10</address>
+		<h1>Constexpr for std::complex</h1>
+
+		<p class='changed-added'>Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0415r0.html">P0415R0</a> are marked with blue.</p>
+		<!--p class="changed-added"><input type="checkbox" id="show_deletions" onchange="show_hide_deleted()">Show deleted lines.</p-->
+
+		<h2>I. Introduction and Motivation</h2>
+		<p>There is a request in the "C++ Standard Library Active Issues List" for a <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-active.html#2693">constexpr for various std::complex arithmetic and value operators</a>. Currently the following code fails to compile:</p>
+
+		<p></p><blockquote><pre>#include &lt;array&gt;
+#include &lt;algorithm&gt;
+ 
+int main() {
+	// OK
+	constexpr std::complex&lt;double&gt; c1 { 1.0, 0.0 };
+	constexpr std::complex&lt;double&gt; c2 {};
+
+	// Failure: arithmetic operations on complex are not constexpr
+	constexpr auto c3 = -c1 + c2 / 100.0;
+}
+</pre></blockquote><p></p>
+		<p>This proposal attempts to solve the issue.</p>
+		<p>A proof of concept implementation for is available at: <a href="https://github.com/apolukhin/apolukhin.github.io/tree/master/papers/constexpr_complex/">constexpr complex</a>.
+		</p>
+
+
+		<h2>II. Impact on the Standard</h2>
+		<p>This proposal is a pure library extension. It proposes changes to the
+			existing header <code>&lt;complex&gt;</code> such that the changes do not break existing code
+			and do not degrade performance. It does not require any changes in the core 
+			language and it can be implemented in standard C++.
+		</p>
+
+		<h2>III. Analysis of existing <code>&lt;complex&gt;</code> implementations and making them constexpr.</h2>
+		<p>libstdc++ uses <code>__complex__</code> extension. That extension is already being used in constant expressions.</p>
+		<p>libc++ implements all the algorithms for <code>std::complex</code> from scratch. libc++ uses few functions from <code>&lt;cmath&gt;</code> (mostly <code>isnan</code>, <code>isinf</code>, <code>logb</code> and <code>scalbn</code>) for operations <code>+</code>,<code>-</code>,<code>*</code>,<code>/</code>,<code>norm</code>,<code>conj</code>.</p>
+
+		<p>Operations other than <code>+</code>,<code>-</code>,<code>*</code>,<code>/</code>,<code>norm</code>,<code>conj</code> use a lot of functions from <code>&lt;cmath&gt;</code>. It's unreasonable to mark them with <code>constexpr</code> right now.</p>
+
+		<p><code>abs(const complex&lt;T&gt;&amp;)</code> seems highly usable however it requires either <code>sqrt</code> or <code>hypot</code> to be <code>constexpr</code>. Forcing complicated math functions to be constexpr intrinsics may be a burden for compiler developers.</p>
+
+		<p>Adding <code>constexpr</code> to libc++ according to the wording in section IV of this paper resulted in <a href="https://apolukhin.github.io/papers/constexpr_complex/constexpr_complex__gcc_ok.hpp">a <code>&lt;complex&gt;</code> header</a> that works well on GCC-6. <code>__builtin_logb</code>, <code>__builtin_isnan</code> and <code>__builtin_scalbln</code> are recognised by Clang, but they are not usable in constant expressions right now. <a href="https://apolukhin.github.io/papers/constexpr_complex/constexpr_complex.hpp">Header</a> with a hand-made naïve <code>logb</code>, <code>isnan</code> and <code>scalbn</code> became usable on CLANG-3.6 too.</p> 
+
+		<h2>IV. Proposed wording relative to the Working Draft N4594.</h2>
+		<h3>A. Modifications to "Header &lt;complex&gt; synopsis" [complex.syn]</h3>
+		<pre>namespace std {
+template&lt;class T&gt; class complex;
+template&lt;&gt; class complex&lt;float&gt;;
+template&lt;&gt; class complex&lt;double&gt;;
+template&lt;&gt; class complex&lt;long double&gt;;
+
+// 26.5.6, operators:
+template&lt;class T&gt; <span class="addition">constexpr</span> complex&lt;T&gt; operator+(const complex&lt;T&gt;&amp;, const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; <span class="addition">constexpr</span> complex&lt;T&gt; operator+(const complex&lt;T&gt;&amp;, const T&amp;);
+template&lt;class T&gt; <span class="addition">constexpr</span> complex&lt;T&gt; operator+(const T&amp;, const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; <span class="addition">constexpr</span> complex&lt;T&gt; operator-(const complex&lt;T&gt;&amp;, const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; <span class="addition">constexpr</span> complex&lt;T&gt; operator-(const complex&lt;T&gt;&amp;, const T&amp;);
+template&lt;class T&gt; <span class="addition">constexpr</span> complex&lt;T&gt; operator-(const T&amp;, const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; <span class="addition">constexpr</span> complex&lt;T&gt; operator*(const complex&lt;T&gt;&amp;, const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; <span class="addition">constexpr</span> complex&lt;T&gt; operator*(const complex&lt;T&gt;&amp;, const T&amp;);
+template&lt;class T&gt; <span class="addition">constexpr</span> complex&lt;T&gt; operator*(const T&amp;, const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; <span class="addition">constexpr</span> complex&lt;T&gt; operator/(const complex&lt;T&gt;&amp;, const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; <span class="addition">constexpr</span> complex&lt;T&gt; operator/(const complex&lt;T&gt;&amp;, const T&amp;);
+template&lt;class T&gt; <span class="addition">constexpr</span> complex&lt;T&gt; operator/(const T&amp;, const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; <span class="addition">constexpr</span> complex&lt;T&gt; operator+(const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; <span class="addition">constexpr</span> complex&lt;T&gt; operator-(const complex&lt;T&gt;&amp;);
+
+template&lt;class T&gt; constexpr bool operator==(const complex&lt;T&gt;&amp;, const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; constexpr bool operator==(const complex&lt;T&gt;&amp;, const T&amp;);
+template&lt;class T&gt; constexpr bool operator==(const T&amp;, const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; constexpr bool operator!=(const complex&lt;T&gt;&amp;, const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; constexpr bool operator!=(const complex&lt;T&gt;&amp;, const T&amp;);
+template&lt;class T&gt; constexpr bool operator!=(const T&amp;, const complex&lt;T&gt;&amp;);
+
+template&lt;class T, class charT, class traits&gt;
+basic_istream&lt;charT, traits&gt;&amp; operator&gt;&gt;(basic_istream&lt;charT, traits&gt;&amp;, complex&lt;T&gt;&amp;);
+
+template&lt;class T, class charT, class traits&gt;
+basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(basic_ostream&lt;charT, traits&gt;&amp;, const complex&lt;T&gt;&amp;);
+
+// 26.5.7, values:
+template&lt;class T&gt; constexpr T real(const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; constexpr T imag(const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; T abs(const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; T arg(const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; <span class="addition">constexpr</span> T norm(const complex&lt;T&gt;&amp;);
+
+template&lt;class T&gt; <span class="addition">constexpr</span> complex&lt;T&gt; conj(const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; complex&lt;T&gt; proj(const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; complex&lt;T&gt; polar(const T&amp;, const T&amp; = 0);
+
+// 26.5.8, transcendentals:
+template&lt;class T&gt; complex&lt;T&gt; acos(const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; complex&lt;T&gt; asin(const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; complex&lt;T&gt; atan(const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; complex&lt;T&gt; acosh(const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; complex&lt;T&gt; asinh(const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; complex&lt;T&gt; atanh(const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; complex&lt;T&gt; cos (const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; complex&lt;T&gt; cosh (const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; complex&lt;T&gt; exp (const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; complex&lt;T&gt; log (const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; complex&lt;T&gt; log10(const complex&lt;T&gt;&amp;);
+
+
+template&lt;class T&gt; complex&lt;T&gt; pow (const complex&lt;T&gt;&amp;, const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; complex&lt;T&gt; pow (const T&amp;, const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; complex&lt;T&gt; pow (const complex&lt;T&gt;&amp;, const T&amp;);
+
+
+template&lt;class T&gt; complex&lt;T&gt; sin(const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; complex&lt;T&gt; sinh(const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; complex&lt;T&gt; sqrt(const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; complex&lt;T&gt; tan(const complex&lt;T&gt;&amp;);
+template&lt;class T&gt; complex&lt;T&gt; tanh(const complex&lt;T&gt;&amp;);
+
+
+// 26.5.10, complex literals:
+
+    inline namespace literals {
+    inline namespace complex_literals {
+        constexpr complex&lt;long double&gt; operator""il(long double);
+        constexpr complex&lt;long double&gt; operator""il(unsigned long long);
+        constexpr complex&lt;double&gt; operator""i(long double);
+        constexpr complex&lt;double&gt; operator""i(unsigned long long);
+        constexpr complex&lt;float&gt; operator""if(long double);
+        constexpr complex&lt;float&gt; operator""if(unsigned long long);
+    }
+    }
+}
+		</pre>
+
+
+		<h3>B. Modifications to "Class template complex" [complex]</h3>
+		<pre>namespace std {
+    template&lt;class T&gt;
+    class complex {
+    public:
+        typedef T value_type;
+        constexpr complex(const T&amp; re = T(), const T&amp; im = T());
+        constexpr complex(const complex&amp;);
+        template&lt;class X&gt; constexpr complex(const complex&lt;X&gt;&amp;);
+        constexpr T real() const;
+        <span class="addition">constexpr</span> void real(T);
+
+        constexpr T imag() const;
+        <span class="addition">constexpr</span> void imag(T);
+
+        <span class="addition">constexpr</span> complex&lt;T&gt;&amp; operator= (const T&amp;);
+        <span class="addition">constexpr</span> complex&lt;T&gt;&amp; operator+=(const T&amp;);
+        <span class="addition">constexpr</span> complex&lt;T&gt;&amp; operator-=(const T&amp;);
+        <span class="addition">constexpr</span> complex&lt;T&gt;&amp; operator*=(const T&amp;);
+        <span class="addition">constexpr</span> complex&lt;T&gt;&amp; operator/=(const T&amp;);
+
+        <span class="addition">constexpr</span> complex&amp; operator=(const complex&amp;);
+        template&lt;class X&gt; <span class="addition">constexpr</span> complex&lt;T&gt;&amp; operator= (const complex&lt;X&gt;&amp;);
+        template&lt;class X&gt; <span class="addition">constexpr</span> complex&lt;T&gt;&amp; operator+=(const complex&lt;X&gt;&amp;);
+        template&lt;class X&gt; <span class="addition">constexpr</span> complex&lt;T&gt;&amp; operator-=(const complex&lt;X&gt;&amp;);
+        template&lt;class X&gt; <span class="addition">constexpr</span> complex&lt;T&gt;&amp; operator*=(const complex&lt;X&gt;&amp;);
+        template&lt;class X&gt; <span class="addition">constexpr</span> complex&lt;T&gt;&amp; operator/=(const complex&lt;X&gt;&amp;);
+    };
+}
+
+The class complex describes an object that can store the Cartesian components, real() and imag(), of a
+complex number.
+		</pre>
+
+
+
+		<h3>C. Modifications to "complex specializations" [complex.special]</h3>
+		<pre>namespace std {
+    template&lt;&gt; class complex&lt;float&gt; {
+    public:
+        typedef float value_type;
+        constexpr complex(float re = 0.0f, float im = 0.0f);
+        constexpr explicit complex(const complex&lt;double&gt;&amp;);
+        constexpr explicit complex(const complex&lt;long double&gt;&amp;);
+
+        constexpr float real() const;
+        <span class="addition">constexpr</span> void real(float);
+        constexpr float imag() const;
+        <span class="addition">constexpr</span> void imag(float);
+
+        <span class="addition">constexpr</span> complex&lt;float&gt;&amp; operator= (float);
+        <span class="addition">constexpr</span> complex&lt;float&gt;&amp; operator+=(float);
+        <span class="addition">constexpr</span> complex&lt;float&gt;&amp; operator-=(float);
+        <span class="addition">constexpr</span> complex&lt;float&gt;&amp; operator*=(float);
+        <span class="addition">constexpr</span> complex&lt;float&gt;&amp; operator/=(float);
+
+        <span class="addition">constexpr</span> complex&lt;float&gt;&amp; operator=(const complex&lt;float&gt;&amp;);
+        template&lt;class X&gt; <span class="addition">constexpr</span> complex&lt;float&gt;&amp; operator= (const complex&lt;X&gt;&amp;);
+        template&lt;class X&gt; <span class="addition">constexpr</span> complex&lt;float&gt;&amp; operator+=(const complex&lt;X&gt;&amp;);
+        template&lt;class X&gt; <span class="addition">constexpr</span> complex&lt;float&gt;&amp; operator-=(const complex&lt;X&gt;&amp;);
+        template&lt;class X&gt; <span class="addition">constexpr</span> complex&lt;float&gt;&amp; operator*=(const complex&lt;X&gt;&amp;);
+        template&lt;class X&gt; <span class="addition">constexpr</span> complex&lt;float&gt;&amp; operator/=(const complex&lt;X&gt;&amp;);
+    };
+
+    template&lt;&gt; class complex&lt;double&gt; {
+    public:
+        typedef double value_type;
+        constexpr complex(double re = 0.0, double im = 0.0);
+        constexpr complex(const complex&lt;float&gt;&amp;);
+        constexpr explicit complex(const complex&lt;long double&gt;&amp;);
+
+        constexpr double real() const;
+        <span class="addition">constexpr</span> void real(double);
+        constexpr double imag() const;
+        <span class="addition">constexpr</span> void imag(double);
+
+        <span class="addition">constexpr</span> complex&lt;double&gt;&amp; operator= (double);
+        <span class="addition">constexpr</span> complex&lt;double&gt;&amp; operator+=(double);
+        <span class="addition">constexpr</span> complex&lt;double&gt;&amp; operator-=(double);
+        <span class="addition">constexpr</span> complex&lt;double&gt;&amp; operator*=(double);
+        <span class="addition">constexpr</span> complex&lt;double&gt;&amp; operator/=(double);
+
+        <span class="addition">constexpr</span> complex&lt;double&gt;&amp; operator=(const complex&lt;double&gt;&amp;);
+        template&lt;class X&gt; <span class="addition">constexpr</span> complex&lt;double&gt;&amp; operator= (const complex&lt;X&gt;&amp;);
+        template&lt;class X&gt; <span class="addition">constexpr</span> complex&lt;double&gt;&amp; operator+=(const complex&lt;X&gt;&amp;);
+        template&lt;class X&gt; <span class="addition">constexpr</span> complex&lt;double&gt;&amp; operator-=(const complex&lt;X&gt;&amp;);
+        template&lt;class X&gt; <span class="addition">constexpr</span> complex&lt;double&gt;&amp; operator*=(const complex&lt;X&gt;&amp;);
+        template&lt;class X&gt; <span class="addition">constexpr</span> complex&lt;double&gt;&amp; operator/=(const complex&lt;X&gt;&amp;);
+    };
+
+    template&lt;&gt; class complex&lt;long double&gt; {
+    public:
+        typedef long double value_type;
+        constexpr complex(long double re = 0.0, long double im = 0.0);
+        constexpr complex(const complex&lt;float&gt;&amp;);
+        constexpr explicit complex(const complex&lt;double&gt;&amp;);
+
+        constexpr long double real() const;
+        <span class="addition">constexpr</span> void real(long double);
+        constexpr long double imag() const;
+        <span class="addition">constexpr</span> void imag(long double);
+
+        <span class="addition">constexpr</span> complex&lt;long double&gt;&amp; operator= (long double);
+        <span class="addition">constexpr</span> complex&lt;long double&gt;&amp; operator+=(long double);
+        <span class="addition">constexpr</span> complex&lt;long double&gt;&amp; operator-=(long double);
+        <span class="addition">constexpr</span> complex&lt;long double&gt;&amp; operator*=(long double);
+        <span class="addition">constexpr</span> complex&lt;long double&gt;&amp; operator/=(long double);
+
+        <span class="addition">constexpr</span> complex&lt;long double&gt;&amp; operator=(const complex&lt;long double&gt;&amp;);
+        template&lt;class X&gt; <span class="addition">constexpr</span> complex&lt;long double&gt;&amp; operator= (const complex&lt;X&gt;&amp;);
+        template&lt;class X&gt; <span class="addition">constexpr</span> complex&lt;long double&gt;&amp; operator+=(const complex&lt;X&gt;&amp;);
+        template&lt;class X&gt; <span class="addition">constexpr</span> complex&lt;long double&gt;&amp; operator-=(const complex&lt;X&gt;&amp;);
+        template&lt;class X&gt; <span class="addition">constexpr</span> complex&lt;long double&gt;&amp; operator*=(const complex&lt;X&gt;&amp;);
+        template&lt;class X&gt; <span class="addition">constexpr</span> complex&lt;long double&gt;&amp; operator/=(const complex&lt;X&gt;&amp;);
+    };
+}
+		</pre>
+
+		<h3 class="changed-added">D. Modifications to "Additional overloads" [cmplx.over]</h3><div class="changed-added">
+		<p>The following function templates shall have additional overloads:</p><pre>
+		arg         norm
+		conj        proj
+		imag        real
+</pre><span class="addition"> where <code>norm</code>, <code>conj</code>, <code>imag</code> and <code>real</code> are <code>constexpr</code> overloads.</span>
+		<p>The additional overloads shall be sufficient to ensure:</p><p>
+		<i><b>[Note for the editor:</b> Following lines in [cmplx.over] do not change.<b>- end note]</b></i>
+		</p></div>
+
+		<h3>E. Modifications to remaining parts of "Complex numbers" [complex.*]</h3>
+		<p><i><b>Note for the editor:</b> All the functions marked with <code>constexpr</code> in previous paragraphs of this document must be accordingly marked with <code>constexpr</code>
+			in detailed descriptions.
+			For brevity only modifications to "complex member functions" [complex.members] are shown in this paper.</i>
+		</p>
+		<pre>
+template&lt;class T&gt; constexpr complex(const T& re = T(), const T& im = T());
+    Effects: Constructs an object of class complex.
+    Postcondition: real() == re && imag() == im.
+
+constexpr T real() const;
+    Returns: The value of the real component.
+
+<span class="addition">constexpr</span> void real(T val);
+    Effects: Assigns val to the real component.
+
+constexpr T imag() const;
+    Returns: The value of the imaginary component.
+
+<span class="addition">constexpr</span> void imag(T val);
+    Effects: Assigns val to the imaginary component.
+		</pre>
+
+		<h3>F. Feature-testing macro</h3>
+		<p>For the purposes of SG10, we recommend the feature-testing macro name <code>__cpp_lib_constexpr_complex</code>.</p>
+
+
+		<h2>V. Revision History</h2>
+		<p class="changed-added">Revision 1:</p>
+		<ul class="changed-added">
+			<li>
+				Added [cmplx.over] changes.
+			</li>
+		</ul>
+		<p>Revision 0:</p>
+		<ul>
+			<li>
+				Initial proposal.
+			</li>
+		</ul>
+
+
+		<h2>VI. References</h2>
+		<p>[<a name="N4594">N4594</a>] Working Draft, Standard for Programming Language C++. Available online at
+					<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/n4594.pdf">www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/n4594.pdf</a>.</p>
+		<p>[<a name="Antony Polukhin">Antony Polukhin</a>] Proof of concept implementation.
+			Available online at <a href="https://github.com/apolukhin/apolukhin.github.io/tree/master/papers/constexpr_complex/">
+				https://github.com/apolukhin/apolukhin.github.io/tree/master/papers/constexpr_complex/</a>.
+			</p>
+		<p>[<a name="LWG2693">LWG2693</a>] constexpr for various std::complex arithmetic and value operators. Available online at
+					<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-active.html#2693">
+				http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-active.html#2693</a>.
+			</p>
+		<p>&nbsp;</p>
+
+		<h2>VII. Acknowledgements</h2>
+		<p>Walter E. Brown pointed me at the LWG 2693 issue, provided numerous comments, corrections, and suggestions for this proposal.</p>
+
+		<script type="text/javascript">
+            function show_hide_deleted() {
+                var to_change = document.getElementsByClassName('changed-deleted');
+                for (var i = 0; i < to_change.length; ++i) {
+                    to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
+                }
+            }
+            show_hide_deleted()
+		</script>
+
+
+</body></html>
