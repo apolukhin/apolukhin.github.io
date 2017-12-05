@@ -29,7 +29,7 @@
         <address>Igor Klevanets &lt;<a href="mailto:cerevra@yandex.ru">cerevra@yandex.ru</a>&gt;, &lt;<a href="mailto:cerevra@yandex-team.ru">cerevra@yandex-team.ru</a>&gt;</address>
         <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
         <address>&nbsp;</address>
-        <address>Date: 2017-11-20</address>
+        <address>Date: 2017-12-04</address>
         <h1>A Proposal to add wide_int Template Class</h1>
 
         <p class='changed-added'>Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r2.html">P0539R2</a> are marked with blue.<p>
@@ -47,6 +47,7 @@
             <li><strong>"Bits" won in the discussion "Words vs Bytes vs Bits" in Albuquerque</strong></li>
             <li>Changed "MachineWords" to "Bits"</li>
             <li>Interoperability with other types moved to a separate paper</li>
+            <li>Removed <code>signedness</code> scoped enum</li>
         </ul>
         <p>Differences with P0539R1:</p>
         <ul>
@@ -68,7 +69,7 @@
             <li>Added <code>to_chars</code> and <code>from_chars</code></li>
         </ul>
 
-        <h2 class="changed-added">III. Design and papaer limitations</h2>
+        <h2 class="changed-added">III. Design and paper limitations</h2>
         <div class="changed-added">
         <p><code>wide_integer</code> is designed to be as close as possible to built-in integral types:</p>
         <ul>
@@ -244,123 +245,124 @@
 
 <h3>26.??.1 Header &lt;wide_integer&gt; synopsis<span class="right">[numeric.wide_integer.syn]</span></h3>
 <pre>namespace std {
+<span class="changed-deleted">
   enum class signedness {
       Unsigned,
       Signed
   };
-
+</span>
   // 26.??.2 class template wide_integer
-  template&lt;size_t Bits, signedness S&gt; class wide_integer;
+  template&lt;size_t Bits, typename S&gt; class wide_integer;
 
   // 26.??.?? type traits specializations
-  template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+  template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
   struct common_type&lt;wide_integer&lt;Bits, S&gt;, wide_integer&lt;Bits2, S2&gt;&gt;;
 
-  template&lt;size_t Bits, signedness S, typename Arithmetic&gt;
+  template&lt;size_t Bits, typename S, typename Arithmetic&gt;
   struct common_type&lt;wide_integer&lt;Bits, S&gt;, Arithmetic&gt;;
 
-  template&lt;typename Arithmetic, size_t Bits, signedness S&gt;
+  template&lt;typename Arithmetic, size_t Bits, typename S&gt;
   struct common_type&lt;Arithmetic, wide_integer&lt;Bits, S&gt;&gt;
     : common_type&lt;wide_integer&lt;Bits, S&gt;, Arithmetic&gt;
   ;
 
   // 26.??.?? unary operations
-  template&lt;size_t Bits, signedness S&gt; constexpr wide_integer&lt;Bits, S&gt; operator~(const wide_integer&lt;Bits, S&gt;&amp; val) noexcept;
-  template&lt;size_t Bits, signedness S&gt; constexpr wide_integer&lt;Bits, S&gt; operator-(const wide_integer&lt;Bits, S&gt;&amp; val) noexcept(S == signedness::Unsigned);
-  template&lt;size_t Bits, signedness S&gt; constexpr wide_integer&lt;Bits, S&gt; operator+(const wide_integer&lt;Bits, S&gt;&amp; val) noexcept(S == signedness::Unsigned)<span class="changed-added"> noexcept</span>;
+  template&lt;size_t Bits, typename S&gt; constexpr wide_integer&lt;Bits, S&gt; operator~(const wide_integer&lt;Bits, S&gt;&amp; val) noexcept;
+  template&lt;size_t Bits, typename S&gt; constexpr wide_integer&lt;Bits, S&gt; operator-(const wide_integer&lt;Bits, S&gt;&amp; val) noexcept(is_unsigned_v&lt;S&gt;);
+  template&lt;size_t Bits, typename S&gt; constexpr wide_integer&lt;Bits, S&gt; operator+(const wide_integer&lt;Bits, S&gt;&amp; val) noexcept(is_unsigned_v&lt;S&gt;)<span class="changed-added"> noexcept</span>;
 
   // 26.??.?? binary operations
-  template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+  template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
     common_type_t&lt;wide_integer&lt;Bits, S&gt;, wide_integer&lt;Bits2, S2&gt;&gt;
     constexpr operator*(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs);
 
-  template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+  template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
     common_type_t&lt;wide_integer&lt;Bits, S&gt;, wide_integer&lt;Bits2, S2&gt;&gt;
     constexpr operator/(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs);
 
-  template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+  template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
     common_type_t&lt;wide_integer&lt;Bits, S&gt;, wide_integer&lt;Bits2, S2&gt;&gt;
-    constexpr operator+(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept(S == signedness::Unsigned);
+    constexpr operator+(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept(is_unsigned_v&lt;S&gt;);
 
-  template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+  template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
     common_type_t&lt;wide_integer&lt;Bits, S&gt;, wide_integer&lt;Bits2, S2&gt;&gt;
-    constexpr operator-(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept(S == signedness::Unsigned);
+    constexpr operator-(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept(is_unsigned_v&lt;S&gt;);
 
-  template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+  template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
     common_type_t&lt;wide_integer&lt;Bits, S&gt;, wide_integer&lt;Bits2, S2&gt;&gt;
     constexpr operator%(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs);
 
-  template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+  template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
     common_type_t&lt;wide_integer&lt;Bits, S&gt;, wide_integer&lt;Bits2, S2&gt;&gt;
     constexpr operator&amp;(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept;
 
-  template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+  template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
     common_type_t&lt;wide_integer&lt;Bits, S&gt;, wide_integer&lt;Bits2, S2&gt;&gt;
     constexpr operator|(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept;
 
-  template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+  template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
     common_type_t&lt;wide_integer&lt;Bits, S&gt;, wide_integer&lt;Bits2, S2&gt;&gt;
     constexpr  operator^(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept;
 
-  template&lt;size_t Bits, signedness S&gt;
+  template&lt;size_t Bits, typename S&gt;
     common_type_t&lt;wide_integer&lt;Bits, S&gt;, size_t&gt;
     constexpr  operator&lt;&lt;(const wide_integer&lt;Bits, S&gt;&amp; lhs, size_t rhs);
 
-  template&lt;size_t Bits, signedness S&gt;
+  template&lt;size_t Bits, typename S&gt;
     common_type_t&lt;wide_integer&lt;Bits, S&gt;, size_t&gt;
     constexpr  operator&gt;&gt;(const wide_integer&lt;Bits, S&gt;&amp; lhs, size_t rhs);
 
-  template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+  template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
     constexpr bool operator&lt;(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept;
 
-  template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+  template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
     constexpr bool operator&gt;(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept;
 
-  template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+  template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
     constexpr bool operator&lt;=(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept;
 
-  template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+  template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
     constexpr bool operator&gt;=(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept;
 
-  template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+  template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
     constexpr bool operator==(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept;
 
-  template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+  template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
     constexpr bool operator!=(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept;
 
   // 26.??.?? numeric conversions
-  template&lt;size_t Bits, signedness S&gt; std::string to_string(const wide_integer&lt;Bits, S&gt;&amp; val);
-  template&lt;size_t Bits, signedness S&gt; std::wstring to_wstring(const wide_integer&lt;Bits, S&gt;&amp; val);
+  template&lt;size_t Bits, typename S&gt; std::string to_string(const wide_integer&lt;Bits, S&gt;&amp; val);
+  template&lt;size_t Bits, typename S&gt; std::wstring to_wstring(const wide_integer&lt;Bits, S&gt;&amp; val);
 
   // 26.??.?? iostream specializations
-  template&lt;class Char, class Traits, size_t Bits, signedness S&gt;
+  template&lt;class Char, class Traits, size_t Bits, typename S&gt;
   basic_ostream&lt;Char, Traits&gt;&amp; operator&lt;&lt;(basic_ostream&lt;Char, Traits&gt;&amp; os, const wide_integer&lt;Bits, S&gt;&amp; val);
 
-  template&lt;class Char, class Traits, size_t Bits, signedness S&gt;
+  template&lt;class Char, class Traits, size_t Bits, typename S&gt;
   basic_istream&lt;Char, Traits&gt;&amp; operator&gt;&gt;(basic_istream&lt;Char, Traits&gt;&amp; is, wide_integer&lt;Bits, S&gt;&amp; val) noexcept;
 
   // 26.??.?? hash support
   template&lt;class T&gt; struct hash;
-  template&lt;size_t Bits, signedness S&gt; struct hash&lt;wide_integer&lt;Bits, S&gt;&gt;;
+  template&lt;size_t Bits, typename S&gt; struct hash&lt;wide_integer&lt;Bits, S&gt;&gt;;
 
 
-  template &lt;size_t Bits, signedness S&gt;
+  template &lt;size_t Bits, typename S&gt;
   to_chars_result to_chars(char* first,
                            char* last,
                            const wide_integer&lt;Bits, S&gt;&amp; value,
                            int base = 10);
 
-  template &lt;size_t Bits, signedness S&gt;
+  template &lt;size_t Bits, typename S&gt;
   from_chars_result from_chars(const char* first,
                                const char* last,
                                wide_integer&lt;Bits, S&gt;&amp; value,
                                int base = 10);
 
   template &lt;size_t Bits&gt;
-  using wide_int = wide_integer&lt;Bits, signedness::Signed&gt;;
+  using wide_int = wide_integer&lt;Bits, signed&gt;;
 
   template &lt;size_t Bits&gt;
-  using wide_uint = wide_integer&lt;Bits, signedness::Unsigned&gt;
+  using wide_uint = wide_integer&lt;Bits, unsigned&gt;
 </pre>
 <p class="notes"><b><i>[Note to SG6:</i></b> <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/p0102r0.html">P0102R0</a> 
 proposal with <code>exact_2int</code>, <code>fast_2int</code>, <code>least_2int</code>,
@@ -433,77 +435,77 @@ proposal with <code>exact_2int</code>, <code>fast_2int</code>, <code>least_2int<
 
 <h3>26.??.2 Template class wide_integer overview<span class="right">[numeric.wide_integer.overview]</span></h3>
 <pre>namespace std {
-  template&lt;size_t Bits, signedness S&gt;
+  template&lt;size_t Bits, typename S&gt;
   class wide_integer {
   public:
     // 26.??.2.?? construct:
     constexpr wide_integer() noexcept = default;
     constexpr wide_integer(const wide_integer&lt;Bits, S&gt;&amp; ) noexcept = default;
     template&lt;typename Arithmetic&gt; constexpr wide_integer(const Arithmetic&amp; other) noexcept;
-    template&lt;size_t Bits2, signedness S2&gt; constexpr wide_integer(const wide_integer&lt;Bits2, S2&gt;&amp; other) noexcept;
+    template&lt;size_t Bits2, typename S2&gt; constexpr wide_integer(const wide_integer&lt;Bits2, S2&gt;&amp; other) noexcept;
 
     // 26.??.2.?? assignment:
     constexpr wide_integer&lt;Bits, S&gt;&amp; operator=(const wide_integer&lt;Bits, S&gt;&amp; ) noexcept = default;
     template&lt;typename Arithmetic&gt;
     constexpr wide_integer&lt;Bits, S&gt;&amp; operator=(const Arithmetic&amp; other) noexcept;
-    template&lt;size_t Bits2, signedness S2&gt;
+    template&lt;size_t Bits2, typename S2&gt;
     constexpr wide_integer&lt;Bits, S&gt;&amp; operator=(const wide_integer&lt;Bits2, S2&gt;&amp; other) noexcept;
 
     // 26.??.2.?? compound assignment:
     template&lt;typename Arithmetic&gt;
     constexpr wide_integer&lt;Bits, S&gt;&amp; operator*=(const Arithmetic&amp;);
-    template&lt;size_t Bits2, signedness S2&gt;
+    template&lt;size_t Bits2, typename S2&gt;
     constexpr wide_integer&lt;Bits, S&gt;&amp; operator*=(const wide_integer&lt;Bits2, S2&gt;&amp;);
 
     template&lt;typename Arithmetic&gt;
     constexpr wide_integer&lt;Bits, S&gt;&amp; operator/=(const Arithmetic&amp;);
-    template&lt;size_t Bits2, signedness S2&gt;
+    template&lt;size_t Bits2, typename S2&gt;
     constexpr wide_integer&lt;Bits, S&gt;&amp; operator/=(const wide_integer&lt;Bits2, S2&gt;&amp;);
 
     template&lt;typename Arithmetic&gt;
-    constexpr wide_integer&lt;Bits, S&gt;&amp; operator+=(const Arithmetic&amp;) noexcept(S == signedness::Unsigned);
-    template&lt;size_t Bits2, signedness S2&gt;
-    constexpr wide_integer&lt;Bits, S&gt;&amp; operator+=(const wide_integer&lt;Bits2, S2&gt;&amp;) noexcept(S == signedness::Unsigned);
+    constexpr wide_integer&lt;Bits, S&gt;&amp; operator+=(const Arithmetic&amp;) noexcept(is_unsigned_v&lt;S&gt;);
+    template&lt;size_t Bits2, typename S2&gt;
+    constexpr wide_integer&lt;Bits, S&gt;&amp; operator+=(const wide_integer&lt;Bits2, S2&gt;&amp;) noexcept(is_unsigned_v&lt;S&gt;);
 
     template&lt;typename Arithmetic&gt;
-    constexpr wide_integer&lt;Bits, S&gt;&amp; operator-=(const Arithmetic&amp;) noexcept(S == signedness::Unsigned);
-    template&lt;size_t Bits2, signedness S2&gt;
-    constexpr wide_integer&lt;Bits, S&gt;&amp; operator-=(const wide_integer&lt;Bits2, S2&gt;&amp;) noexcept(S == signedness::Unsigned);
+    constexpr wide_integer&lt;Bits, S&gt;&amp; operator-=(const Arithmetic&amp;) noexcept(is_unsigned_v&lt;S&gt;);
+    template&lt;size_t Bits2, typename S2&gt;
+    constexpr wide_integer&lt;Bits, S&gt;&amp; operator-=(const wide_integer&lt;Bits2, S2&gt;&amp;) noexcept(is_unsigned_v&lt;S&gt;);
 
     template&lt;typename Integral&gt;
     constexpr wide_integer&lt;Bits, S&gt;&amp; operator%=(const Integral&amp;);
-    template&lt;size_t Bits2, signedness S2&gt;
+    template&lt;size_t Bits2, typename S2&gt;
     constexpr wide_integer&lt;Bits, S&gt;&amp; operator%=(const wide_integer&lt;Bits2, S2&gt;&amp;);
 
     template&lt;typename Integral&gt;
     constexpr wide_integer&lt;Bits, S&gt;&amp; operator&amp;=(const Integral&amp;) noexcept;
-    template&lt;size_t Bits2, signedness S2&gt;
+    template&lt;size_t Bits2, typename S2&gt;
     constexpr wide_integer&lt;Bits, S&gt;&amp; operator&amp;=(const wide_integer&lt;Bits2, S2&gt;&amp;) noexcept;
 
     template&lt;typename Integral&gt;
     constexpr wide_integer&lt;Bits, S&gt;&amp; operator|=(const Integral&amp;) noexcept;
-    template&lt;size_t Bits2, signedness S2&gt;
+    template&lt;size_t Bits2, typename S2&gt;
     constexpr wide_integer&lt;Bits, S&gt;&amp; operator|=(const wide_integer&lt;Bits2, S2&gt;&amp;) noexcept;
 
     template&lt;typename Integral&gt;
     constexpr wide_integer&lt;Bits, S&gt;&amp; operator^=(const Integral&amp;) noexcept;
-    template&lt;size_t Bits2, signedness S2&gt;
+    template&lt;size_t Bits2, typename S2&gt;
     constexpr wide_integer&lt;Bits, S&gt;&amp; operator^=(const wide_integer&lt;Bits2, S2&gt;&amp;) noexcept;
 
     template&lt;typename Integral&gt;
     constexpr wide_integer&lt;Bits, S&gt;&amp; operator&lt;&lt;=(const Integral&amp;);
-    template&lt;size_t Bits2, signedness S2&gt;
+    template&lt;size_t Bits2, typename S2&gt;
     constexpr wide_integer&lt;Bits, S&gt;&amp; operator&lt;&lt;=(const wide_integer&lt;Bits2, S2&gt;&amp;);
 
     template&lt;typename Integral&gt;
     constexpr wide_integer&lt;Bits, S&gt;&amp; operator&gt;&gt;=(const Integral&amp;) noexcept;
-    template&lt;size_t Bits2, signedness S2&gt;
+    template&lt;size_t Bits2, typename S2&gt;
     constexpr wide_integer&lt;Bits, S&gt;&amp; operator&gt;&gt;=(const wide_integer&lt;Bits2, S2&gt;&amp;) noexcept;
 
-    constexpr wide_integer&lt;Bits, S&gt;&amp; operator++() noexcept(S == signedness::Unsigned);
-    constexpr wide_integer&lt;Bits, S&gt; operator++(int) noexcept(S == signedness::Unsigned);
-    constexpr wide_integer&lt;Bits, S&gt;&amp; operator--() noexcept(S == signedness::Unsigned);
-    constexpr wide_integer&lt;Bits, S&gt; operator--(int) noexcept(S == signedness::Unsigned);
+    constexpr wide_integer&lt;Bits, S&gt;&amp; operator++() noexcept(is_unsigned_v&lt;S&gt;);
+    constexpr wide_integer&lt;Bits, S&gt; operator++(int) noexcept(is_unsigned_v&lt;S&gt;);
+    constexpr wide_integer&lt;Bits, S&gt;&amp; operator--() noexcept(is_unsigned_v&lt;S&gt;);
+    constexpr wide_integer&lt;Bits, S&gt; operator--(int) noexcept(is_unsigned_v&lt;S&gt;);
 
     // 26.??.2.?? observers:
     template &lt;typename Arithmetic&gt; constexpr operator Arithmetic() const noexcept;
@@ -513,12 +515,12 @@ proposal with <code>exact_2int</code>, <code>fast_2int</code>, <code>least_2int<
     byte data[Bits / CHAR_BITS]; // exposition only
   };
 }</pre>
-<p>The class template <code>wide_integer&lt;size_t Bits, signedness S&gt;</code> is a trivial standard layout class that behaves as an integer type
+<p>The class template <code>wide_integer&lt;size_t Bits, typename S&gt;</code> is a trivial standard layout class that behaves as an integer type
 of a compile time specified bitness.</p>
 <p>Template parameter <code>Bits</code> specifies exact <i>bits</i> count to store the integer value. <span class="changed-added"><code>Bits % (sizeof(int) * CHAR_BITS)</code> is eqaul to 0.</span>
-<code>sizeof(wide_integer&lt;Bits, signedness::Unsigned&gt;)</code> and <code>sizeof(wide_integer&lt;Bits, signedness::Signed&gt;)</code> are required to
+<code>sizeof(wide_integer&lt;Bits, unsigned&gt;)</code> and <code>sizeof(wide_integer&lt;Bits, signed&gt;)</code> are required to
 be equal to <code>Bits * CHAR_BITS</code>.</p>
-<p>Template parameter <code>S</code> specifies signedness of the stored integer value.</p>
+<p>Template parameter <code>S</code> specifies signedness of the stored integer value<span class="changed-added"> and is either <code>signed</code> or <code>unsigned</code></span>.</p>
 
 <h4>26.??.2.?? wide_integer constructors <span class="right">[numeric.wide_integer.cons]</span></h4>
 <pre>constexpr wide_integer() noexcept = default;</pre>
@@ -527,7 +529,7 @@ be equal to <code>Bits * CHAR_BITS</code>.</p>
 <pre>template&lt;typename Arithmetic&gt; constexpr wide_integer(const Arithmetic&amp; other) noexcept;</pre>
 <div class="desc"><i>Effects:</i> Constructs an object from <code>other</code> using the integral conversion rules [conv.integral].</div>
 
-<pre>template&lt;size_t Bits2, signedness S2&gt; constexpr wide_integer(const wide_integer&lt;Bits2, S2&gt;&amp; other) noexcept;</pre>
+<pre>template&lt;size_t Bits2, typename S2&gt; constexpr wide_integer(const wide_integer&lt;Bits2, S2&gt;&amp; other) noexcept;</pre>
 <div class="desc"><i>Effects:</i> Constructs an object from <code>other</code> using the integral conversion rules [conv.integral].</div>
 
 <h4>26.??.2.?? wide_integer assignments <span class="right">[numeric.wide_integer.assign]</span></h4>
@@ -535,31 +537,31 @@ be equal to <code>Bits * CHAR_BITS</code>.</p>
 constexpr wide_integer&lt;Bits, S&gt;&amp; operator=(const Arithmetic&amp; other) noexcept;</pre>
 <div class="desc"><i>Effects:</i> Constructs an object from <code>other</code> using the integral conversion rules [conv.integral].</div>
 
-<pre>template&lt;size_t Bits2, signedness S2&gt;
+<pre>template&lt;size_t Bits2, typename S2&gt;
 constexpr wide_integer&lt;Bits, S&gt;&amp; operator=(const wide_integer&lt;Bits2, S2&gt;&amp; other) noexcept;</pre>
 <div class="desc"><i>Effects:</i> Constructs an object from <code>other</code> using the integral conversion rules [conv.integral].</div>
 
 <h4>26.??.2.?? wide_integer compound assignments <span class="right">[numeric.wide_integer.cassign]</span></h4>
-<pre>template&lt;size_t Bits2, signedness S2&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator*=(const wide_integer&lt;Bits2, S2&gt;&amp;);
-template&lt;size_t Bits2, signedness S2&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator/=(const wide_integer&lt;Bits2, S2&gt;&amp;);
-template&lt;size_t Bits2, signedness S2&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator+=(const wide_integer&lt;Bits2, S2&gt;&amp;) noexcept(S == signedness::Unsigned);
-template&lt;size_t Bits2, signedness S2&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator-=(const wide_integer&lt;Bits2, S2&gt;&amp;) noexcept(S == signedness::Unsigned);
-template&lt;size_t Bits2, signedness S2&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator%=(const wide_integer&lt;Bits2, S2&gt;&amp;);
-template&lt;size_t Bits2, signedness S2&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator&amp;=(const wide_integer&lt;Bits2, S2&gt;&amp;) noexcept;
-template&lt;size_t Bits2, signedness S2&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator|=(const wide_integer&lt;Bits2, S2&gt;&amp;) noexcept;
-template&lt;size_t Bits2, signedness S2&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator^=(const wide_integer&lt;Bits2, S2&gt;&amp;) noexcept;
-template&lt;size_t Bits2, signedness S2&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator&lt;&lt;=(const wide_integer&lt;Bits2, S2&gt;&amp;);
-template&lt;size_t Bits2, signedness S2&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator&gt;&gt;=(const wide_integer&lt;Bits2, S2&gt;&amp;) noexcept;
-constexpr wide_integer&lt;Bits, S&gt;&amp; operator++() noexcept(S == signedness::Unsigned);
-constexpr wide_integer&lt;Bits, S&gt; operator++(int) noexcept(S == signedness::Unsigned);
-constexpr wide_integer&lt;Bits, S&gt;&amp; operator--() noexcept(S == signedness::Unsigned);
-constexpr wide_integer&lt;Bits, S&gt; operator--(int) noexcept(S == signedness::Unsigned);</pre>
+<pre>template&lt;size_t Bits2, typename S2&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator*=(const wide_integer&lt;Bits2, S2&gt;&amp;);
+template&lt;size_t Bits2, typename S2&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator/=(const wide_integer&lt;Bits2, S2&gt;&amp;);
+template&lt;size_t Bits2, typename S2&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator+=(const wide_integer&lt;Bits2, S2&gt;&amp;) noexcept(is_unsigned_v&lt;S&gt;);
+template&lt;size_t Bits2, typename S2&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator-=(const wide_integer&lt;Bits2, S2&gt;&amp;) noexcept(is_unsigned_v&lt;S&gt;);
+template&lt;size_t Bits2, typename S2&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator%=(const wide_integer&lt;Bits2, S2&gt;&amp;);
+template&lt;size_t Bits2, typename S2&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator&amp;=(const wide_integer&lt;Bits2, S2&gt;&amp;) noexcept;
+template&lt;size_t Bits2, typename S2&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator|=(const wide_integer&lt;Bits2, S2&gt;&amp;) noexcept;
+template&lt;size_t Bits2, typename S2&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator^=(const wide_integer&lt;Bits2, S2&gt;&amp;) noexcept;
+template&lt;size_t Bits2, typename S2&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator&lt;&lt;=(const wide_integer&lt;Bits2, S2&gt;&amp;);
+template&lt;size_t Bits2, typename S2&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator&gt;&gt;=(const wide_integer&lt;Bits2, S2&gt;&amp;) noexcept;
+constexpr wide_integer&lt;Bits, S&gt;&amp; operator++() noexcept(is_unsigned_v&lt;S&gt;);
+constexpr wide_integer&lt;Bits, S&gt; operator++(int) noexcept(is_unsigned_v&lt;S&gt;);
+constexpr wide_integer&lt;Bits, S&gt;&amp; operator--() noexcept(is_unsigned_v&lt;S&gt;);
+constexpr wide_integer&lt;Bits, S&gt; operator--(int) noexcept(is_unsigned_v&lt;S&gt;);</pre>
 <div class="desc"><i>Effects:</i> Behavior of the above operators is similar to operators for built-in integral types.</div>
 
 <pre>template&lt;typename Arithmetic&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator*=(const Arithmetic&amp;);
 template&lt;typename Arithmetic&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator/=(const Arithmetic&amp;);
-template&lt;typename Arithmetic&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator+=(const Arithmetic&amp;) noexcept(S == signedness::Unsigned);
-template&lt;typename Arithmetic&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator-=(const Arithmetic&amp;) noexcept(S == signedness::Unsigned);</pre>
+template&lt;typename Arithmetic&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator+=(const Arithmetic&amp;) noexcept(is_unsigned_v&lt;S&gt;);
+template&lt;typename Arithmetic&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator-=(const Arithmetic&amp;) noexcept(is_unsigned_v&lt;S&gt;);</pre>
 <div class="desc"><i>Effects:</i> As if an object <code>wi</code> of type <code>wide_integer&lt;Bits, S&gt;</code> was created from input value and the corresponding operator was called for <code>*this</code> and the <code>wi</code>.</div>
 
 <pre>template&lt;typename Integral&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; operator%=(const Integral&amp;);
@@ -581,26 +583,26 @@ template&lt;typename Integral&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; ope
 
 <h3>26.??.?? Specializations of common_type <span class="right">[numeric.wide_integer.traits.specializations]</span></h3>
 
-<pre>template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+<pre>template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
 struct common_type&lt;wide_integer&lt;Bits, S&gt;, wide_integer&lt;Bits2, S2&gt;&gt; {
   using type = wide_integer&lt;max(Bits, Bits2), <i>see below</i>&gt;;
 };</pre>
 
 <p>The signed template parameter indicated by this specialization is following:</p>
 <ul>
-  <li><code>(S == signedness::Signed &amp;&amp; S2 == signedness::Signed ? signedness::Signed : signedness::Unsigned)</code> if <code>Bits == Bits2</code></li>
+  <li><code>(is_signed_v&lt;S&gt; &amp;&amp; is_signed_v&lt;S2&gt; ? signed : unsigned)</code> if <code>Bits == Bits2</code></li>
   <li><code>S</code> if <code>Bits > Bits2</code></li>
   <li><code>S2</code> otherwise</li>
 </ul>
 <p><i>[Note: </i> <code>common_type</code> follows the <i>usual arithmetic conversions</i> design. <i>- end note]</i></p>
 
 <p class="notes"><b><i>[Note to SG6:</i></b> <code>common_type</code> attempts to follow the <i>usual arithmetic conversions</i> design here for interoperability between different numeric types. Following two specializations must be moved to a more generic place and enriched with usual arithmetic conversion rules for <b>all the other</b> numeric classes that specialize <code>std::numeric_limits</code><i><b>- end note]</b></i></p>
-<pre>template&lt;size_t Bits, signedness S, typename Arithmetic&gt;
+<pre>template&lt;size_t Bits, typename S, typename Arithmetic&gt;
 struct common_type&lt;wide_integer&lt;Bits, S&gt;, Arithmetic&gt; {
   using type = <i>see below</i>;
 };</pre>
 
-<pre>template&lt;typename Arithmetic, size_t Bits, signedness S&gt;
+<pre>template&lt;typename Arithmetic, size_t Bits, typename S&gt;
 struct common_type&lt;Arithmetic, wide_integer&lt;Bits, S&gt;&gt;
   : common_type&lt;wide_integer&lt;Bits, S&gt;, Arithmetic&gt;;
 </pre>
@@ -610,75 +612,75 @@ struct common_type&lt;Arithmetic, wide_integer&lt;Bits, S&gt;&gt;
   <li><code>Arithmetic</code> if <code>numeric_limits&lt;Arithmetic&gt;::is_integer</code> is <code>false</code></li>
   <li><code>wide_integer&lt;Bits, S&gt;</code> if <code>sizeof(wide_integer&lt;Bits, S&gt;) &gt; sizeof(Arithmetic)</code></li>
   <li><code>Arithmetic</code> if <code>sizeof(wide_integer&lt;Bits, S&gt;) &lt; sizeof(Arithmetic)</code></li>
-  <li><code>Arithmetic</code> if <code>sizeof(wide_integer&lt;Bits, S&gt;) == sizeof(Arithmetic) &amp;&amp; S == signedness::Signed</code></li>
+  <li><code>Arithmetic</code> if <code>sizeof(wide_integer&lt;Bits, S&gt;) == sizeof(Arithmetic) &amp;&amp; is_signed_v&lt;S&gt;</code></li>
   <li><code>Arithmetic</code> if <code>sizeof(wide_integer&lt;Bits, S&gt;) == sizeof(Arithmetic) &amp;&amp; numeric_limits&lt;wide_integer&lt;Bits, S&gt;&gt;::is_signed == numeric_limits&lt;Arithmetic&gt;::is_signed</code></li>
   <li><code>wide_integer&lt;Bits, S&gt;</code> otherwise</li>
 </ul>
 
 <h3>26.??.?? Unary operators <span class="right">[numeric.wide_integer.unary_ops]</span></h3>
-<pre>template&lt;size_t Bits, signedness S&gt; constexpr wide_integer&lt;Bits, S&gt; operator~(const wide_integer&lt;Bits, S&gt;&amp; val) noexcept;</pre>
+<pre>template&lt;size_t Bits, typename S&gt; constexpr wide_integer&lt;Bits, S&gt; operator~(const wide_integer&lt;Bits, S&gt;&amp; val) noexcept;</pre>
 <div class="desc"><i>Returns:</i> value with inverted significant bits of <code>val</code>.</div>
 
-<pre>template&lt;size_t Bits, signedness S&gt; constexpr wide_integer&lt;Bits, S&gt; operator-(const wide_integer&lt;Bits, S&gt;&amp; val) noexcept(S == signedness::Unsigned);</pre>
+<pre>template&lt;size_t Bits, typename S&gt; constexpr wide_integer&lt;Bits, S&gt; operator-(const wide_integer&lt;Bits, S&gt;&amp; val) noexcept(is_unsigned_v&lt;S&gt;);</pre>
 <div class="desc"><i>Returns:</i> <code>val *= -1</code> if <code>S</code> is true, otherwise the result is unspecified.</div>
 
-<pre>template&lt;size_t Bits, signedness S&gt; constexpr wide_integer&lt;Bits, S&gt; operator+(const wide_integer&lt;Bits, S&gt;&amp; val) noexcept(S == signedness::Unsigned);</pre>
+<pre>template&lt;size_t Bits, typename S&gt; constexpr wide_integer&lt;Bits, S&gt; operator+(const wide_integer&lt;Bits, S&gt;&amp; val) noexcept(is_unsigned_v&lt;S&gt;);</pre>
 <div class="desc"><i>Returns:</i> <code>val</code>.</div>
 
 <h3>26.??.?? Binary operators <span class="right">[numeric.wide_integer.binary_ops]</span></h3>
 <p>In the function descriptions that follow, <code>CT</code> represents <code>common_type_t&lt;A, B&gt;</code>, where <code>A</code> and <code>B</code> are the types of the two arguments to the function.</p>
 
-<pre>template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+<pre>template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
   common_type_t&lt;wide_integer&lt;Bits, S&gt;, wide_integer&lt;Bits2, S2&gt;&gt;
   constexpr operator*(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs);</pre>
 <div class="desc"><i>Returns:</i> <code>CT(lhs) *= rhs</code>.</div>
 
-<pre>template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+<pre>template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
   common_type_t&lt;wide_integer&lt;Bits, S&gt;, wide_integer&lt;Bits2, S2&gt;&gt;
   constexpr operator/(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs);</pre>
 <div class="desc"><i>Returns:</i> <code>CT(lhs) /= rhs</code>.</div>
 
 
-<pre>template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+<pre>template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
   common_type_t&lt;wide_integer&lt;Bits, S&gt;, wide_integer&lt;Bits2, S2&gt;&gt;
-  constexpr operator+(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept(S == signedness::Unsigned);</pre>
+  constexpr operator+(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept(is_unsigned_v&lt;S&gt;);</pre>
 <div class="desc"><i>Returns:</i> <code>CT(lhs) += rhs</code>.</div>
 
 
-<pre>template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+<pre>template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
   common_type_t&lt;wide_integer&lt;Bits, S&gt;, wide_integer&lt;Bits2, S2&gt;&gt;
-  constexpr operator-(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept(S == signedness::Unsigned);</pre>
+  constexpr operator-(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept(is_unsigned_v&lt;S&gt;);</pre>
 <div class="desc"><i>Returns:</i> <code>CT(lhs) -= rhs</code>.</div>
 
 
-<pre>template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+<pre>template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
   common_type_t&lt;wide_integer&lt;Bits, S&gt;, wide_integer&lt;Bits2, S2&gt;&gt;
   constexpr operator%(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs);</pre>
 <div class="desc"><i>Returns:</i> <code>CT(lhs) %= rhs</code>.</div>
 
 
-<pre>template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+<pre>template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
   common_type_t&lt;wide_integer&lt;Bits, S&gt;, wide_integer&lt;Bits2, S2&gt;&gt;
   constexpr operator&amp;(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept;</pre>
 <div class="desc"><i>Returns:</i> <code>CT(lhs) &amp;= rhs</code>.</div>
 
-<pre>template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+<pre>template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
   common_type_t&lt;wide_integer&lt;Bits, S&gt;, wide_integer&lt;Bits2, S2&gt;&gt;
   constexpr operator|(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept;</pre>
 <div class="desc"><i>Returns:</i> <code>CT(lhs) |= rhs</code>.</div>
 
-<pre>template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+<pre>template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
   common_type_t&lt;wide_integer&lt;Bits, S&gt;, wide_integer&lt;Bits2, S2&gt;&gt;
   constexpr  operator^(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept;</pre>
 <div class="desc"><i>Returns:</i> <code>CT(lhs) ^= rhs</code>.</div>
 
-<pre>template&lt;size_t Bits, signedness S&gt;
+<pre>template&lt;size_t Bits, typename S&gt;
   common_type_t&lt;wide_integer&lt;Bits, S&gt;, size_t&gt;
   constexpr operator&lt;&lt;(const wide_integer&lt;Bits, S&gt;&amp; lhs, size_t rhs);</pre>
 <div class="desc"><i>Returns:</i> <code>CT(lhs) &lt;&lt;= rhs</code>.</div>
 
 
-<pre>template&lt;size_t Bits, signedness S&gt;
+<pre>template&lt;size_t Bits, typename S&gt;
   common_type_t&lt;wide_integer&lt;Bits, S&gt;, size_t&gt;
   constexpr operator&gt;&gt;(const wide_integer&lt;Bits, S&gt;&amp; lhs, size_t rhs) noexcept;</pre>
 <div class="desc"><i>Returns:</i> <code>CT(lhs) &gt;&gt;= rhs</code>.</div>
@@ -686,44 +688,44 @@ struct common_type&lt;Arithmetic, wide_integer&lt;Bits, S&gt;&gt;
 
 
 
-<pre>template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+<pre>template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
   constexpr bool operator&lt;(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept;</pre>
 <div class="desc"><i>Returns:</i> <code>true</code> if value of <code>CT(lhs)</code> is less than the value of <code>CT(rhs)</code>.</div>
 
 
-<pre>template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+<pre>template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
   constexpr bool operator&gt;(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept;</pre>
 <div class="desc"><i>Returns:</i> <code>true</code> if value of <code>CT(lhs)</code> is greater than the value of <code>CT(rhs)</code>.</div>
 
 
-<pre>template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+<pre>template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
   constexpr bool operator&lt;=(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept;</pre>
 <div class="desc"><i>Returns:</i> <code>true</code> if value of <code>CT(lhs)</code> is equal or less than the value of <code>CT(rhs)</code>.</div>
 
 
-<pre>template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+<pre>template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
   constexpr bool operator&gt;=(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept;</pre>
 <div class="desc"><i>Returns:</i> <code>true</code> if value of <code>CT(lhs)</code> is equal or greater than the value of <code>CT(rhs)</code>.</div>
 
 
-<pre>template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+<pre>template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
   constexpr bool operator==(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept;</pre>
 <div class="desc"><i>Returns:</i> <code>true</code> if significant bits of <code>CT(lhs)</code> and <code>CT(rhs)</code> are the same.</div>
 
-<pre>template&lt;size_t Bits, signedness S, size_t Bits2, signedness S2&gt;
+<pre>template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
   constexpr bool operator!=(const wide_integer&lt;Bits, S&gt;&amp; lhs, const wide_integer&lt;Bits2, S2&gt;&amp; rhs) noexcept;</pre>
 <div class="desc"><i>Returns:</i> <code>!(CT(lhs) == CT(rhs))</code>.</div>
 
 
 
 <h3>26.??.?? Numeric conversions <span class="right">[numeric.wide_integer.conversions]</span></h3>
-<pre>template&lt;size_t Bits, signedness S&gt; std::string to_string(const wide_integer&lt;Bits, S&gt;&amp; val);
-template&lt;size_t Bits, signedness S&gt; std::wstring to_wstring(const wide_integer&lt;Bits, S&gt;&amp; val);</pre>
+<pre>template&lt;size_t Bits, typename S&gt; std::string to_string(const wide_integer&lt;Bits, S&gt;&amp; val);
+template&lt;size_t Bits, typename S&gt; std::wstring to_wstring(const wide_integer&lt;Bits, S&gt;&amp; val);</pre>
 <div class="desc"><i>Returns:</i> Each function returns an object holding the character representation of the value of its argument. All the significant bits of the argument are outputed as a signed decimal in the style <code>[-]dddd</code>.</div>
 
 <div>
 <pre>
-template &lt;size_t Bits, signedness S&gt;
+template &lt;size_t Bits, typename S&gt;
 to_chars_result to_chars(char* first,
                        char* last,
                        const wide_integer&lt;Bits, S&gt;&amp; value,
@@ -731,7 +733,7 @@ to_chars_result to_chars(char* first,
 </pre>
 <p>Behavior of <code>wide_integer</code> overload is subject to the usual rules of primitive numeric output conversion functions [utility.to.chars].</p>
 
-<pre>template &lt;size_t Bits, signedness S&gt;
+<pre>template &lt;size_t Bits, typename S&gt;
 from_chars_result from_chars(const char* first,
                            const char* last,
                            wide_integer&lt;Bits, S&gt;&amp; value,
@@ -741,21 +743,21 @@ from_chars_result from_chars(const char* first,
 </div>
 
 <h3>26.??.?? iostream specializations <span class="right">[numeric.wide_integer.io]</span></h3>
-<pre>template&lt;class Char, class Traits, size_t Bits, signedness S&gt;
+<pre>template&lt;class Char, class Traits, size_t Bits, typename S&gt;
 basic_ostream&lt;Char, Traits&gt;&amp; operator&lt;&lt;(basic_ostream&lt;Char, Traits&gt;&amp; os, const wide_integer&lt;Bits, S&gt;&amp; val);</pre>
 <div class="desc"><i>Effects:</i> As if by: <code>os &lt;&lt; to_string(val)</code>.</div>
 <div class="desc"><i>Returns:</i> <code>os</code>.</div>
 
 
-<pre>template&lt;class Char, class Traits, size_t Bits, signedness S&gt;
+<pre>template&lt;class Char, class Traits, size_t Bits, typename S&gt;
 basic_istream&lt;Char, Traits&gt;&amp; operator&gt;&gt;(basic_istream&lt;Char, Traits&gt;&amp; is, wide_integer&lt;Bits, S&gt;&amp; val);</pre>
 <div class="desc"><i>Effects:</i> Extracts a <code>wide_integer</code> that is represented as a decimal number in the <code>is</code>. If bad input is encountered, calls <code>is.setstate(ios_base::failbit)</code> (which may throw <code>ios::failure</code> ([iostate.flags])).</div>
 <div class="desc"><i>Returns:</i> <code>is</code>.</div>
 
 
 <h3>26.??.?? Hash support <span class="right">[numeric.wide_integer.hash]</span></h3>
-<pre>template&lt;size_t Bits, signedness S&gt; struct hash&lt;wide_integer&lt;Bits, S&gt;&gt;;</pre>
-<p>The specialization is enabled (20.14.14). If there is a built-in integral type <code>Integral</code> that has the same signedness and width as <code>wide_integer&lt;Bits, S&gt;</code>, and <code>wi</code> is an object of type <code>wide_integer&lt;Bits, S&gt;</code>, then <code>hash&lt;wide_integer&lt;MachineWords, S&gt;&gt;()(wi) == hash&lt;Integral&gt;()(Integral(wi))</code>.</p>
+<pre>template&lt;size_t Bits, typename S&gt; struct hash&lt;wide_integer&lt;Bits, S&gt;&gt;;</pre>
+<p>The specialization is enabled (20.14.14). If there is a built-in integral type <code>Integral</code> that has the same typename and width as <code>wide_integer&lt;Bits, S&gt;</code>, and <code>wi</code> is an object of type <code>wide_integer&lt;Bits, S&gt;</code>, then <code>hash&lt;wide_integer&lt;MachineWords, S&gt;&gt;()(wi) == hash&lt;Integral&gt;()(Integral(wi))</code>.</p>
 
 
         <h2>V. Feature-testing macro</h2>

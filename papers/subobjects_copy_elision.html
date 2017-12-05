@@ -32,7 +32,7 @@
     <address>&nbsp;</address>
     <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2017-11-28</address>
+    <address>Date: 2017-12-04</address>
     <h1>Subobjects copy elision</h1>
 
     <!--p class='changed-added'>Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r1.html">P0539R1</a> are marked with blue.<p-->
@@ -112,6 +112,10 @@ int example_1_optimized() {
     return v.second.size();
 }
 </pre>
+
+<p>Compilers could do the above optimization if the callee is inlined and subobject copy elision is allowed (as proposed in this paper).
+In that case compiler could allocate enough
+stack space for storing the owning object <code>v</code> in the caller, call the destructors of non-returned-from-the-callee subobjects and proceed with subobject as a return value.</p>
 
 <p>Currently [class.copy.elision] prevents that optimization:</p>
 <pre class="lmargin50 stdquote">
@@ -1116,7 +1120,7 @@ example_3_optimized():
 
     <h2>VIII. Acknowledgements</h2>
     <p>Great thanks to Vyacheslav Napadovsky for helping with assembly and optimizations.</p>
-    <p>Thanks to Marc Glisse for pointing me to the forbidden copy elision cases. Thanks to Thomas Köppe, Peter Dimov, Richard Smith, Gabriel Dos Reis for
+    <p>Thanks to Marc Glisse for pointing me to the forbidden copy elision cases. Thanks to Thomas Köppe, Peter Dimov, Richard Smith, Gabriel Dos Reis, Anton Bikineev for
     participating in early discussion and helping me to put my thoughts together.</p>
 
 
