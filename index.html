@@ -1,132 +1,214 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
 
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, minimal-ui">
-    <title>Links and Stuff</title>
-    <link rel="stylesheet" href="html_assets/github-markdown.css">
-    <style>
-        body{
-            box-sizing:border-box;
-            min-width:200px;
-            max-width:980px;
-            margin:0 auto;
-            padding:45px;
-        }
-    </style>
-</head>
+    <title>Antony's Attic</title>
 
-<body>
-<article class="markdown-body">
-    <h1><a class="anchor" href="#head" aria-hidden="true"><span class="octicon octicon-link"></span></a>Useful links, papers and other stuff</h1>
-    <p>No time to explain! Here are the links:</p>
+    <!-- Bootstrap core CSS -->
+    <link href="html_assets/bootstrap.css" rel="stylesheet">
 
-    <h5><a class="anchor" href="#gh-account" aria-hidden="true"><span class="octicon octicon-link"></span></a>Github account: <a href="https://github.com/apolukhin">Antony Polukhin</a>.</h5>
-    <h5><a class="anchor" href="#book-site" aria-hidden="true"><span class="octicon octicon-link"></span></a>Boost Application Development Cookbook</h5>
-    <ul>
-        <li><a href="http://apolukhin.github.io/Boost-Cookbook/">Online Examples</a></li>
-        <li><a href="http://github.com/apolukhin/Boost-Cookbook/">Source codes</a></li>
-        <li><a href="https://www.packtpub.com/application-development/boost-c-application-development-cookbook">Buy/Support</a></li>
-    </ul>
+    <!-- Custom styles for this template -->
+    <link href="html_assets/carousel.css" rel="stylesheet">
+    <link href="html_assets/custom.css" rel="stylesheet">
+  </head>
 
-    <h5><a class="anchor" href="#proposals" aria-hidden="true"><span class="octicon octicon-link"></span></a>C++ Proposals</h5>
-    <ul style="list-style-type: none;">
-        <li>&#9851; <a href="https://apolukhin.github.io/papers/DLLr2.html">D0275R2: DLL proposal</a></li>
-        <li>&#9851; <a href="https://apolukhin.github.io/papers/Concurrent%20and%20unordered.html">P0652R0: Concurrent associative data structure with unsynchronized view</a></li>
-        <li>&#9851; <a href="https://apolukhin.github.io/papers/wide_int_r1.html">P0539R1: Wide Int</a></li>
-        <li>&#10004; <a href="https://apolukhin.github.io/papers/constexpr_allocator.html">P0639R0: Changing attack vector of the constexpr_vector</a></li>
-        <li>&#9851; <a href="https://apolukhin.github.io/papers/P0539R0:%20Wide%20Int.html">P0539R0: Wide Int</a></li>
-        <li>&#10004; <a href="https://apolukhin.github.io/papers/constexpr_char_traits1.html">P0426R1: Constexpr for std::char_traits</a></li>
-        <li>&#9851; <a href="https://apolukhin.github.io/papers/constexpr_char_traits.html">P0426R0: Constexpr for std::char_traits</a></li>
-        <li>&#8987; <a href="https://apolukhin.github.io/papers/constexpr_complex.html">P0415R0: Constexpr for std::complex</a></li>
-        <li>&#9851; <a href="https://apolukhin.github.io/papers/P0275R1:%20DLL%20proposal.html">P0275R1: DLL proposal</a></li>
-        <li>&#9851; <a href="https://apolukhin.github.io/papers/P0275R0:%20DLL%20proposal.html">P0275R0: DLL proposal</a></li>
-        <li>&#10060; <a href="https://apolukhin.github.io/papers/P0276R0:%20Attribute%20%5B%5Bvisible%5D%5D.html">P0276R0: Attribute [[visible]]</a></li>
-        <li>&#8987; <a href="https://apolukhin.github.io/papers/D0202R2:%20Constexpr%20algorithm.html">D0202R2: Constexpr algorithm</a></li>
-        <li>&#9851; <a href="https://apolukhin.github.io/papers/P0202R1:%20A%20Proposal%20to%20Add%20Constexpr%20Modifiers%20to%20Functions%20in%20%3Calgorithm%3E%20and%20%3Cutility%3E%20Headers.html">P0202R1: Constexpr Modifiers for &lt;algorithm&gt; and &lt;utility&gt;</a></li>
-        <li>&#9851; <a href="https://apolukhin.github.io/papers/P0202R0:%20A%20Proposal%20to%20Add%20Constexpr%20Modifiers%20to%20Functions%20in%20%3Calgorithm%3E%20and%20%3Ccstring%3E%20Headers.html">P0202R0: Constexpr Modifiers for &lt;algorithm&gt; and &lt;cstring&gt;</a></li>
-        <li>&#10004; <a href="https://apolukhin.github.io/papers/P0031R0:%20A%20Proposal%20to%20Add%20Constexpr%20Modifiers%20to%20reverse_iterator%2C%20move_iterator%2C%20array%20and%20Range%20Access.html">P0031R0: Add Constexpr Modifiers to reverse_iterator, move_iterator, array and Range Access</a></li>
-    </ul>
+  <body>
+    <header>
+        <nav class="navbar navbar-expand-md fixed-top navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">Antony's Attic</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
 
-    <h5><a class="anchor" href="#presentations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Presentations</h5>
-    <ul>
-
-        <li><a href="https://apolukhin.github.io/presentations/PSSV%202017%20(en)_%20Contracts.odp">PSSV 2017 (en): Contracts.odp</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/PSSV%202017%20(en)_%20Contracts.pdf">PSSV 2017 (en): Contracts.pdf</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/PSSV%202017%20(rus)_%20Contracts.odp">PSSV 2017 (rus): Contracts.odp</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/PSSV%202017%20(rus)_%20Contracts.pdf">PSSV 2017 (rus): Contracts.pdf</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/Kazan%202017%20(rus)_%20Недельная%20работа%20за%20час.odp">Kazan 2017 (rus): Недельная работа за час.odp</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/Kazan%202017%20(rus)_%20Недельная%20работа%20за%20час.pdf">Kazan 2017 (rus): Недельная работа за час.pdf</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/Corehard%20Spring%202017%20(rus)_%20Недельная%20работа%20за%20час.odp">Corehard Spring 2017 (rus): Недельная работа за час.odp</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/Corehard%20Spring%202017%20(rus)_%20Недельная%20работа%20за%20час.pdf">Corehard Spring 2017 (rus): Недельная работа за час.pdf</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/C++%20RG21%202017-march-27%20(rus):%20Жаркая%20встреча%20на%20Гаваях.odp">C++ RG21 2017-march-27 (rus): Жаркая встреча на Гаваях.odp</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/C++%20RG21%202017-march-27%20(rus):%20Жаркая%20встреча%20на%20Гаваях.pdf">C++ RG21 2017-march-27 (rus): Жаркая встреча на Гаваях.pdf</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/C++%20Russia%202017%20(rus):%20Bikesched.odp">C++ Russia 2017 (rus): Bikesched.odp</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/C++%20Russia%202017%20(rus):%20Bikesched.pdf">C++ Russia 2017 (rus): Bikesched.pdf</a></li>
-
-        <li><a href="https://apolukhin.github.io/presentations/C++%20Siberia%202016%20(rus):%20C++17.odp">C++ Siberia 2016 (rus): C++17.odp</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/C++%20Siberia%202016%20(rus):%20C++17.pdf">C++ Siberia 2016 (rus): C++17.pdf</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/C++14%20Reflections%20(rus%20updated%20improved).odp">C++ Party Novosibirsk 2016, РГ 21 1ая встреча, CoreHard 2016: Рефлексия в C++14.odp</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/C++14%20Reflections%20(rus%20updated%20improved).pdf">C++ Party Novosibirsk 2016, РГ 21 1ая встреча, CoreHard 2016: Рефлексия в C++14.pdf</a></li>
-        
-        <li><a href="https://apolukhin.github.io/presentations/CppCon%202016%20(eng):%20C++14%20Reflections.odp">CppCon 2016 (eng): C++14 Reflections Without Macros, Markup nor External Tooling.Metaprogramming Tricks for POD Types.odp</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/CppCon%202016%20(eng):%20C++14%20Reflections.pdf">CppCon 2016 (eng): C++14 Reflections Without Macros, Markup nor External Tooling.Metaprogramming Tricks for POD Types.pdf</a></li>
-        
-        <li><a href="https://apolukhin.github.io/presentations/C++%20Russia%202016%20(rus)_%20%D0%9D%D0%B5%D0%BC%D0%BD%D0%BE%D0%B3%D0%BE%20%D0%BE%20Boost.odp">C++ Russia 2016 (rus)_ Немного о Boost.odp</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/C++%20Russia%202016%20(rus)_%20%D0%9D%D0%B5%D0%BC%D0%BD%D0%BE%D0%B3%D0%BE%20%D0%BE%20Boost.pdf">C++ Russia 2016 (rus)_ Немного о Boost.pdf</a></li>
-        
-        
-        <li><a href="https://apolukhin.github.io/presentations/C++%20Russia%202015%20(eng):%20High%20quality%20library%20from%20scratch.odp">C++ Russia 2015 (eng): High quality library from scratch.odp</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/C++%20Russia%202015%20(eng):%20High%20quality%20library%20from%20scratch.pdf">C++ Russia 2015 (eng): High quality library from scratch.pdf</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/C++%20Russia%202015%20(rus):%20%D0%9A%D0%B0%D1%87%D0%B5%D1%81%D1%82%D0%B2%D0%B5%D0%BD%D0%BD%D0%B0%D1%8F%20%D0%B1%D0%B8%D0%B1%D0%BB%D0%B8%D0%BE%D1%82%D0%B5%D0%BA%D0%B0%20%D1%81%20%D0%BD%D1%83%D0%BB%D1%8F.odp">C++ Russia 2015 (rus): Качественная библиотека с нуля.odp</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/C++%20Russia%202015%20(rus):%20%D0%9A%D0%B0%D1%87%D0%B5%D1%81%D1%82%D0%B2%D0%B5%D0%BD%D0%BD%D0%B0%D1%8F%20%D0%B1%D0%B8%D0%B1%D0%BB%D0%B8%D0%BE%D1%82%D0%B5%D0%BA%D0%B0%20%D1%81%20%D0%BD%D1%83%D0%BB%D1%8F.pdf">C++ Russia 2015 (rus): Качественная библиотека с нуля.pdf</a></li>
-        
-        <li><a href="https://apolukhin.github.io/presentations/C++%20Russia%202014%20(rus):%20C++11%20and%20Boost.odp">C++ Russia 2014 (rus): C++11 and Boost.odp</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/C++%20Russia%202014%20(rus):%20C++11%20and%20Boost.pdf">C++ Russia 2014 (rus): C++11 and Boost.pdf</a></li>
-        
-        
-        <li><a href="https://apolukhin.github.io/presentations/Open%20Data%20Hackathon%202013%20(rus):%20OntoQuad%20RDF%20Server%20MoscowData.ppt">Open Data Hackathon 2013 (rus): OntoQuad RDF Server MoscowData.ppt</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/Open%20Data%20Hackathon%202013%20(rus):%20OntoQuad%20RDF%20Server%20MoscowData.pdf">Open Data Hackathon 2013 (rus): OntoQuad RDF Server MoscowData.pdf</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/KESW%202013%20(eng):%20OntoQuad%20RDF%20Server.ppt">KESW 2013 (eng): OntoQuad RDF Server.ppt</a></li>
-        <li><a href="https://apolukhin.github.io/presentations/KESW%202013%20(eng):%20OntoQuad%20RDF%20Server.pdf">KESW 2013 (eng): OntoQuad RDF Server.pdf</a></li>
-    </ul>
-
-    <h5><a class="anchor" href="#proposals" aria-hidden="true"><span class="octicon octicon-link"></span></a>Developer links:</h5>
-    <ul>
-        <li><a href="https://github.com/search?utf8=%E2%9C%93&q=repo%3Aboostorg%2Fany+repo%3Aboostorg%2Fconversion+repo%3Aboostorg%2Fdll+repo%3Aboostorg%2Flexical_cast+repo%3Aboostorg%2Fstacktrace+repo%3Aboostorg%2Ftype_index+repo%3Aboostorg%2Fvariant+repo%3Aapolukhin%2Fany+repo%3Aapolukhin%2Fconversion+repo%3Aapolukhin%2FBoost.DLL+repo%3Aapolukhin%2Flexical_cast+repo%3Aapolukhin%2Fstacktrace+repo%3Aapolukhin%2Ftype_index+repo%3Aapolukhin%2Fvariant+repo%3Aapolukhin%2Fmagic_get+repo%3Aapolukhin%2Fapolukhin.github.io+is%3Aopen&type=Issues&ref=searchresults">Mine Github issues and pulls</a></li>
-        <li><a href="https://svn.boost.org/trac/boost/query?status=assigned&status=new&status=reopened&component=any&or&status=assigned&status=new&status=reopened&component=conversion&or&status=assigned&status=new&status=reopened&component=dll&or&status=assigned&status=new&status=reopened&component=lexical_cast&or&status=assigned&status=new&status=reopened&component=stacktrace&or&status=assigned&status=new&status=reopened&component=type_index&or&status=assigned&status=new&status=reopened&component=variant&or&status=assigned&status=new&status=reopened&owner=apolukhin&col=id&col=summary&col=component&col=status&col=owner&col=type&col=milestone&order=priority">Mine Trac Issues</a></li>
-    </ul>
-
-    <h5><a class="anchor" href="#proposals" aria-hidden="true"><span class="octicon octicon-link"></span></a>Statuses:</h5>
-    <table border=1>
-        <tr><th>Branches</th><th>Linux</th><th>Windows</th><th>Coverage</th><th>More info</th></tr>
-
-<tr><td><a href="https://github.com/apolukhin/Boost-Cookbook">Boost-Cookbook</a></td><td><a href="https://travis-ci.org/apolukhin/Boost-Cookbook"><img  alt="Build status" src="https://travis-ci.org/apolukhin/Boost-Cookbook.svg?branch=second_edition"></a></td> <td><a href="https://ci.appveyor.com/project/apolukhin/boost-cookbook/branch/second_edition"><img  alt="Build status" src="https://ci.appveyor.com/api/projects/status/github/apolukhin/boost-cookbook?branch=second_edition&svg=true"></a></td><td><a href="https://coveralls.io/github/apolukhin/Boost-Cookbook?branch=second_edition"><img src="https://coveralls.io/repos/github/apolukhin/Boost-Cookbook/badge.png?branch=second_edition" alt="Coverage Status"></a></td> <td> <a href="https://codecov.io/github/apolukhin/Boost-Cookbook?branch=second_edition"><img alt="codecov.io" src="https://codecov.io/github/apolukhin/Boost-Cookbook/coverage.svg?branch=second_edition"></a></td></tr>
-
-<tr><td><a href="https://github.com/boostorg/any">Any Develop branch:</a> </td><td> <a href="https://travis-ci.org/apolukhin/any"><img src="https://travis-ci.org/apolukhin/any.svg?branch=develop" alt="Build Status"></a></td> <td><a href="https://ci.appveyor.com/project/apolukhin/any/branch/develop"><img src="https://ci.appveyor.com/api/projects/status/dmugl75nfhjnx7ot/branch/develop?svg=true" alt="Build status"></a> </td><td> <a href="https://coveralls.io/r/apolukhin/any?branch=develop"><img src="https://coveralls.io/repos/apolukhin/any/badge.png?branch=develop" alt="Coverage Status"></a> </td><td> <a href="http://www.boost.org/development/tests/develop/developer/any.html">details...</a></td></tr>
-<tr><td><a href="https://github.com/boostorg/any/tree/master">Any Master branch:</a>  </td><td> <a href="https://travis-ci.org/apolukhin/any"><img src="https://travis-ci.org/apolukhin/any.svg?branch=master" alt="Build Status"></a></td> <td><a href="https://ci.appveyor.com/project/apolukhin/any/branch/master"><img src="https://ci.appveyor.com/api/projects/status/dmugl75nfhjnx7ot/branch/master?svg=true" alt="Build status"></a> </td><td> <a href="https://coveralls.io/r/apolukhin/any?branch=master"><img src="https://coveralls.io/repos/apolukhin/any/badge.png?branch=master" alt="Coverage Status"></a> </td><td> <a href="http://www.boost.org/development/tests/master/developer/any.html">details...</a></td></tr>
-<tr><td><a href="https://github.com/boostorg/conversion">Conversion Develop branch:</a> </td><td> <a href="https://travis-ci.org/apolukhin/conversion"><img src="https://travis-ci.org/apolukhin/conversion.svg?branch=develop" alt="Build Status"></a></td> <td><a href="https://ci.appveyor.com/project/apolukhin/conversion/branch/develop"><img src="https://ci.appveyor.com/api/projects/status/yep84179w535pppg/branch/develop?svg=true" alt="Build status"></a> </td><td> <a href="https://coveralls.io/r/apolukhin/conversion?branch=develop"><img src="https://coveralls.io/repos/apolukhin/conversion/badge.png?branch=develop" alt="Coverage Status"></a> </td><td> <a href="http://www.boost.org/development/tests/develop/developer/conversion.html">details...</a></td></tr>
-<tr><td><a href="https://github.com/boostorg/conversion/tree/master">Conversion Master branch:</a>  </td><td> <a href="https://travis-ci.org/apolukhin/conversion"><img src="https://travis-ci.org/apolukhin/conversion.svg?branch=master" alt="Build Status"></a></td> <td><a href="https://ci.appveyor.com/project/apolukhin/conversion/branch/master"><img src="https://ci.appveyor.com/api/projects/status/yep84179w535pppg/branch/master?svg=true" alt="Build status"></a> </td><td> <a href="https://coveralls.io/r/apolukhin/conversion?branch=master"><img src="https://coveralls.io/repos/apolukhin/conversion/badge.png?branch=master" alt="Coverage Status"></a> </td><td> <a href="http://www.boost.org/development/tests/master/developer/conversion.html">details...</a></td></tr>
-<tr><td><a href="https://github.com/boostorg/dll">Dll Develop:</a>        </td><td> <a href="https://travis-ci.org/apolukhin/Boost.DLL"><img src="https://travis-ci.org/apolukhin/Boost.DLL.svg?branch=develop" alt="Build Status"></a></td> <td><a href="https://ci.appveyor.com/project/apolukhin/boost-dll/branch/develop"><img src="https://ci.appveyor.com/api/projects/status/t6q6yhcabtk5b99l/branch/develop?svg=true" alt="Build status"></a>  </td><td> <a href="https://coveralls.io/r/apolukhin/Boost.DLL?branch=develop"><img src="https://coveralls.io/repos/apolukhin/Boost.DLL/badge.png?branch=develop" alt="Coverage Status"></a> </td><td> <a href="http://www.boost.org/development/tests/develop/developer/dll.html">details...</a></td></tr>
-<tr><td><a href="https://github.com/boostorg/dll/tree/master">Dll Master:</a>         </td><td> <a href="https://travis-ci.org/apolukhin/Boost.DLL"><img src="https://travis-ci.org/apolukhin/Boost.DLL.svg?branch=master" alt="Build Status"></a></td> <td><a href="https://ci.appveyor.com/project/apolukhin/boost-dll/branch/master"><img src="https://ci.appveyor.com/api/projects/status/t6q6yhcabtk5b99l/branch/master?svg=true" alt="Build status"></a>  </td><td> <a href="https://coveralls.io/r/apolukhin/Boost.DLL?branch=master"><img src="https://coveralls.io/repos/apolukhin/Boost.DLL/badge.png?branch=master" alt="Coverage Status"></a> </td><td> <a href="http://www.boost.org/development/tests/master/developer/dll.html">details...</a></td></tr>
-<tr><td><a href="https://github.com/boostorg/lexical_cast">Lexical_cast Develop branch:</a> </td><td> <a href="https://travis-ci.org/apolukhin/lexical_cast"><img src="https://travis-ci.org/apolukhin/lexical_cast.svg?branch=develop" alt="Build Status"></a></td> <td><a href="https://ci.appveyor.com/project/apolukhin/lexical-cast/branch/develop"><img src="https://ci.appveyor.com/api/projects/status/mwwanh1bpsnuv38h/branch/develop?svg=true" alt="Build status"></a>  </td><td> <a href="https://coveralls.io/r/apolukhin/lexical_cast?branch=develop"><img src="https://coveralls.io/repos/apolukhin/lexical_cast/badge.png?branch=develop" alt="Coverage Status"></a> </td><td> <a href="http://www.boost.org/development/tests/develop/developer/lexical_cast.html">details...</a></td></tr>
-<tr><td><a href="https://github.com/boostorg/lexical_cast/tree/master">Lexical_cast Master branch:</a>  </td><td> <a href="https://travis-ci.org/apolukhin/lexical_cast"><img src="https://travis-ci.org/apolukhin/lexical_cast.svg?branch=master" alt="Build Status"></a></td> <td><a href="https://ci.appveyor.com/project/apolukhin/lexical-cast/branch/master"><img src="https://ci.appveyor.com/api/projects/status/mwwanh1bpsnuv38h/branch/master?svg=true" alt="Build status"></a>  </td><td> <a href="https://coveralls.io/r/apolukhin/lexical_cast?branch=master"><img src="https://coveralls.io/repos/apolukhin/lexical_cast/badge.png?branch=master" alt="Coverage Status"></a> </td><td> <a href="http://www.boost.org/development/tests/master/developer/lexical_cast.html">details...</a></td></tr>
-<tr><td><a href="https://github.com/apolukhin/magic_get">Pfr Develop:</a>        </td><td> <a href="https://travis-ci.org/apolukhin/magic_get"><img src="https://travis-ci.org/apolukhin/magic_get.svg?branch=develop" alt="Build Status"></a></td> <td> <a href="https://ci.appveyor.com/project/apolukhin/magic-get/branch/develop"><img src="https://ci.appveyor.com/api/projects/status/1edm74h5id8qpr2k/branch/develop?svg=true" alt="Build status"></a></td> <td> <a href="https://coveralls.io/github/apolukhin/magic_get?branch=develop"><img src="https://coveralls.io/repos/github/apolukhin/magic_get/badge.png?branch=develop" alt="Coverage Status"></a> </td><td> <!-- <a href="http://www.boost.org/development/tests/develop/developer/pfr.html">details...</a>) --></td></tr>
-<tr><td><a href="https://github.com/apolukhin/magic_get/tree/master">Pfr Master:</a>         </td><td> <a href="https://travis-ci.org/apolukhin/magic_get"><img src="https://travis-ci.org/apolukhin/magic_get.svg?branch=master" alt="Build Status"></a></td> <td> <a href="https://ci.appveyor.com/project/apolukhin/magic-get/branch/master"><img src="https://ci.appveyor.com/api/projects/status/1edm74h5id8qpr2k/branch/master?svg=true" alt="Build status"></a> </td><td> <a href="https://coveralls.io/github/apolukhin/magic_get?branch=master"><img src="https://coveralls.io/repos/github/apolukhin/magic_get/badge.png?branch=master" alt="Coverage Status"></a> </td><td> <!-- <a href="http://www.boost.org/development/tests/master/developer/pfr.html">details...</a>) --></td></tr>
-<tr><td><a href="https://github.com/boostorg/stacktrace">Stacktrace Develop branch:</a>  </td><td> <a href="https://travis-ci.org/boostorg/stacktrace"><img src="https://travis-ci.org/boostorg/stacktrace.svg?branch=develop" alt="Build Status"></a></td> <td><a href="https://ci.appveyor.com/project/apolukhin/stacktrace/branch/develop"><img src="https://ci.appveyor.com/api/projects/status/l3aak4j8k39rx08t/branch/develop?svg=true" alt="Build status"></a> </td><td> <a href="https://coveralls.io/r/boostorg/stacktrace?branch=develop"><img src="https://coveralls.io/repos/boostorg/stacktrace/badge.png?branch=develop" alt="Coverage Status"></a> </td><td> <a href="http://www.boost.org/development/tests/develop/developer/stacktrace.html">details...</a></td></tr>
-<tr><td><a href="https://github.com/boostorg/stacktrace/tree/master">Stacktrace Master branch:</a>  </td><td> <a href="https://travis-ci.org/boostorg/stacktrace"><img src="https://travis-ci.org/boostorg/stacktrace.svg?branch=master" alt="Build Status"></a></td> <td><a href="https://ci.appveyor.com/project/apolukhin/stacktrace/branch/master"><img src="https://ci.appveyor.com/api/projects/status/l3aak4j8k39rx08t/branch/master?svg=true" alt="Build status"></a> </td><td> <a href="https://coveralls.io/r/boostorg/stacktrace?branch=master"><img src="https://coveralls.io/repos/boostorg/stacktrace/badge.png?branch=master" alt="Coverage Status"></a> </td><td> <a href="http://www.boost.org/development/tests/master/developer/stacktrace.html">details...</a></td></tr>
-<tr><td><a href="https://github.com/boostorg/type_index">Type_index Develop branch:</a> </td><td> <a href="https://travis-ci.org/apolukhin/type_index"><img src="https://travis-ci.org/apolukhin/type_index.svg?branch=develop" alt="Build Status"></a></td> <td><a href="https://ci.appveyor.com/project/apolukhin/type-index/branch/develop"><img src="https://ci.appveyor.com/api/projects/status/197a5imq10dqx6r8/branch/develop?svg=true" alt="Build status"></a> </td><td> <a href="https://coveralls.io/r/apolukhin/type_index?branch=develop"><img src="https://coveralls.io/repos/apolukhin/type_index/badge.png?branch=develop" alt="Coverage Status"></a> </td><td> <a href="http://www.boost.org/development/tests/develop/developer/type_index.html">details...</a></td></tr>
-<tr><td><a href="https://github.com/boostorg/type_index/tree/master">Type_index Master branch:</a>  </td><td> <a href="https://travis-ci.org/apolukhin/type_index"><img src="https://travis-ci.org/apolukhin/type_index.svg?branch=master" alt="Build Status"></a></td> <td><a href="https://ci.appveyor.com/project/apolukhin/type-index/branch/master"><img src="https://ci.appveyor.com/api/projects/status/197a5imq10dqx6r8/branch/develop?svg=true" alt="Build status"></a> </td><td> <a href="https://coveralls.io/r/apolukhin/type_index?branch=master"><img src="https://coveralls.io/repos/apolukhin/type_index/badge.png?branch=master" alt="Coverage Status"></a> </td><td> <a href="http://www.boost.org/development/tests/master/developer/type_index.html">details...</a></td></tr>
-<tr><td><a href="https://github.com/boostorg/variant">Variant Develop branch:</a> </td><td> <a href="https://travis-ci.org/apolukhin/variant"><img src="https://travis-ci.org/apolukhin/variant.svg?branch=develop" alt="Build Status"></a></td> <td><a href="https://ci.appveyor.com/project/apolukhin/variant/branch/develop"><img src="https://ci.appveyor.com/api/projects/status/o5hmsaj53v9vc624/branch/develop?svg=true" alt="Build status"></a> </td><td> <a href="https://coveralls.io/r/apolukhin/variant?branch=develop"><img src="https://coveralls.io/repos/apolukhin/variant/badge.png?branch=develop" alt="Coverage Status"></a> </td><td> <a href="http://www.boost.org/development/tests/develop/developer/variant.html">details...</a></td></tr>
-<tr><td><a href="https://github.com/boostorg/variant/tree/master">Variant Master branch:</a>  </td><td> <a href="https://travis-ci.org/apolukhin/variant"><img src="https://travis-ci.org/apolukhin/variant.svg?branch=master" alt="Build Status"></a></td> <td><a href="https://ci.appveyor.com/project/apolukhin/variant/branch/master"><img src="https://ci.appveyor.com/api/projects/status/o5hmsaj53v9vc624/branch/master?svg=true" alt="Build status"></a> </td><td> <a href="https://coveralls.io/r/apolukhin/variant?branch=master"><img src="https://coveralls.io/repos/apolukhin/variant/badge.png?branch=master" alt="Coverage Status"></a>  </td><td> <a href="http://www.boost.org/development/tests/master/developer/variant.html">details...</a></td></tr>
+          <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+            <ul class="navbar-nav mr-auto">
+              <li class="nav-item">
+                <a class="nav-link active" href="./index.html"><span lang="en">Home</span><span lang="ru">Главная</span></a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="./consulting.html"><span lang="en">Trainings&amp;Consulting</span><span lang="ru">Корпоративные тренинги</span></a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="./publications.html"><span lang="en">Publications</span><span lang="ru">Публикации</span> <span lang="en" class="sr-only">(current)</span><span lang="ru" class="sr-only">(текущая)</span></a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="./presentations.html"><span lang="en">Presentations</span><span lang="ru">Презентации</span></a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="./developer.html"><span lang="en">Development Corner</span><span lang="ru">Уголок Разработки</span></a>
+              </li>
+            </ul>
+            <form class="form-inline my-2 my-lg-0">
+                <span style="color:#FFF;">Language&nbsp;/&nbsp;Язык:&nbsp;</span>
+                <select id="lang-select" class="bg-white" onchange="select_language(this.options[this.selectedIndex].value)">
+                    <option value="en" selected>English</option>
+                    <option value="ru">Русский</option>
+                </select>
+            </form>
+          </div>
+        </nav>
+    </header>
 
 
+    <!-- Content -->
 
-    </table>
-</article>
+    <main role="main">
+
+      <div id="myCarousel" class="carousel slide" data-ride="carousel">
+        <ol class="carousel-indicators">
+          <li data-target="#myCarousel" data-slide-to="0" class="active"></li>
+          <li data-target="#myCarousel" data-slide-to="1" class=""></li>
+          <li data-target="#myCarousel" data-slide-to="2" class=""></li>
+        </ol>
+        <div class="carousel-inner">
+          <div class="carousel-item active">
+            <img class="first-slide" src="html_assets/talk.jpg" alt="First slide">
+            <div class="container">
+              <div lang="en" class="carousel-caption">
+                <h1>Talks.</h1>
+                <p>C++ talks on bleeding edge technologies.</p>
+                <p><a class="btn btn-lg btn-primary bg-dark" href="./presentations.html" role="button">See slides</a></p>
+              </div>
+              <div lang="ru" class="carousel-caption">
+                <h1>Выступления.</h1>
+                <p>Лекции о новейших технологиях мира C++.</p>
+                <p><a class="btn btn-lg btn-primary bg-dark" href="./presentations.html" role="button">Скачать слайды</a></p>
+              </div>
+            </div>
+          </div>
+          <div class="carousel-item">
+            <img class="second-slide" src="html_assets/books.jpg" alt="Second slide">
+            <div class="container">
+              <div lang="en" class="carousel-caption">
+                <h1>Boost C++ Libraries Book.</h1>
+                <p>Over 80 examples on Boost usage for beginners/ Upcomming features of C++ and Boost for professionals.</p>
+                <p><a class="btn btn-lg btn-primary bg-dark" href="./publications.html#book-second" role="button">Learn more</a></p>
+              </div>
+              <div lang="ru" class="carousel-caption">
+                <h1>Учебник по Boost C++ Libraries.</h1>
+                <p>Более 80 практических примеров использования библиотек Boost для начинающих разработчиков. Новейшие возможности языка C++ и библиотек Boost для профессионалов.</p>
+                <p><a class="btn btn-lg btn-primary bg-dark" href="./publications.html#book-second" role="button">Узнать больше</a></p>
+              </div>
+            </div>
+          </div>
+          <div class="carousel-item">
+            <img class="third-slide" src="html_assets/no_memory_leaks.jpg" alt="Third slide">
+            <div lang="en" class="container">
+              <div class="carousel-caption">
+                <h1>Development Corner.</h1>
+                <p>Whant to see how my the projects are doing?</p>
+                <p><a class="btn btn-lg btn-primary bg-dark" href="./developer.html" role="button">To the test matrix!</a></p>
+              </div>
+            </div>
+            <div lang="ru" class="container">
+              <div class="carousel-caption">
+                <h1>Уголок Разработки.</h1>
+                <p>Хотите увидеть как поживают мои проекты?</p>
+                <p><a class="btn btn-lg btn-primary bg-dark" href="./developer.html" role="button">К тестовой матрице!</a></p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <a class="carousel-control-prev" href="#myCarousel" role="button" data-slide="prev">
+          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+          <span class="sr-only">Previous</span>
+        </a>
+        <a class="carousel-control-next" href="#myCarousel" role="button" data-slide="next">
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+          <span class="sr-only">Next</span>
+        </a>
+      </div>
 
 
-</body>
+      <!-- Marketing messaging and featurettes
+      ================================================== -->
+      <!-- Wrap the rest of the page in another container to center all the content. -->
 
-</html>
+      <div class="container marketing">
+
+        <div class="row justify-content-center text-center">
+          <div class="col-lg-8">
+            <img class="rounded" src="html_assets/rocket.png" alt="Rocket" width="140" height="140">
+            <h2 lang="en">Trainings&amp;Consulting</h2>
+            <h2 lang="ru">Корпоративные тренинги и Консультации</h2>
+            <p lang="en">Help in understanding C++; talks and tricks for improving development speed; application performance, latency and relyability of your applications.</p>
+            <p lang="ru">Помощь в освоении C++ и увеличении скорости разработки; производительности, отзывчивости и надёжности ваших приложений.</p>
+            <p lang="en"><a class="btn btn-secondary align-center" href="./consulting.html" role="button">View details »</a></p>
+            <p lang="ru"><a class="btn btn-secondary align-center" href="./consulting.html" role="button">Подробнее »</a></p>
+          </div>
+        </div><!-- /.row -->
+
+        <hr class="featurette-divider">
+      </div>
+
+      <div lang="en" class="container marketing">
+        <!-- Three columns of text below the carousel -->
+        <div class="row">
+          <div class="col-lg-4">
+            <img class="rounded" src="html_assets/wg21ru.png" alt="WG21 Russia" width="140" height="140">
+            <h2>WG21 C++ Russia</h2>
+            <p>Proposals for the international ISO C++ committee for improving C++ langiage and Standard Library.</p>
+            <p><a class="btn btn-secondary" href="./publications.html#proposals" role="button">View details »</a></p>
+          </div><!-- /.col-lg-4 -->
+          <div class="col-lg-4">
+            <img class="rounded" src="html_assets/habr.jpg" alt="Habrahabr Logo" width="140" height="140">
+            <h2>Habrahabr publications</h2>
+            <p>Interesting articles on C++ and programming in general on one of the most popular Russian IT sites.</p>
+            <p><a class="btn btn-secondary" href="./publications.html#habr" role="button">View details »</a></p>
+          </div><!-- /.col-lg-4 -->
+          <div class="col-lg-4">
+            <img class="rounded-circle" src="html_assets/boost.png" alt="Boost logo" width="140" height="140">
+            <h2>Boost</h2>
+            <p>Boost Libraries maintined by Antony, their "health", test coverage and lists of feature requests.</p>
+            <p><a class="btn btn-secondary" href="./developer.html" role="button">View details »</a></p>
+          </div><!-- /.col-lg-4 -->
+        </div><!-- /.row -->
+      </div>
+
+
+      <div lang="ru" class="container marketing">
+        <div class="row">
+          <div class="col-lg-4">
+            <img class="rounded" src="html_assets/wg21ru.png" alt="Логотип WG21 Russia" width="140" height="140">
+            <h2>Стандартизация C++ в России</h2>
+            <p>Предложения по улучшению языка программирования C++ для международного комитета C++ при ISO.</p>
+            <p><a class="btn btn-secondary" href="./publications.html#proposals" role="button">Подробнее »</a></p>
+          </div><!-- /.col-lg-4 -->
+          <div class="col-lg-4">
+            <img class="rounded" src="html_assets/habr.jpg" alt="Логотип Habrahabr" width="140" height="140">
+            <h2>Публикации на Habrahabr</h2>
+            <p>Интересные темы по программированию, статьи о новых возможностях стандартной библтотеки и языка C++.</p>
+            <p><a class="btn btn-secondary" href="./publications.html#habr" role="button">Подробнее »</a></p>
+          </div><!-- /.col-lg-4 -->
+          <div class="col-lg-4">
+            <img class="rounded-circle" src="html_assets/boost.png" alt="Логотип Boost" width="140" height="140">
+            <h2>C++ Библиотеки Boost и другие проекты</h2>
+            <p>Библиотеки Boost поддержтваемые Антоном, их "здоровье", покрытие тестами и запрос на добавленеие функционала.</p>
+            <p><a class="btn btn-secondary" href="./developer.html" role="button">Подробнее »</a></p>
+          </div><!-- /.col-lg-4 -->
+        </div><!-- /.row -->
+      </div><!-- /.container -->
+
+
+      <!-- FOOTER -->
+      <footer class="container">
+        <p lang="en" class="text-right">© 2017 Antony Polukhin.</p>
+        <p lang="ru" class="text-right">© 2017 Полухин Антон.</p>
+      </footer>
+
+    </main>
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="html_assets/jquery-3.js"></script>
+    <script>window.jQuery || document.write('<script src="../../../../assets/js/vendor/jquery.min.js"><\/script>')</script>
+    <script src="html_assets/custom.js"></script>
+    <script src="html_assets/popper.js"></script>
+    <script src="html_assets/bootstrap.js"></script>
+
+</body></html>

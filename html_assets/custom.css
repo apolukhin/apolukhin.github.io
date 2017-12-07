@@ -1,0 +1,18 @@
+[lang='ru'] {
+    display: none;
+}
+
+.carousel img {
+   min-width: 100%;
+   height: auto;
+   vertical-align: middle;
+}
+
+.carousel-caption {
+    background: rgba(0,0,0,0.6);
+}
+
+td > a > img {
+   /*max-height: 55px;*/
+   max-width: 80%;
+}

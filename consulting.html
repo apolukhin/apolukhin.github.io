@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Antony's Attic</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="html_assets/bootstrap.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="html_assets/custom.css" rel="stylesheet">
+  </head>
+
+  <body>
+    <header>
+        <nav class="navbar navbar-expand-md fixed-top navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">Antony's Attic</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+
+          <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+            <ul class="navbar-nav mr-auto">
+              <li class="nav-item">
+                <a class="nav-link" href="./index.html"><span lang="en">Home</span><span lang="ru">Главная</span></a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link active" href="./consulting.html"><span lang="en">Trainings&amp;Consulting</span><span lang="ru">Корпоративные тренинги</span></a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="./publications.html"><span lang="en">Publications</span><span lang="ru">Публикации</span> <span lang="en" class="sr-only">(current)</span><span lang="ru" class="sr-only">(текущая)</span></a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="./presentations.html"><span lang="en">Presentations</span><span lang="ru">Презентации</span></a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="./developer.html"><span lang="en">Development Corner</span><span lang="ru">Уголок Разработки</span></a>
+              </li>
+            </ul>
+            <form class="form-inline my-2 my-lg-0">
+                <span style="color:#FFF;">Language&nbsp;/&nbsp;Язык:&nbsp;</span>
+                <select id="lang-select" class="bg-white" onchange="select_language(this.options[this.selectedIndex].value)">
+                    <option value="en" selected>English</option>
+                    <option value="ru">Русский</option>
+                </select>
+            </form>
+          </div>
+        </nav>
+    </header>
+
+
+    <!-- Content -->
+
+
+
+    <main role="main" class="container">
+
+      <div class="row row-offcanvas row-offcanvas-right">
+
+        <div class="col-12 col-md-12">
+          <p class="float-right d-md-none">
+            <button type="button" class="btn btn-primary btn-sm" data-toggle="offcanvas">Toggle nav</button>
+          </p>
+          <div id="book-second" lang="en" class="jumbotron">
+            <h1>Traintings and Consulting</h1>
+            <p>С++ - is huge. Traintings and Consulting are meant for helping you to deal with the language, show best practices and improve quality of your applications.</p>
+            <p><a onclick="$('#lang-select').val('ru').change(); return false;" href="#">Switch to Russian language, for more info.</a></p>
+          </div>
+          <div lang="ru" class="jumbotron">
+            <h1>Корпоративные тренинги и консультации</h1>
+            <p>С++ - популярный активно развивающийся язык программирования общего назначения с огромным количеством возможностей.</p>
+            <p>Цель тренингов - повысить скорость разработки; увеличить производительность, отзывчивость и надёжность ваших приложений; обратить внимание разработчиков на полезные вещи
+            языка и рассказать о подводных камнях и особенностях.</p>
+            <p>Любые вопросы по тренингам и консультациям можно задавать на почту <b>antoshkka</b>@gmail.com</p>
+          </div>
+
+        <hr class="featurette-divider">
+        <div class="row featurette">
+          <div class="col-md-12">
+            <h2 lang="ru" class="featurette-heading">Эффективная стандартная библиотека</h2>
+            <h2 lang="en" class="featurette-heading">Effective usage of Standard Library and Boost</h2>
+            <img class="featurette-image img-fluid mx-auto" style="width:100%" alt="Library" src="html_assets/library.jpg" >
+            <div lang="ru" class="lead">
+                <p>Курс посвящён эффективному решению задач срадствами стандартной библиотеки и библиотек Boost. Приблизительный план:</p>
+                <ul>
+                    <li>Алгоримы:
+                        <ul>
+                            <li>O-большое</li>
+                            <li>O-большое на практике</li>
+                            <li>Алгоритмы на каждый день, о которых мало кто знает</li>
+                            <li>Подводные камни &lt;algorithm&gt; (аллокации памяти, move семантика и итераторы)</li>
+                        </ul>
+                    </li>
+                    <li>Структуры данных:
+                        <ul>
+                            <li>string (SSO, пустые строчки, cache friendlines)</li>
+                            <li>string_view (пустые строчки, нуль терминация, cache friendlines)</li>
+                            <li>vector (аллокации, cache friendlines)</li>
+                            <li>list/deque (аллокации, многопоточность)</li>
+                            <li>unordered_map (производительность, ограничения, более эффективные решения)</li>
+                            <li>map</li>
+                            <li>Разновидности векторов (small, stack)</li>
+                            <li>Плоские ассоциативные контейнеры</li>
+                            <li>Подводные камни (noexcept, move construction)</li>
+                            <li>Советы по оптимизации (move, move_iterator)</li>
+                        </ul>
+                    </li>
+                    <li>Многопоточность:
+                        <ul>
+                            <li>thread (detach, join)</li>
+                            <li>mutex</li>
+                            <li>atomic (memory model)</li>
+                            <li>conditional_variable (эффективный notify())</li>
+                            <li>call_once</li>
+                            <li>Подводные камни (multiple locks, RAII)</li>
+                            <li>Советы по оптимизации (размер критической секции, эффекты от роста числа ядер процессора)</li>
+                        </ul>
+                    </li>
+                    <li>На каждый день:
+                        <ul>
+                            <li>variant</li>
+                            <li>optional</li>
+                            <li>unique_ptr</li>
+                            <li>shared_ptr</li>
+                            <li>ProgramOptions</li>
+                            <li>Filesystem</li>
+                            <li>LexicalCast</li>
+                            <li>function</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div> <!-- lead -->
+          </div>
+        </div>
+
+        <hr class="featurette-divider">
+        <div class="row featurette">
+          <div class="col-md-12">
+            <h2 class="featurette-heading">C++11, C++14 <span lang="ru">и</span><span lang="en">and</span> C++17</h2>
+            <img class="featurette-image img-fluid mx-auto" style="width:100%" alt="C++ проект и современная архитектура" src="html_assets/skyscrapper.jpg" >
+            <div lang="ru" class="lead">
+                <p>Лучшие практики использования новинок стандартной библиотеки и языка C++ для решения продуктовых задач. Приблизительный план:</p>
+                <ul>
+                    <li>С++11:
+                        <ul>
+                            <li>move семантика</li>
+                            <li>auto</li>
+                            <li>range based for</li>
+                            <li>initilizer list</li>
+                            <li>lambda</li>
+                            <li>final/override</li>
+                            <li>member initialization</li>
+                            <li>static_assert</li>
+                            <li>noexcept</li>
+                            <li>constexpr</li>
+                            <li>=default/=delete</li>
+
+                            <li>unordered_map</li>
+                            <li>tuple</li>
+                            <li>unique_ptr</li>
+                            <li>shared_ptr</li>
+                            <li>function</li>
+                            <li>Псевдослучайные и другие генераторы чисел</li>
+
+                            <li>thread (detach, join)</li>
+                            <li>mutex</li>
+                            <li>atomic (memory model)</li>
+                            <li>conditional_variable (эффективный notify())</li>
+                            <li>call_once</li>
+                        </ul>
+                    </li>
+                    <li>С++14:
+                        <ul>
+                            <li>generic lambda</li>
+                            <li>lambda capture expressions</li>
+                            <li>[[deprecated]]</li>
+
+                            <li>shared_mutex</li>
+                            <li>Гетерогенный поиск</li>
+                        </ul>
+                    </li>
+                    <li>С++17:
+                        <ul>
+                            <li>string_view</li>
+                            <li>optional</li>
+                            <li>variant</li>
+                            <li>filesystem</li>
+                            <li>any</li>
+                            <li>nodes</li>
+                            <li>byte</li>
+
+                            <li>parallel algorithms</li>
+                            <li>special math</li>
+
+                            <li>structured bindings</li>
+                            <li>if constexpr</li>
+                            <li>if/switch with initialization</li>
+                            <li>deduction guildes</li>
+                        </ul>
+                    </li>
+                    <li>Миграция на новые стандарты:
+                        <ul>
+                            <li>C++?? -> С++11</li>
+                            <li>C++?? -> С++14</li>
+                            <li>C++?? -> С++17</li>
+                            <li>Какой стандарт лучше сейчас использовать?</li>
+                            <li>Производительность кода</li>
+                            <li>Производительность разработки</li>
+                            <li>Трудозатраты</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div> <!-- lead -->
+          </div>
+          <div class="col-md-5">
+          </div>
+        </div>
+
+        </div><!--/span-->
+      </div><!--/row-->
+
+      <hr>
+
+    </main><!--/.container-->
+
+    <footer>
+        <p lang="en" class="text-right">© 2017 Antony Polukhin.</p>
+        <p lang="ru" class="text-right">© 2017 Полухин Антон.</p>
+    </footer>
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="html_assets/jquery-3.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script>window.jQuery || document.write('<script src="../../../../assets/js/vendor/jquery.min.js"><\/script>')</script>
+    <script src="html_assets/custom.js"></script>
+    <script src="html_assets/popper.js"></script>
+    <script src="html_assets/bootstrap.js"></script>
+
+</body></html>
