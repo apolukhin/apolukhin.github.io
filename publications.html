@@ -17,7 +17,7 @@
   <body>
     <header>
         <nav class="navbar navbar-expand-md fixed-top navbar-dark bg-dark">
-          <a class="navbar-brand" href="#">Antony's Attic</a>
+          <a class="navbar-brand" href="./index.html#">Antony's Attic</a>
           <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
           </button>
@@ -25,10 +25,8 @@
           <div class="collapse navbar-collapse" id="navbarsExampleDefault">
             <ul class="navbar-nav mr-auto">
               <li class="nav-item">
-                <a class="nav-link" href="./index.html"><span lang="en">Home</span><span lang="ru">Главная</span></a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="./consulting.html"><span lang="en">Trainings&amp;Consulting</span><span lang="ru">Корпоративные тренинги</span></a>
+                <a class="nav-link d-md-none d-lg-block" href="./consulting.html"><span lang="en">Trainings&amp;Consulting</span><span lang="ru">Корпоративные тренинги</span></a>
+                <a class="nav-link d-none d-md-block d-lg-none" href="./consulting.html"><span lang="en">Trainings</span><span lang="ru">Тренинги</span></a>
               </li>
               <li class="nav-item active">
                 <a class="nav-link" href="./publications.html"><span lang="en">Publications</span><span lang="ru">Публикации</span> <span lang="en" class="sr-only">(current)</span><span lang="ru" class="sr-only">(текущая)</span></a>
@@ -37,14 +35,15 @@
                 <a class="nav-link" href="./presentations.html"><span lang="en">Presentations</span><span lang="ru">Презентации</span></a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="./developer.html"><span lang="en">Development Corner</span><span lang="ru">Уголок Разработки</span></a>
+                <a class="nav-link d-md-none d-lg-block" href="./developer.html"><span lang="en">Development Corner</span><span lang="ru">Уголок Разработки</a>
+                <a class="nav-link d-none d-md-block d-lg-none" href="./developer.html"><span lang="en">Development</span><span lang="ru">Разработки</span></a>
               </li>
             </ul>
             <form class="form-inline my-2 my-lg-0">
-                <span style="color:#FFF;">Language&nbsp;/&nbsp;Язык:&nbsp;</span>
+                <span class="navbar-text">Lang&nbsp;/&nbsp;Язык:&nbsp;</span>
                 <select id="lang-select" class="bg-white" onchange="select_language(this.options[this.selectedIndex].value)">
-                    <option value="en" selected>English</option>
-                    <option value="ru">Русский</option>
+                    <option lang="ru" value="en" selected>English</option>
+                    <option  lang="en" value="ru">Русский</option>
                 </select>
             </form>
           </div>
@@ -65,7 +64,7 @@
             <button type="button" class="btn btn-primary btn-sm" data-toggle="offcanvas">Toggle nav</button>
           </p>
           <div id="book-second" lang="en" class="jumbotron">
-            <h1>C++ papers, books anf other publications</h1>
+            <h1>C++ papers, books and other publications</h1>
           </div>
           <div lang="ru" class="jumbotron">
             <h1>Предложения по C++, книги и другие публикации</h1>
