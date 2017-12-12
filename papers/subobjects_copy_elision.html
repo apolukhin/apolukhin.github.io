@@ -32,18 +32,24 @@
     <address>&nbsp;</address>
     <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2017-12-04</address>
+    <address>Date: 2017-12-12</address>
     <h1>Subobjects copy elision</h1>
 
-    <!--p class='changed-added'>Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r1.html">P0539R1</a> are marked with blue.<p-->
-    <!--p><input type="checkbox" id="show_deletions" onchange="show_hide_deleted()"/> Show deleted lines from P0275R1.</p-->
+    <!--p 
+class='changed-added'>Significant changes to <a 
+href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r1.html">P0539R1</a>
+ are marked with blue.<p-->
+    <!--p><input
+ type="checkbox" id="show_deletions" onchange="show_hide_deleted()"/>
+ Show deleted lines from P0275R1.</p-->
 
     <h2>I. Quick Introduction</h2>
-    <p>Current working draft has strict rules in [class.copy.elision] with a white-list of cases when the copy elision may happen. With current rules it is impossible
-    to elide copying while returning subobject,
-    so users of the C++ language have to write code like <code>return std::move(some_pair.second);</code> to get better performance. But even with <code>std::move</code> generated code 
-    may not be as good as with the copy elided.</p>
-    <p>This paper attempts to motivate for relaxing [class.copy.elision] rules to allow compilers to produce better code.</p>
+    <p>[class.copy.elision]
+    in the current working draft provides a whitelist of cases when copy elision is permitted. With the current strict rules, it is impossible
+    to elide copying while returning a subobject,
+    so users of the C++ language have to write code like <code>return std::move(some_pair.second);</code> in order to get better performance. But even with <code>std::move</code> the generated code 
+    may be not as good as it could be with the copy elided.</p>
+    <p>This paper provides motivatation for a future proposal to relax the [class.copy.elision] rules in order to allow compilers to produce better code.</p>
 
     <h2>II. Motivating example #1</h2>
     <p>Consider the following code:</p>
@@ -94,9 +100,12 @@ int example_1_move() {
 }
 </pre>
 
-<p>Bad thing is that the above optimization <b>requires highly experienced user</b> and still <b>does not produce perfect result</b>, as the compilers still not always able to optimize out all the unnecessary operations after inlining.</p>
+<p>Unfortunately, the above improvement <b>requires a highly experienced user</b> and still <b>does not produce an optimal result</b>: compilers are still not always able to optimize out all the unnecessary operations after inlining.</p>
 
-<p>Out of the box solution would be to allow compilers optimize away subobjects copying. In that case the compiler would be able to optimize the code to the following:</p>
+<p>Ideally,
+ compilers should be allowed to optimize away 
+subobjects' copying. In that case the compiler would be able to optimize 
+the code to the following:</p>
 
 <pre class="lmargin50">
 #include &lt;utility&gt;
@@ -113,11 +122,13 @@ int example_1_optimized() {
 }
 </pre>
 
-<p>Compilers could do the above optimization if the callee is inlined and subobject copy elision is allowed (as proposed in this paper).
+<p>Compilers
+ could do the above optimization if the callee is inlined and subobject 
+copy elision is allowed (as proposed in this paper).
 In that case compiler could allocate enough
 stack space for storing the owning object <code>v</code> in the caller, call the destructors of non-returned-from-the-callee subobjects and proceed with subobject as a return value.</p>
 
-<p>Currently [class.copy.elision] prevents that optimization:</p>
+<p>But [class.copy.elision] currently prevents that optimization:</p>
 <pre class="lmargin50 stdquote">
 This elision of copy/move operations, called copy elision, is permitted in the following
 circumstances (which may be combined to eliminate multiple copies):
@@ -131,7 +142,7 @@ circumstances (which may be combined to eliminate multiple copies):
 
 
 
-<p>Here's how the compiler optimized assemblies for the above 3 code snippets look like:</p>
+<p>Here's how the compiler-optimized assemblies for the above 3 code snippets look like:</p>
 <table border="1" rules="cols" style="width: 100%">
 <tr><th style="width: 33%">example_1()</th><th style="width: 33%">example_1_move()</th><th style="width: 33%">example_1_optimized()</th></tr>
 <tr><th><a href="https://godbolt.org/g/V6KqWv">https://godbolt.org/g/V6KqWv</a></th><th><a href="https://godbolt.org/g/3xZvtw">https://godbolt.org/g/3xZvtw</a></th><th><a href="https://godbolt.org/g/RiTmPE">https://godbolt.org/g/RiTmPE</a></th></tr>
@@ -414,8 +425,8 @@ int example_2_move() {
 }
 </pre>
 
-<p>Bad thing is that the above optimization <b>requires highly experienced user</b> and just like in the first example does not produce perfect result.</p>
-<p>There is an assumption, that allowing copy elision for subobjects may allow compilers to transform <code>example_2()</code> into the code that is close to the following:</p>
+<p>Again, the above optimization <b>requires a highly experienced user</b> and, as in the first example, still does not produce a perfect result.</p>
+<p>I assume that allowing copy elision for subobjects may allow compilers to transform <code>example_2()</code> into the code that is close to the following:</p>
 
 <pre class="lmargin50">
 #include &lt;variant&gt;
@@ -696,7 +707,7 @@ _Variant_stg:
 
 
     <h2>IV. Motivating example #3</h2>
-    <p>This time we'll take a look at some code where compilers show same results with copy elision and <code>std::move</code>:</p>
+    <p>This time we'll look at some code where compilers show the same results with copy elision and with <code>std::move</code>:</p>
 <pre class="lmargin50">
 #include &lt;utility&gt;
 #include &lt;string&gt;
@@ -1094,15 +1105,22 @@ example_3_optimized():
 
 
     <h2>V. Simple solution for relaxing [class.copy.elision]</h2>
-    <p class="notes">Allow copy/move elision of non-volatile subobjects if the owning non-volatile object has defaulted destructor and source object is not accessed between a copy/move construction of it and its destruction.
+    <p class="notes">Allow
+ copy/move elision of non-volatile subobjects if the owning non-volatile
+ object has defaulted destructor and source object is not accessed 
+between a copy/move construction of it and its destruction.
     [<i>Note:</i> Instead of calling the destructor for owner,
-    implementations are permitted to call the destructors of non-returned subobjects and treat target as another way to refer to the source subobject if the subobject is not accessed
+    implementations are permitted to call the
+ destructors of non-returned subobjects and treat target as another way 
+to refer to the source subobject if the subobject is not accessed
     between a copy/move construction of it and its destruction. <i>-end note.</i>].</p>
     <p>This will allow optimizing <code>std::pair</code>, <code>std::tuple</code> and all the aggregate initializable types.</p>
 
 
     <h2>VI. Generic solution for relaxing [class.copy.elision]</h2>
-    <p class="notes">Allow treating non-volatile source as target if source object is not accessed between a copy/move construction of it and its destruction.
+    <p class="notes">Allow
+ treating non-volatile source as target if source object is not accessed
+ between a copy/move construction of it and its destruction.
     For that case source object could be a subobject of a non-volatile automatic object.</p>
 
     <p>This will allow optimizing <code>std::pair</code>, <code>std::tuple</code>, all the aggregate initializable types AND probably <code>std::variant</code>,
@@ -1112,16 +1130,25 @@ example_3_optimized():
     <p>Automatically applying <code>std::move</code> to returned subobjects may be a good idea, but for a separate proposal. As was shown in the first two examples copy elision
     could be profitable even with moving out the subobject.</p>
 
-    <p>It would be wrong to guarantee above optimizations as they are highly dependent on inlining and aliasing reasoning of the compiler.</p>
+    <p>It
+ would be wrong to guarantee the above optimizations as they are highly 
+dependent on inlining and aliasing reasoning of the compiler.</p>
 
-    <p>Copy elision of subobjects could be useful in many cases. Compiler vendors may do different from above optimizations. The paper tries to allow more optimizations
-    rather than forcing some particular optimizations.</p>
+    <p>Copy
+ elision of subobjects could be useful in many cases. The paper tries to allow more
+ optimizations rather than forcing some particular optimizations.
+    Thus, compiler vendors may find alternatives to the above optimizations. 
+    </p>
 
 
     <h2>VIII. Acknowledgements</h2>
-    <p>Great thanks to Vyacheslav Napadovsky for helping with assembly and optimizations.</p>
-    <p>Thanks to Marc Glisse for pointing me to the forbidden copy elision cases. Thanks to Thomas Köppe, Peter Dimov, Richard Smith, Gabriel Dos Reis, Anton Bikineev for
-    participating in early discussion and helping me to put my thoughts together.</p>
+    <p>Great thanks to Walter E. Brown for fixing numerous lexical issues in early versions of this paper.</p>
+    <p>Great thanks to Vyacheslav Napadovsky for helping with the assembly and the optimizations.</p>
+    <p>Thanks also
+ to Marc Glisse for pointing me to the forbidden copy elision cases,
+and to Thomas Köppe, Peter Dimov, Richard Smith, Gabriel Dos Reis, 
+Anton Bikineev for
+    participating in early discussions and for helping me to assemble my thoughts.</p>
 
 
     <script type="text/javascript">
@@ -1162,3 +1189,5 @@ example_3_optimized():
         show_hide_deleted()
     </script>
 </body></html>
+
+
