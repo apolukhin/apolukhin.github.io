@@ -11,7 +11,7 @@
         .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
         .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
         .changed-added { background-color: #CFF0FC ;}
-        .notes { background-color: #90F090 ;}
+        .notes { background-color: gold ;}
         pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
         .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; }
         body {max-width: 1024px; margin-left: 25px;}
@@ -22,6 +22,7 @@
         .cppcomment > .cppkeyword{ color: green; }
         .cpptext { color: #2E8B57; }
         .cppaddition { background-color: #CFC; }
+        .cppdeletion {  text-decoration: line-through; background-color: #FCC; }
         .stdquote { background-color: #ECECEC; }
     </style>
     </head>
@@ -32,7 +33,7 @@
     <address>&nbsp;</address>
     <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2017-12-12</address>
+    <address>Date: 2017-12-16</address>
     <h1>Subobjects copy elision</h1>
 
     <!--p 
@@ -90,9 +91,9 @@ std::pair&lt;std::string, std::string&gt; produce();
 static std::string first_non_empty_move() {
     auto v = produce();
     if (!v.first.empty()) {
-        return <span class="cppaddition">std::move(</span>v.first<span class="cppaddition">)</span>;
+        return <span class="notes">std::move(</span>v.first<span class="notes">)</span>;
     }
-    return <span class="cppaddition">std::move(</span>v.second<span class="cppaddition">)</span>;
+    return <span class="notes">std::move(</span>v.second<span class="notes">)</span>;
 }
 
 int example_1_move() {
@@ -386,7 +387,7 @@ example_1_move():
 <h3 class="notes"><b>example_1_optimized() pros:</b> avoided copy construction, avoided destructor call, smaller binary, faster code.</h3>
 
     <h2>III. Motivating example #2</h2>
-    <p>Let's change the above example to use <code>std::variant</code>:</p>
+    <p>Let's change the above example to use a type with non-trivial destructor, for example <code>std::variant</code>:</p>
 <pre class="lmargin50">
 #include &lt;variant&gt;
 #include &lt;string&gt;
@@ -405,7 +406,7 @@ int example_2() {
 }
 </pre>
 
-<p>Without user help compilers are forced to copy construct <code>std::string</code> from <code>*p</code>. Experienced users may change the above code to be more optimal:</p>
+<p>Without user help compilers are forced to copy construct <code>std::string</code> from <code>*p</code>.</p><p> Such code often appears in practice, where functions like <code>get_string()</code> are defined in header file of the library and <code>example_2()</code> like functions are written by some other developers in source file.</p> <p>Experienced users may change the above code to be more optimal:</p>
 
 <pre class="lmargin50">
 #include &lt;variant&gt;
@@ -415,7 +416,7 @@ std::variant&lt;int, std::string&gt; produce();
 static std::string get_string_move() {
     auto v = produce();
     if (auto* p = std::get_if&lt;std::string&gt;(&amp;v)) {
-        return <span class="cppaddition">std::move(</span>*p<span class="cppaddition">)</span>;
+        return <span class="notes">std::move(</span>*p<span class="notes">)</span>;
     }
     return {};
 }
@@ -769,7 +770,6 @@ int example_3_optimized() {
 }
 </pre>
 
-
 <table border="1" rules="cols" style="width: 100%">
 <tr><th style="width: 33%">example_3()</th><th style="width: 33%">example_3_move()</th><th style="width: 33%">example_3_optimized()</th></tr>
 <tr><th><a href="https://godbolt.org/g/LcTD1y">https://godbolt.org/g/LcTD1y</a></th><th><a href="https://godbolt.org/g/HMqKAr">https://godbolt.org/g/HMqKAr</a></th><th><a href="https://godbolt.org/g/QK3nPF">https://godbolt.org/g/QK3nPF</a></th></tr>
@@ -1083,6 +1083,7 @@ example_3_optimized():
 
 <h3 class="notes"><b>Pros:</b> Avoided copy construction, avoided destructor call, smaller binary, faster code.</h3>
 
+<p class="notes">Even when there's no benefit to be had over using <code>std::move</code>, it is better to have that benefit automatically without requiring user intervention.</p>
 
 
 
@@ -1105,28 +1106,94 @@ example_3_optimized():
 
 
     <h2>V. Simple solution for relaxing [class.copy.elision]</h2>
-    <p class="notes">Allow
- copy/move elision of non-volatile subobjects if the owning non-volatile
- object has defaulted destructor and source object is not accessed 
-between a copy/move construction of it and its destruction.
-    [<i>Note:</i> Instead of calling the destructor for owner,
-    implementations are permitted to call the
- destructors of non-returned subobjects and treat target as another way 
-to refer to the source subobject if the subobject is not accessed
-    between a copy/move construction of it and its destruction. <i>-end note.</i>].</p>
+    <p>Add the following to the [class.copy.elision] paragraph 1 to allow copy elision for returning subobjects of the objects with defaulted destructor:</p>
+    <div class="cppaddition lmargin50">
+    <p>&ndash; in a return statement in a function with a class return type, when<p>
+    <ul>
+        <li>the expression is a non-volatile subobject with the same type (ignoring cv-qualification) as the function return type</li>
+        <li>and the expression is the subobject of the non-volatile object with defaulted destructor</li>
+        <li>and subobject is not accessed between a copy/move construction of it and its destruction.</li>
+    </ul>
+    <p>the copy/move operation can be omitted by inlining the function call, constructing the automatic object directly
+    into the callee,
+    calling the destructors for non-returned subobjects and treating target as another way to refer to the subobject.</p>
+    </div>
     <p>This will allow optimizing <code>std::pair</code>, <code>std::tuple</code> and all the aggregate initializable types.</p>
 
 
     <h2>VI. Generic solution for relaxing [class.copy.elision]</h2>
-    <p class="notes">Allow
- treating non-volatile source as target if source object is not accessed
- between a copy/move construction of it and its destruction.
-    For that case source object could be a subobject of a non-volatile automatic object.</p>
-
+    <p>Add the following to the [class.copy.elision] paragraph 1 to allow copy elision for returning subobjects of the objects (droped the "<i> with defaulted destructor</i>" requirement):</p>
+    <div class="cppaddition lmargin50">
+    <p>&ndash; in a return statement in a function with a class return type, when<p>
+    <ul>
+        <li>the expression is a non-volatile subobject with the same type (ignoring cv-qualification) as the function return type</li>
+        <li>and the expression is the subobject of the non-volatile object</li>
+        <li>and subobject is not accessed between a copy/move construction of it and its destruction.</li>
+    </ul>
+    <p>the copy/move operation can be omitted by inlining the function call, constructing the automatic object directly
+    into the callee,
+    calling the destructors for non-returned subobjects and treating target as another way to refer to the subobject.</p>
+    </div>
     <p>This will allow optimizing <code>std::pair</code>, <code>std::tuple</code>, all the aggregate initializable types AND probably <code>std::variant</code>,
     <code>std::optional</code>, many user provided classes.</p>
 
-    <h2>VII. Minor points</h2>
+
+    <h2>VII. Ultimate solution for relaxing [class.copy.elision]</h2>
+    <p>Replace the bullets in [class.copy.elision] paragraph 1 to allow copy elision of all objects and subobjects:</p>
+    <pre class="lmargin50">This elision of copy/move operations, called copy elision, is permitted <span class="cppdeletion">in the following circumstances (which may be combined to eliminate multiple copies):</span>
+<span class="cppaddition">for any non-volatile object or it's non-volatile subobject if source is not accessed between a copy/move construction of it and its destruction.</span><span class="cppdeletion">
+    &ndash; in a return statement in a function with a class return type, when the expression is the name of
+    a non-volatile automatic object (other than a function parameter or a variable introduced by the
+    exception-declaration of a handler (18.3)) with the same type (ignoring cv-qualification) as the function
+    return type, the copy/move operation can be omitted by constructing the automatic object directly
+    into the function call’s return object
+
+    &ndash; in a throw-expression (8.17), when the operand is the name of a non-volatile automatic object (other than
+    a function or catch-clause parameter) whose scope does not extend beyond the end of the innermost
+    enclosing try-block (if there is one), the copy/move operation from the operand to the exception
+    object (18.1) can be omitted by constructing the automatic object directly into the exception object
+
+    &ndash; when the exception-declaration of an exception handler (Clause 18) declares an object of the same
+    type (except for cv-qualification) as the exception object (18.1), the copy operation can be omitted by
+    treating the exception-declaration as an alias for the exception object if the meaning of the program will
+    be unchanged except for the execution of constructors and destructors for the object declared by the
+    exception-declaration. [ Note: There cannot be a move from the exception object because it is always
+    an lvalue. — end note ]</span></pre>
+
+    <p>This will allow optimizing <code>std::pair</code>, <code>std::tuple</code>, all the aggregate initializable types AND probably <code>std::variant</code>,
+    <code>std::optional</code>, many user provided classes, functions that accept temporary and exit before it is modified. For example <a href="https://godbolt.org/g/yQ5tYX">https://godbolt.org/g/yQ5tYX</a>:</p>
+<pre class="lmargin50">
+struct count_copy {
+    count_copy();
+    count_copy(const count_copy&amp);
+    void modify();
+};
+
+static count_copy some_function(count_copy data) {
+    data.modify();
+    return data;                    // copy constrcution: `data` is a function parameter
+}
+
+count_copy example_final() {
+    count_copy c0;
+    auto res = some_function(c0);   // copy construction: `data{c0}`
+    return res;
+}
+</pre>
+<p>Could be optimized to avoid two copy constructions:</p>
+<pre class="lmargin50">
+struct count_copy {
+    count_copy();
+    count_copy(const count_copy&);
+    void modify();
+};
+
+count_copy example_final() {
+    return count_copy{}.modify();
+}</pre>
+
+
+    <h2>VIII. Minor points</h2>
     <p>Automatically applying <code>std::move</code> to returned subobjects may be a good idea, but for a separate proposal. As was shown in the first two examples copy elision
     could be profitable even with moving out the subobject.</p>
 
@@ -1141,8 +1208,9 @@ dependent on inlining and aliasing reasoning of the compiler.</p>
     </p>
 
 
-    <h2>VIII. Acknowledgements</h2>
-    <p>Great thanks to Walter E. Brown for fixing numerous lexical issues in early versions of this paper.</p>
+    <h2>IX. Acknowledgements</h2>
+    <p>Great thanks to Walter E. Brown for fixing numerous lexical and semantical issues in early versions of this paper.</p>
+    <p>Great thanks to Eyal Rozenberg for numerous usefull comments.</p>
     <p>Great thanks to Vyacheslav Napadovsky for helping with the assembly and the optimizations.</p>
     <p>Thanks also
  to Marc Glisse for pointing me to the forbidden copy elision cases,
