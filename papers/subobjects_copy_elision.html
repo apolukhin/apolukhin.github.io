@@ -23,7 +23,7 @@
         .cpptext { color: #2E8B57; }
         .cppaddition { background-color: #CFC; }
         .cppdeletion {  text-decoration: line-through; background-color: #FCC; }
-        .stdquote { background-color: #ECECEC; }
+        .stdquote { background-color: #ECECEC; font-family: Consolas,monospace; }
     </style>
     </head>
     <body bgcolor="#ffffff">
@@ -33,7 +33,7 @@
     <address>&nbsp;</address>
     <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2017-12-16</address>
+    <address>Date: 2017-12-19</address>
     <h1>Subobjects copy elision</h1>
 
     <!--p 
@@ -50,7 +50,7 @@ href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r1.html">P053
     to elide copying while returning a subobject,
     so users of the C++ language have to write code like <code>return std::move(some_pair.second);</code> in order to get better performance. But even with <code>std::move</code> the generated code 
     may be not as good as it could be with the copy elided.</p>
-    <p>This paper provides motivatation for a future proposal to relax the [class.copy.elision] rules in order to allow compilers to produce better code.</p>
+    <p>This paper provides motivation for a future proposal to relax the [class.copy.elision] rules in order to allow compilers to produce better code.</p>
 
     <h2>II. Motivating example #1</h2>
     <p>Consider the following code:</p>
@@ -1106,33 +1106,46 @@ example_3_optimized():
 
 
     <h2>V. Simple solution for relaxing [class.copy.elision]</h2>
-    <p>Add the following to the [class.copy.elision] paragraph 1 to allow copy elision for returning subobjects of the objects with defaulted destructor:</p>
-    <div class="cppaddition lmargin50">
-    <p>&ndash; in a return statement in a function with a class return type, when<p>
+    <p>Modify the [class.copy.elision] paragraph 1 to allow copy elision for returning subobjects of the objects with defaulted destructor:</p>
+    <div class="lmargin50 stdquote">
+    <p>This elision of copy/move operations, called copy elision, is permitted
+in the following circumstances (which may be combined to eliminate multiple copies):</p>
+    <p><...></p>
+    <div class="cppaddition" style="font-family: Consolas,monospace">
+    <p>&ndash; in a return statement in a function with a class return type, when</p>
     <ul>
-        <li>the expression is a non-volatile subobject with the same type (ignoring cv-qualification) as the function return type</li>
-        <li>and the expression is the subobject of the non-volatile object with defaulted destructor</li>
-        <li>and subobject is not accessed between a copy/move construction of it and its destruction.</li>
+        <li>the expression is a non-volatile subobject of the non-volatile local object</li>
+        <li>and the non-volatile local object has defaulted destructor</li>
+        <li>and the type of subobject is same (ignoring cv-qualification) as the function return type</li>
+        <li>and the subobject is not accessed between a copy/move construction of it and its destruction.</li>
     </ul>
     <p>the copy/move operation can be omitted by inlining the function call, constructing the automatic object directly
-    into the callee,
+    in the caller,
     calling the destructors for non-returned subobjects and treating target as another way to refer to the subobject.</p>
+    </div>
+    <p><...></p>
     </div>
     <p>This will allow optimizing <code>std::pair</code>, <code>std::tuple</code> and all the aggregate initializable types.</p>
 
 
     <h2>VI. Generic solution for relaxing [class.copy.elision]</h2>
-    <p>Add the following to the [class.copy.elision] paragraph 1 to allow copy elision for returning subobjects of the objects (droped the "<i> with defaulted destructor</i>" requirement):</p>
-    <div class="cppaddition lmargin50">
-    <p>&ndash; in a return statement in a function with a class return type, when<p>
+    <p>Modify the [class.copy.elision] paragraph 1 to allow copy elision for returning subobjects of the objects (dropped the "<i>defaulted destructor</i>" requirement):</p>
+    <div class="lmargin50 stdquote">
+    <p>This elision of copy/move operations, called copy elision, is permitted
+in the following circumstances (which may be combined to eliminate multiple copies):</p>
+    <p><...></p>
+    <div class="cppaddition">
+    <p>&ndash; in a return statement in a function with a class return type, when</p>
     <ul>
-        <li>the expression is a non-volatile subobject with the same type (ignoring cv-qualification) as the function return type</li>
-        <li>and the expression is the subobject of the non-volatile object</li>
-        <li>and subobject is not accessed between a copy/move construction of it and its destruction.</li>
+        <li>the expression is a non-volatile subobject of the non-volatile local object</li>
+        <li>and the type of subobject is same (ignoring cv-qualification) as the function return type</li>
+        <li>and the subobject is not accessed between a copy/move construction of it and its destruction.</li>
     </ul>
     <p>the copy/move operation can be omitted by inlining the function call, constructing the automatic object directly
-    into the callee,
+    in the caller,
     calling the destructors for non-returned subobjects and treating target as another way to refer to the subobject.</p>
+    </div>
+    <p><...></p>
     </div>
     <p>This will allow optimizing <code>std::pair</code>, <code>std::tuple</code>, all the aggregate initializable types AND probably <code>std::variant</code>,
     <code>std::optional</code>, many user provided classes.</p>
@@ -1140,25 +1153,30 @@ example_3_optimized():
 
     <h2>VII. Ultimate solution for relaxing [class.copy.elision]</h2>
     <p>Replace the bullets in [class.copy.elision] paragraph 1 to allow copy elision of all objects and subobjects:</p>
-    <pre class="lmargin50">This elision of copy/move operations, called copy elision, is permitted <span class="cppdeletion">in the following circumstances (which may be combined to eliminate multiple copies):</span>
-<span class="cppaddition">for any non-volatile object or it's non-volatile subobject if source is not accessed between a copy/move construction of it and its destruction.</span><span class="cppdeletion">
-    &ndash; in a return statement in a function with a class return type, when the expression is the name of
+    <div class="lmargin50 stdquote">
+    <p>This elision of copy/move operations, called copy elision, is permitted
+    <span class="cppaddition">for any non-volatile object or it's non-volatile nested object if source is not accessed between a copy/move construction of it and its destruction.</span>
+    <span class="cppdeletion">in the following circumstances (which may be combined to eliminate multiple copies):</span>
+    </p>
+    <p class="cppdeletion">&ndash; in a return statement in a function with a class return type, when the expression is the name of
     a non-volatile automatic object (other than a function parameter or a variable introduced by the
     exception-declaration of a handler (18.3)) with the same type (ignoring cv-qualification) as the function
     return type, the copy/move operation can be omitted by constructing the automatic object directly
-    into the function call’s return object
+    into the function call’s return object</p>
 
-    &ndash; in a throw-expression (8.17), when the operand is the name of a non-volatile automatic object (other than
+    <p class="cppdeletion">&ndash; in a throw-expression (8.17), when the operand is the name of a non-volatile automatic object (other than
     a function or catch-clause parameter) whose scope does not extend beyond the end of the innermost
     enclosing try-block (if there is one), the copy/move operation from the operand to the exception
-    object (18.1) can be omitted by constructing the automatic object directly into the exception object
+    object (18.1) can be omitted by constructing the automatic object directly into the exception object</p>
 
-    &ndash; when the exception-declaration of an exception handler (Clause 18) declares an object of the same
+    <p class="cppdeletion">&ndash; when the exception-declaration of an exception handler (Clause 18) declares an object of the same
     type (except for cv-qualification) as the exception object (18.1), the copy operation can be omitted by
     treating the exception-declaration as an alias for the exception object if the meaning of the program will
     be unchanged except for the execution of constructors and destructors for the object declared by the
     exception-declaration. [ Note: There cannot be a move from the exception object because it is always
-    an lvalue. — end note ]</span></pre>
+    an lvalue. — end note ]</p>
+    <p><...></p>
+    </div>
 
     <p>This will allow optimizing <code>std::pair</code>, <code>std::tuple</code>, all the aggregate initializable types AND probably <code>std::variant</code>,
     <code>std::optional</code>, many user provided classes, functions that accept temporary and exit before it is modified. For example <a href="https://godbolt.org/g/yQ5tYX">https://godbolt.org/g/yQ5tYX</a>:</p>
@@ -1171,7 +1189,7 @@ struct count_copy {
 
 static count_copy some_function(count_copy data) {
     data.modify();
-    return data;                    // copy constrcution: `data` is a function parameter
+    return data;                    // copy construction: `data` is a function parameter
 }
 
 count_copy example_final() {
@@ -1209,8 +1227,8 @@ dependent on inlining and aliasing reasoning of the compiler.</p>
 
 
     <h2>IX. Acknowledgements</h2>
-    <p>Great thanks to Walter E. Brown for fixing numerous lexical and semantical issues in early versions of this paper.</p>
-    <p>Great thanks to Eyal Rozenberg for numerous usefull comments.</p>
+    <p>Great thanks to Walter E. Brown for fixing numerous issues in early versions of this paper.</p>
+    <p>Great thanks to Eyal Rozenberg for numerous useful comments.</p>
     <p>Great thanks to Vyacheslav Napadovsky for helping with the assembly and the optimizations.</p>
     <p>Thanks also
  to Marc Glisse for pointing me to the forbidden copy elision cases,

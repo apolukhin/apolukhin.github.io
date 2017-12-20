@@ -29,7 +29,7 @@
 		<address>&nbsp;</address>
 		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
 		<address>&nbsp;</address>
-		<address>Date: 2017-11-21</address>
+		<address>Date: 2017-12-19</address>
 		<h1>A Proposal to add Classes and Functions Required for Dynamic Library Load</h1>
 
 
@@ -48,10 +48,11 @@
 
 		<p>Adding a specific features to an existing software applications at
             runtime could be useful in many cases. Such extensions, or plugins,
-            are usually implemented using Shared Library files (.dll,
-            .so/Dynamic Shared Objects) loaded into the memory of program at runtime.</p>
+            are usually implemented using shared library files (.dll,
+            .so/Dynamic Shared Objects) loaded into the memory of program at runtime. Such trechique is called <b>Dynamic Library 
+            Loading (DLL)</b>.</p>
 		<p>Current C++ Standard lacks support for Dynamic Library 
-            Loading (DLL). This proposal attempts to fix that and provide a simple to
+            Loading. This proposal attempts to fix that and provide a simple to
             use classes and functions for DLL.</p>
 		<p class="changed-added">A quick survey at one of <a href="https://habrahabr.ru/company/yandex/blog/323972/">the popular Russian IT sites</a> shows that ~41% of people use
 		dynamic library loading in company or their own projects. Any wrapper around platform specific DLL involves multiple macro, reinterpret_casts,
@@ -68,13 +69,13 @@
 			existing headers. <span class='changed-deleted'>It does not require any changes in the core
 			language and it could be implemented in standard C++.</span>
 		</p>
-		<p class='changed-added'>This proposal tries hard to be a library only extension and avoid adding a description of shared libraries machinery as much as possible.
+		<p class='changed-added'>This proposal <span class='changed-deleted'>tries hard to be</span><span class='changed-added'>is</span> a library only extension and avoids adding a description of shared libraries machinery as much as possible.
 		EWG has to decide:</p>
 		<ul class='changed-added'>
 		    <li>is it acceptable to describe usage of shared library files without any mention of how to construct them?</li>
-		    <li>is it acceptable to have an unspecified behavior for shared library's TLS, globals, ADL, exceptions, ODR violations, global allocators?</li>
+		    <li>is it acceptable to have an unspecified behavior for DLL's TLS, globals, ADL, exceptions, ODR violations, global allocators?</li>
 		</ul>
-		<p class='changed-added'>EWG voted on "Add shared library loading support to standard library?" in Albuquerque: 6 | 6 | 4 | 1 | 1, asked to embed feedback and send the proposal to LEWG.<p>
+		<p class='changed-added'>EWG voted on "Add DLL support to standard library?" in Albuquerque: 6 | 6 | 4 | 1 | 1, asked to embed feedback and send the proposal to LEWG.<p>
 
 		<h2>III. Design Decisions</h2>
 		<h3>A. Usage of <code>std::filesystem::path</code></h3>
@@ -141,9 +142,9 @@ try {
             chance of finding wrong shared library file with the same name. Because some 
             operating systems search
             system paths even if relative path is provided, the 
-            requirement to not do that is implicitly described in proposed wording.</p>
+            requirement to not do that is implicitly described in proposed wording. <span class="changed-added">That OS specific logic could be avoided by implicitly converting relative paths to absolute.</span></p>
 		<h3>F. Minimal modifications for the N4687 wording.</h3>
-        <p>There have been a lot of shared library related proposals:</p>
+        <p>There have been DLL related proposals:</p>
         <ul>
         <li><a href="http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2002/n1400.html">N1400: Toward standardization of dynamic libraries</a></li>
         <li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2002/n1418.html">N1418: Dynamic Libraries in C++</a></li>
@@ -422,10 +423,10 @@ constexpr dll_mode<span class="changed-deleted">&amp;</span>  operator~ (dll_mod
 <h4>??.4.2 dll_mode constants <span class="right">[dll.shared_library.dll_const]</span></h4>
 <pre><span class="changed-deleted">append</span><span class="changed-added">add</span>_decorations</pre>
     <div class="desc"><i>Effects:</i> A<span class="changed-deleted">ppen</span><span class="changed-added">d</span>ds a platform specific extensions and prefixes to shared library filename before trying to load it into program memory.
-    If load attempts fail, tries to load with exactly specified name.</div>
+    If load attempts fail, loads with exactly specified name.</div>
     <div class="desc"><i>Value:</i> Any value that can not be received by applying binary OR to any set of modes from <code>dll_mode</code></div>
     <div class="desc"><i>[ Example:</i></div>
-<pre>        // Tries to open
+<pre>        // Attempts to open
         //      `./my_plugins/plugin1.dll` and `./my_plugins/libplugin1.dll` on Windows
         //      `./my_plugins/libplugin1.so` on Linux
         //      `./my_plugins/libplugin1.dylib` and `./my_plugins/libplugin1.so` on MacOS.
@@ -818,6 +819,7 @@ imported_t&lt;SymbolT&gt; import(shared_library&amp;&amp; library, const string&
         in Boost.DLL and provided implementation of mangled symbols load,
         that showed complexities of such approach. Renato Tegon Forti started the work on Boost.DLL and
         provided a lot of code, help and documentation for the Boost.DLL.</p>
+        <p>Thanks to Tom Honermann for providing comments and recommendations.</p>
 
 
 
