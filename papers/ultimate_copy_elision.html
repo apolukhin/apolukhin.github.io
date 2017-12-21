@@ -73,12 +73,12 @@ href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r1.html">P053
     Do we have to apply std::move for a member function call on a local variable when the function call returns reference?..</p>
 
     <h3>E. Sum up</h3>
-    <p>We were teaching people for decades to write functions and improving the C++ language by providing features for advanced programmers to optimize the functions
-    leaving behind the abilities of modern compilers to do that job out-of-the-box.</p>
+    <p>We were teaching people for decades to write functions. Committee was improving the C++ language by providing features for advanced programmers to optimize the functions,
+    leaving behind the abilities of modern compilers to do that job sometimes out-of-the-box.</p>
 
 
     <h2>III. Examples of possible optimizations</h2>
-    <p>All the examples in this section use the following includes and classes</p>
+    <p>All the examples in this section assume that <code>callee</code> is inlined by the optimizer. Code samples use the following classes:</p>
 <pre class="lmargin50">
 struct detect_copy {
     detect_copy() noexcept = default;
@@ -224,6 +224,12 @@ int caller() {
     return first.modify();
 }</pre>
 
+
+
+    <h3>F. Returning local variable that is <code>std::move</code>ed in <code>return</code></h3>
+<pre class="lmargin50">
+    TODO:
+</pre>
 
     <h2>IV. Addressing common concerns</h2>
     <p><b>Concern:</b> Eliding copy constructors could break user code</p>
