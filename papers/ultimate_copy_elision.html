@@ -1,0 +1,321 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+    <title>Ultimate copy elision</title>
+    <meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+    <meta http-equiv="Content-Language" content="en-us">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <style type="text/css">
+        .addition { color: green; }
+        .right { float:right }
+        .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+        .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+        .changed-added { background-color: #CFF0FC ;}
+        .notes { background-color: gold ;}
+        pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
+        .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; }
+        body {max-width: 1024px; margin-left: 25px;}
+        .lmargin50{margin-left: 50px;}
+        .cppkeyword { color: blue; }
+        .asmcostly { color: red; }
+        .cppcomment { color: green; }
+        .cppcomment > .cppkeyword{ color: green; }
+        .cpptext { color: #2E8B57; }
+        .cppaddition { background-color: #CFC; }
+        .cppdeletion {  text-decoration: line-through; background-color: #FCC; }
+        .stdquote { background-color: #ECECEC; font-family: Consolas,monospace; }
+    </style>
+    </head>
+    <body bgcolor="#ffffff">
+    <address>Document number: D????0</address>
+    <address>Project: Programming Language C++</address>
+    <address>Audience: Evolution Working group</address>
+    <address>&nbsp;</address>
+    <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+    <address>&nbsp;</address>
+    <address>Date: 2017-12-21</address>
+    <h1>Ultimate copy elision</h1>
+
+    <!--p 
+class='changed-added'>Significant changes to <a 
+href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r1.html">P0539R1</a>
+ are marked with blue.<p-->
+    <!--p><input
+ type="checkbox" id="show_deletions" onchange="show_hide_deleted()"/>
+ Show deleted lines from P0275R1.</p-->
+
+    <h2>I. Quick Introduction</h2>
+    <p>[class.copy.elision]
+    in the current working draft provides a whitelist of cases when copy elision is permitted. Those rules are good! However they
+    do not take into account that modern compilers could inline functions and that modern compilers have link time optimizations.</p>
+    <p>This paper provides motivation for a future proposals to relax the [class.copy.elision] rules in order to allow compilers to produce much better code.</p>
+
+    <h2>II. The pitfall</h2>
+    <h3>A. Teaching practice</h3>
+    <p>For decades almost all the teaching materials were telling people to decompose program into functions for maintainability and code re-usability.
+    That good advice leads to code with many functions. Compiler developers noted that and started inlining functions more aggressively.
+    Currently inlining is one of the major optimizations [1].</p>
+
+    <h3>B. Copy elision rules</h3>
+    <p>Current rules for copy elision mostly assume that there's a preallocated fixed size storage
+    and allow to elide copying of local non-reference variables into that storage. This works perfectly fine in a world without inlining, aliasing reasoning and link time optimization.</p>
+    <p>But that's not true for modern compilers. If the function is inlined then the compiler "sees" the whole function body along with function parameters.
+    This unleashes a whole new world of optimizations (See section III for examples).</p>
+
+    <h3>C. std::move/rvalues is not a panacea</h3>
+    <p>We have std::array, std::basic_string, std::function, std::variant, std::optional and other classes that may store a lot of data on the stack.
+    "Moving" instances of those classes may result in copying a lot of bytes.</p>
+
+    <h3>D. std::move/rvalues rules may be obscure</h3>
+    <p>What is the optimal way to return something from a function? For named object we must just return. For a subobject we must return it with std::move.
+    For a function parameter we must return it by std::move. If we return a reference to local object we have to std::move it.
+    We must also return elements from structured binding by std::move, but only if the element is not a reference to an value returned by reference before decomposition... 
+    Do we have to apply std::move for a member function call on a local variable when the function call returns reference?..</p>
+
+    <h3>E. Sum up</h3>
+    <p>We were teaching people for decades to write functions and improving the C++ language by providing features for advanced programmers to optimize the functions
+    leaving behind the abilities of modern compilers to do that job out-of-the-box.</p>
+
+
+    <h2>III. Examples of possible optimizations</h2>
+    <p>All the examples in this section use the following includes and classes</p>
+<pre class="lmargin50">
+struct detect_copy {
+    detect_copy() noexcept = default;
+    detect_copy(const detect_copy&amp;) noexcept;
+    ~detect_copy();
+    int modify() noexcept;
+};
+
+struct pair {
+    detect_copy first, second;
+};
+</pre>
+
+
+
+
+    <h3>A. Returning function parameter</h3>
+
+<pre class="lmargin50">
+static detect_copy callee(detect_copy v) {
+    return v;
+}
+
+int caller() {
+    auto v = callee(detect_copy{});
+    return v.modify();
+}</pre>
+
+<p>[class.copy.elision] forbids copy elision if function parameter is returned. However modern compilers do inline the <code>callee</code>. This results in a copy constructor call immediately followed by a call to the destructor: <a href="https://godbolt.org/g/nYovU3">https://godbolt.org/g/nYovU3</a>.</p>
+
+<p>Code could be optimized by the compiler to the following, avoiding calls to copy constructor and destructor:</p>
+<pre class="lmargin50">
+int caller() {
+    detect_copy v;
+    return v.modify();
+}</pre>
+
+    <h3>B. Returning reference to a local</h3>
+
+<pre class="lmargin50">
+static detect_copy callee() {
+    detect_copy v;
+    auto& ref = v;
+    return ref;
+}
+
+int caller() {
+    return callee().modify();
+}</pre>
+
+    <p>[class.copy.elision] forbids copy elision if reference is returned. However modern compilers do understand that <code>ref</code> is just a reference to <code>v</code>.
+    This could be seen from assembly where no separate variable/register is used for a <code>ref</code>: <a href="https://godbolt.org/g/YMAAN4">https://godbolt.org/g/YMAAN4</a>. Note the call to the copy constructor immediately followed by a call to the destructor.</p>
+
+<p>It means that the code could be optimized by the compiler to the following, avoiding calls to copy constructor and destructor:</p>
+<pre class="lmargin50">
+int caller() {
+    detect_copy v;
+    return v.modify();
+}</pre>
+
+
+    <h3>C. Returning subobject</h3>
+
+<pre class="lmargin50">
+static detect_copy callee() {
+    pair v;
+    return v.second;
+}
+
+int caller() {
+    return callee().modify();
+}</pre>
+
+<p>[class.copy.elision] forbids copy elision if subobject is returned. However modern compilers do understand that <code>pair</code> could be
+    treated as two <code>detect_copy</code> variables because <code>pair</code> has default destructor.
+    The copy constructor call is immediately followed by a call to the destructor for the same register: <a href="https://godbolt.org/g/kyPR7R">https://godbolt.org/g/kyPR7R</a>.</p>
+
+<p>Code could be optimized by the compiler to avoid calls to copy constructor and destructor:</p>
+<pre class="lmargin50">
+int caller() {
+    detect_copy first;
+    { detect_copy second; }
+    return first.modify();
+}</pre>
+
+
+
+    <h3>D. Returning union element</h3>
+<pre class="lmargin50">
+union optional {
+    bool fake;
+    detect_copy data;
+
+    optional()
+        : data{}
+    {}
+
+    ~optional(){
+        data.~detect_copy();
+    }
+};
+
+static detect_copy callee() {
+    optional v;
+    return v.data;
+}
+
+int caller() {
+    return callee().modify();
+}</pre>
+
+<p>[class.copy.elision] forbids copy elision if union element is returned. However modern compilers have knowledge of the active union member, because they do check that in constexpr calls.
+    In the above example copy constructor call is immediately followed by a call to the destructor for the same memory: <a href="https://godbolt.org/g/Udb7vN">https://godbolt.org/g/Udb7vN</a>.</p>
+
+<p>Code could be optimized by the compiler to avoid calls to copy constructor and destructor:</p>
+<pre class="lmargin50">
+int caller() {
+    detect_copy v;
+    return v.modify();
+}</pre>
+
+
+
+    <h3>E. Returning element from structured binding</h3>
+<pre class="lmargin50">
+static detect_copy callee() {
+    auto [f, s] = pair{};
+    return s;
+}
+
+int caller() {
+    return callee().modify();
+}</pre>
+
+<p>[class.copy.elision] forbids copy elision if reference to the subobject is returned. However modern compilers do understand that <code>s</code> is just a reference to <code>pair{}.second</code>.
+    This could be seen from assembly where no separate variable/register is used for a <code>s</code>: <a href="https://godbolt.org/g/quV9Cp">https://godbolt.org/g/quV9Cp</a>. Note the call to the copy constructor immediately followed by a call to the destructor for the same memory.</p>
+
+<p>Code could be optimized by the compiler to avoid calls to copy constructor and destructor:</p>
+<pre class="lmargin50">
+int caller() {
+    detect_copy first;
+    { detect_copy second; }
+    return first.modify();
+}</pre>
+
+
+    <h2>IV. Addressing common concerns</h2>
+    <p><b>Concern:</b> Eliding copy constructors could break user code</p>
+    <p>Yes. Committee already was doing that when adding new rules to the [class.copy.elision] and it was assumed to be OK [n1725].</p>
+
+    <p><b>Concern:</b> Examples do not look like a real world code. Nobody writes such a bad code</p>
+    <p>Examples are simplified just to show that the optimization is possible. Real code would have functions located in different headers, more code will be in the function body.
+    We searched the Yandex code base for <code>return.*first;</code> and <code>return.*second;</code> and found thousands of matches. Note we searched only for a single optimization
+    case for only a std::pair. Tuples, aggregates and more complex data types are also affected.</p>
+
+    <p><b>Concern:</b> Advanced optimizations could affect compilation time</p>
+    <p>That depends. Making a high level optimization could be faster than doing a lot of low level optimizations. For example removing copy constructor and destructor could be faster
+    than inlining both and optimizing all the internals.</p>
+    <p>Anyway, to implement or not to implement a particular optimization is up to the compiler developers. This proposal just attempts to untie their hands and allow more optimizations.</p>
+
+    <p><b>Concern:</b> It is impossible to implement some of the optimizations right now.</p>
+    <p>Proposal does not require any of the optimizations from examples. Proposal attempts to relax copy elision rules to allow those optimizations someday.</p>
+
+    <p><b>Concern:</b> We want an emergency hatch to disable copy elision for particular places.</p>
+    <p>Usual practice to disable optimizations for a variable is to make it <code>volatile</code>. This feature must be kept.</p>
+
+    <h2>V. Ultimate solution for relaxing [class.copy.elision]</h2>
+    <p>Adjust the [class.copy.elision] paragraph 1 to allow copy elision of all objects and subobjects:</p>
+    <div class="lmargin50 stdquote">
+    <p>This elision of copy/move operations, called copy elision, is permitted
+    in the following circumstances (which may be combined to eliminate multiple copies):
+    </p>
+    <p>&ndash; in a return statement in a function with a class return type, when the expression is the name of
+    a non-volatile automatic object (other than a function parameter or a variable introduced by the
+    exception-declaration of a handler (18.3)) with the same type (ignoring cv-qualification) as the function
+    return type, the copy/move operation can be omitted by constructing the automatic object directly
+    into the function call’s return object</p>
+
+    <p>&ndash; in a throw-expression (8.17), when the operand is the name of a non-volatile automatic object (other than
+    a function or catch-clause parameter) whose scope does not extend beyond the end of the innermost
+    enclosing try-block (if there is one), the copy/move operation from the operand to the exception
+    object (18.1) can be omitted by constructing the automatic object directly into the exception object</p>
+
+    <p>&ndash; when the exception-declaration of an exception handler (Clause 18) declares an object of the same
+    type (except for cv-qualification) as the exception object (18.1), the copy operation can be omitted by
+    treating the exception-declaration as an alias for the exception object if the meaning of the program will
+    be unchanged except for the execution of constructors and destructors for the object declared by the
+    exception-declaration. [ Note: There cannot be a move from the exception object because it is always
+    an lvalue. — end note ]</p>
+
+    <p><span class="cppdeletion">Copy elision is</span><span class="cppaddition">Above copy elisions are</span> required where an expression is evaluated in a context requiring a constant expression (8.6)
+and in constant initialization (6.8.3.2). [ Note: Copy elision might not be performed if the same expression is
+evaluated in another context. — end note ]</p>
+    <p class="cppaddition">Additionally, copy elision is allowed for any non-volatile object or it's non-volatile nested object if
+    source is not accessed between a copy/move construction of it and its destruction.</p>
+    </div>
+
+    <h2>VI. Other ways of relaxing [class.copy.elision]</h2>
+    <p>We can deal with each of the elision cases from the Section III of this paper separately. Such approach is used in P0878 paper.</p>
+
+    <script type="text/javascript">
+        function colorize_texts(texts) {
+        for (var i = 0; i < texts.length; ++i) {
+            var text = texts[i].innerHTML;
+            text = text.replace(/namespace|sizeof|long|enum|void|constexpr|extern|noexcept|bool|template|class |struct|auto|const|typename|explicit|public|private|operator|#include|inline| char|typedef|static_assert|int|return|union|static_cast|static/g,"<span class='cppkeyword'>$&<\/span>");
+            text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+            //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
+            texts[i].innerHTML = text;
+        }
+        }
+
+        colorize_texts(document.getElementsByTagName("pre"));
+        colorize_texts(document.getElementsByTagName("code"));
+
+
+
+        function colorize_asm(texts) {
+        for (var i = 0; i < texts.length; ++i) {
+            var text = texts[i].innerHTML;
+            text = text.replace(/operator new|std::__throw_length_error|std::__throw_logic_error|lock|operator delete|div/g,"<span class='asmcostly'>$&<\/span>");
+            text = text.replace(/jmp|ja|je|mov[a-z]* |call|lea|cmp|rep|push|sub|add|ret|xor|pop|test|jne|js/g,"<span class='cppkeyword'>$&<\/span>");
+            text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+            //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
+            texts[i].innerHTML = text;
+        }
+        }
+
+        colorize_asm(document.getElementsByTagName("td"));
+
+        function show_hide_deleted() {
+        var to_change = document.getElementsByClassName('changed-deleted');
+        for (var i = 0; i < to_change.length; ++i) {
+            to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
+        }
+        }
+        show_hide_deleted()
+    </script>
+</body></html>
+
+
