@@ -33,7 +33,7 @@
     <address>&nbsp;</address>
     <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2017-12-19</address>
+    <address>Date: 2017-12-20</address>
     <h1>Subobjects copy elision</h1>
 
     <!--p 
@@ -1215,13 +1215,9 @@ count_copy example_final() {
     <p>Automatically applying <code>std::move</code> to returned subobjects may be a good idea, but for a separate proposal. As was shown in the first two examples copy elision
     could be profitable even with moving out the subobject.</p>
 
-    <p>It
- would be wrong to guarantee the above optimizations as they are highly 
-dependent on inlining and aliasing reasoning of the compiler.</p>
+    <p>It would be wrong to guarantee the above optimizations as they are highly dependent on inlining and aliasing reasoning of the compiler.</p>
 
-    <p>Copy
- elision of subobjects could be useful in many cases. The paper tries to allow more
- optimizations rather than forcing some particular optimizations.
+    <p>Copy elision of subobjects could be useful in many cases. The paper tries to allow more optimizations rather than forcing some particular optimizations.
     Thus, compiler vendors may find alternatives to the above optimizations. 
     </p>
 
@@ -1236,6 +1232,9 @@ and to Thomas Köppe, Peter Dimov, Richard Smith, Gabriel Dos Reis,
 Anton Bikineev for
     participating in early discussions and for helping me to assemble my thoughts.</p>
 
+
+    <h2>X. Feature-testing macro</h2>
+	<p>For the purposes of SG10, we recommend the feature-testing macro name __cpp_subobject_copy_elision.</p>
 
     <script type="text/javascript">
         function colorize_texts(texts) {

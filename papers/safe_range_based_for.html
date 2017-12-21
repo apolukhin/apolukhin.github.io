@@ -1,0 +1,172 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+    <title>Safe range based for</title>
+    <meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+    <meta http-equiv="Content-Language" content="en-us">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <style type="text/css">
+        .addition { color: green; }
+        .right { float:right }
+        .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+        .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+        .changed-added { background-color: #CFF0FC ;}
+        .notes { background-color: gold ;}
+        pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
+        .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; }
+        body {max-width: 1024px; margin-left: 25px;}
+        .lmargin50{margin-left: 50px;}
+        .cppkeyword { color: blue; }
+        .asmcostly { color: red; }
+        .cppcomment { color: green; }
+        .cppcomment > .cppkeyword{ color: green; }
+        .cpptext { color: #2E8B57; }
+        .cppaddition { background-color: #CFC; }
+        .cppdeletion {  text-decoration: line-through; background-color: #FCC; }
+        .stdquote { background-color: #ECECEC; font-family: Consolas,monospace; }
+    </style>
+    </head>
+    <body bgcolor="#ffffff">
+    <address>Document number: D????R0</address>
+    <address>Project: Programming Language C++</address>
+    <address>Audience: Evolution Working group</address>
+    <address>&nbsp;</address>
+    <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+    <address>&nbsp;</address>
+    <address>Date: 2017-12-20</address>
+    <h1>Safe range based for</h1>
+
+    <!--p 
+class='changed-added'>Significant changes to <a 
+href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r1.html">P0539R1</a>
+ are marked with blue.<p-->
+    <!--p><input
+ type="checkbox" id="show_deletions" onchange="show_hide_deleted()"/>
+ Show deleted lines from P0275R1.</p-->
+
+    <h2>I. Quick Introduction</h2>
+    <p>[stmt.ranged] 
+    in the current working draft provides definition of the range based for that is easy to misuse:</p>
+<pre class="lmargin50">
+#include &lt;iostream&gt;
+#include &lt;vector&gt;
+
+struct test {
+    std::vector&lt;int&gt; val = {1, 2, 3};
+
+    std::vector&lt;int&gt;&amp; get() { return val; }
+
+    ~test() {
+        std::cerr &lt;&lt; "~test() \n";
+    }
+};
+
+
+int main() {
+    for (auto&amp;&amp; v: test().get()) {
+        std::cerr &lt;&lt; v &lt;&lt; ' ';
+    }
+}
+</pre>
+    <p>In the above example call to the destructor for temporary <code>test</code> variable happens before the iteration over the returned value. This leads to the following output:</p>
+<pre class="lmargin50">
+~test() 
+0 0 3</pre>
+    <p>This paper proposes a solution for the above problem and for two core issues <a href="http://wg21.link/cwg900">CWG
+      900</a> and <a href="http://wg21.link/cwg1498">CWG 1498</a>.</p>
+
+    <h2>II. Wording</h2>
+    <p>Modify the [stmt.ranged] paragraph 1 to keep the for-range-initializer expression for the whole execution time of the range:</p>
+    <div class="lmargin50 stdquote">
+    <p>The range-based <b>for</b> statement:</p>
+    <p class="lmargin50">for (<i>init-statement<sub>opt</sub></i> <i>for-range-declaration</i> : <i>for-range-initializer</i> ) <i>statement</i></p>
+    <p>is equivalent to</p>
+    <pre>
+    {
+        <i>init-statement<sub>opt</sub></i>
+        <span class="cppaddition">[&amp;](auto &amp;&amp;__range) {</span>
+            <span class="cppdeletion">auto &&__range = <i>for-range-initializer</i> ;</span>
+            auto __begin = <i>begin-expr</i> ;
+            auto __end = <i>end-expr</i> ;
+            for ( ; __begin != __end; ++__begin ) {
+                <i>for-range-declaration</i> = *__begin;
+                <i>statement</i>
+            }
+        <span class="cppaddition">}(<i>for-range-initializer</i>);</span>
+    }
+    </pre>
+    </div>
+    <p>This change makes sure that <i>for-range-initializer</i> lives long enough to finish the iteration:</p>
+<pre class="lmargin50">
+#include &lt;iostream&gt;
+#include &lt;vector&gt;
+
+struct test {
+    std::vector&lt;int&gt; val = {1, 2, 3};
+
+    std::vector&lt;int&gt;&amp; get() { return val; }
+
+    ~test() {
+        std::cerr &lt;&lt; "~test() \n";
+    }
+};
+
+
+int main() {
+    [&amp;](auto&amp;&amp; __range) {
+        auto __begin = std::begin(__range) ;
+        auto __end = std::end(__range) ;
+        for ( ; __begin != __end; ++__begin ) {
+            auto&amp;&amp; v = *__begin;
+            std::cerr &lt;&lt; v &lt;&lt; ' ';
+        }
+    }(test().get());
+}
+</pre>
+    <p>Code from above outputs:</p>
+<pre class="lmargin50">1 2 3 ~test() 
+</pre>
+
+        <h2>III. Feature-testing macro</h2>
+		<p>For the purposes of SG10, we recommend the feature-testing macro name __cpp_safe_range_based_for.</p>
+
+    <script type="text/javascript">
+        function colorize_texts(texts) {
+        for (var i = 0; i < texts.length; ++i) {
+            var text = texts[i].innerHTML;
+            text = text.replace(/namespace|sizeof|long|enum|void|constexpr|extern|noexcept|bool|template|class |struct|auto|const|typename|explicit|public|private|operator|#include|inline| char|typedef|static_assert|static_cast|static/g,"<span class='cppkeyword'>$&<\/span>");
+            text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+            //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
+            texts[i].innerHTML = text;
+        }
+        }
+/*
+        colorize_texts(document.getElementsByTagName("pre"));
+        colorize_texts(document.getElementsByTagName("code"));
+*/
+
+
+        function colorize_asm(texts) {
+        for (var i = 0; i < texts.length; ++i) {
+            var text = texts[i].innerHTML;
+            text = text.replace(/operator new|std::__throw_length_error|std::__throw_logic_error|lock|operator delete|div/g,"<span class='asmcostly'>$&<\/span>");
+            text = text.replace(/jmp|ja|je|mov[a-z]* |call|lea|cmp|rep|push|sub|add|ret|xor|pop|test|jne|js/g,"<span class='cppkeyword'>$&<\/span>");
+            text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+            //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
+            texts[i].innerHTML = text;
+        }
+        }
+
+        colorize_asm(document.getElementsByTagName("td"));
+
+        function show_hide_deleted() {
+        var to_change = document.getElementsByClassName('changed-deleted');
+        for (var i = 0; i < to_change.length; ++i) {
+            to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
+        }
+        }
+        show_hide_deleted()
+    </script>
+</body></html>
+
+
