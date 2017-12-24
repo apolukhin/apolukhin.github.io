@@ -132,7 +132,7 @@ int caller() {
     <p>[class.copy.elision] forbids copy elision if reference is returned. However modern compilers do understand that <code>ref</code> is just a reference to <code>v</code>.
     This could be seen from assembly where no separate variable/register is used for a <code>ref</code>: <a href="https://godbolt.org/g/YMAAN4">https://godbolt.org/g/YMAAN4</a>. Note the call to the copy constructor immediately followed by a call to the destructor.</p>
 
-<p>It means that the code could be optimized by the compiler to the following, avoiding calls to copy constructor and destructor:</p>
+<p>It means that the code could be optimized by the compiler to avoid calls to copy constructor and destructor:</p>
 <pre class="lmargin50">
 int caller() {
     detect_copy v;
@@ -225,15 +225,103 @@ int caller() {
 }</pre>
 
 
-
     <h3>F. Returning local variable that is <code>std::move</code>ed in <code>return</code></h3>
 <pre class="lmargin50">
-    TODO:
+
+static detect_copy callee() {
+    detect_copy v;
+    return static_cast&lt;detect_copy&amp;&amp;&gt;(v);
+}
+
+int caller() {
+    auto v = callee();
+    return v.modify();
+}
 </pre>
+    <p>[class.copy.elision] forbids copy elision if rvalue reference is returned. However modern compilers do understand that actually <code>v</code> is returned.
+    This could be seen from assembly where the compiler operates with just an address of <code>v</code> and does not use separate variables/registers for a reference: <a href="https://godbolt.org/g/bPQ8Ja">https://godbolt.org/g/bPQ8Ja</a>. Note the call to the copy constructor immediately followed by a call to the destructor.</p>
+
+<p>It means that the code could be optimized by the compiler to avoid calls to copy constructor and destructor:</p>
+<pre class="lmargin50">
+int caller() {
+    detect_copy v;
+    return v.modify();
+}</pre>
+
+    <h3>G. Passing variable that is not used any more by copy</h3>
+<pre class="lmargin50">
+
+int takes_by_copy(detect_copy /*v*/) noexcept {}
+
+int caller() {
+    detect_copy v;
+    return takes_by_copy(v);
+}
+</pre>
+    <p>[class.copy.elision] forbids copy elision in that case. Thou it is obvious that <code>v</code> is not used any more, it can not be accessed from <code>takes_by_copy</code> function.
+    The assembly is suboptimal because of unnecessary copy construction and destruction: <a href="https://godbolt.org/g/F7vTCM">https://godbolt.org/g/F7vTCM</a>. Note the call to the copy constructor immediately followed by a call to the destructor.</p>
+
+<p>Code could be optimized by the compiler to avoid calls to copy constructor and destructor. In that case even inlining of the <code>takes_by_copy</code> function is not required:</p>
+<pre class="lmargin50">
+int takes_by_copy(detect_copy /*v*/) noexcept {}
+
+int caller() {
+    return takes_by_copy({});
+}</pre>
+
+    <h3>H. Returning a reference to a subobject of a local object</h3>
+<pre class="lmargin50">
+class stringstream {
+    detect_copy internal;
+
+public:
+    detect_copy&amp; str() { return internal; }
+};
+
+static detect_copy callee() {
+    stringstream ss;
+
+    return ss.str();
+}
+
+int caller() {
+    return callee().modify();
+}</pre>
+    <p>[class.copy.elision] forbids copy elision in that case. Thou the compilers succeeded in understanding and inlining the <code>stringstream::str()</code> function: <a href="https://godbolt.org/g/MjEocB">https://godbolt.org/g/MjEocB</a>. Note the call to the copy constructor immediately followed by a call to the destructor.</p>
+
+<p>Code could be optimized by the compiler to avoid calls to copy constructor and destructor:</p>
+<pre class="lmargin50">
+int caller() {
+    return detect_copy{}.modify();
+}</pre>
+
+
+
 
     <h2>IV. Addressing common concerns</h2>
     <p><b>Concern:</b> Eliding copy constructors could break user code</p>
-    <p>Yes. Committee already was doing that when adding new rules to the [class.copy.elision] and it was assumed to be OK [n1725].</p>
+    <p>Yes, but only if the following constraint for copy constructor is not satisfied: "After the definition <code>T u = v;</code>, <code>u</code> is equal to <code>v</code>".</p>
+    <p>Although the constraint seems very restrictive the C++ Language and Standard Library heavily rely on it:</p>
+    <ul>
+        <li>
+            Ranges TS force the requirement that objects after copy/assignment/move are equal
+            (N4651: "After the definition T u = v;, u is equal to v" in Concept CopyConstructible. Same rules could be found in Concept Assignable and Concept Swappable).
+        </li>
+        <li>
+            Standard library implicitly requires objects after copy/assignment/move to be equal in [container.requirements.general].
+        </li>
+        <li>
+            Algorithms do not work well if that constraint is not satisfied, as some of the complexities in [alg*] are described as "At most .* swaps" or "Approximately .* swaps".
+            Moreover algorithms sometimes do not specify the order of copying/swapping so if the requirement is not satisfied the results could be different on different platforms.
+        </li>
+        <li>
+            [class.copy.elision] implicitly rely on that constraint.
+        </li>
+        <li>
+            Committee implicitly relied on that constraint in "P0135R1: Wording for guaranteed copy elision through simplified value categories".
+        </li>
+    </ul>
+    <p>In other words, committee was relying on the that constraint for a long time and classes that violate that constraint are already unportable.</p>
 
     <p><b>Concern:</b> Examples do not look like a real world code. Nobody writes such a bad code</p>
     <p>Examples are simplified just to show that the optimization is possible. Real code would have functions located in different headers, more code will be in the function body.
@@ -250,6 +338,21 @@ int caller() {
 
     <p><b>Concern:</b> We want an emergency hatch to disable copy elision for particular places.</p>
     <p>Usual practice to disable optimizations for a variable is to make it <code>volatile</code>. This feature must be kept.</p>
+
+    <p><b>Concern:</b> The optimizations are not guaranteed so users still have to write <code>std::move</code></p>
+    <p>That's true. Proposals for automatically applying <code>std::move</code> may be a good idea. Such proposals would be more restrictive than the copy elision rules because we have
+    no control over all the compiler inlining and reasoning logic. We can not guarantee that all the compilers would be able to inline some function or would be able to understand that 
+    the reference references local object.</p>
+
+    <p>Moving in both directions would produce better result:</p>
+    <ul>
+        <li>simplifying copy elision rules will remove border cases when <code>std::move</code> hurts performance</li>
+        <li>implicit casting to rvalues will simplify the code and allow writing less <code>std::move</code>s</li>
+        <li>implicit casting to rvalues and more generic copy elision rules will produce faster programs out-of-the-box. Users will have to worry less for the performance.
+        This will simplify the language usage and teaching materials (See "D. std::move/rvalues rules may be obscure").</li>
+    </ul>
+
+
 
     <h2>V. Ultimate solution for relaxing [class.copy.elision]</h2>
     <p>Adjust the [class.copy.elision] paragraph 1 to allow copy elision of all objects and subobjects:</p>
@@ -278,12 +381,15 @@ int caller() {
     <p><span class="cppdeletion">Copy elision is</span><span class="cppaddition">Above copy elisions are</span> required where an expression is evaluated in a context requiring a constant expression (8.6)
 and in constant initialization (6.8.3.2). [ Note: Copy elision might not be performed if the same expression is
 evaluated in another context. — end note ]</p>
-    <p class="cppaddition">Additionally, copy elision is allowed for any non-volatile object or it's non-volatile nested object if
+    <p class="cppaddition">Additionally, copy elision is allowed for any non-volatile object with automatic storage duration or it's non-volatile nested object if
     source is not accessed between a copy/move construction of it and its destruction.</p>
     </div>
 
     <h2>VI. Other ways of relaxing [class.copy.elision]</h2>
-    <p>We can deal with each of the elision cases from the Section III of this paper separately. Such approach is used in P0878 paper.</p>
+    <p>We can deal with each of the elision cases from the Section III of this paper separately. Such approach is used in P0878 paper. Note that that approach is not generic,
+    consumes a lot of time and scales badly because attempts to allow a specific optimization without a way to inspect the abilities of all the compilers. This increases a risk of
+    spending a lot of time on a case that would not be implementable in the nearest future or spending a lot of time on a case that is not profitable for that particular compiler.
+    It seems better to allow compiler developers to choose optimizations as they are the ones who know the weak and strong parts of the underlying optimizer.</p>
 
     <script type="text/javascript">
         function colorize_texts(texts) {
