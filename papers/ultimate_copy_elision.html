@@ -57,14 +57,14 @@ href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r1.html">P053
     Currently inlining is one of the major optimizations [1].</p>
 
     <h3>B. Copy elision rules</h3>
-    <p>Current rules for copy elision mostly assume that there's a preallocated fixed size storage
-    and allow to elide copying of local non-reference variables into that storage. This works perfectly fine in a world without inlining, aliasing reasoning and link time optimization.</p>
-    <p>But that's not true for modern compilers. If the function is inlined then the compiler "sees" the whole function body along with function parameters.
+    <p>Current rules for copy elision mostly assume that a function from source code remains a function in a binary.
+    This works perfectly fine in a world without inlining, aliasing reasoning and link time optimization.</p>
+    <p>But that's suboptimal for modern compilers. If the function is inlined then the compiler "sees" the whole function body along with function parameters.
     This unleashes a whole new world of optimizations (See section III for examples).</p>
 
     <h3>C. std::move/rvalues is not a panacea</h3>
     <p>We have std::array, std::basic_string, std::function, std::variant, std::optional and other classes that may store a lot of data on the stack.
-    "Moving" instances of those classes may result in copying a lot of bytes.</p>
+    "Moving" instances of those classes may result in copying a lot of bytes. Copy elision could be more profitable for such classes.</p>
 
     <h3>D. std::move/rvalues rules may be obscure</h3>
     <p>What is the optimal way to return something from a function? For named object we must just return. For a subobject we must return it with std::move.
