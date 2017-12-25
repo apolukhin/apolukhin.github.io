@@ -1152,63 +1152,7 @@ in the following circumstances (which may be combined to eliminate multiple copi
 
 
     <h2>VII. Ultimate solution for relaxing [class.copy.elision]</h2>
-    <p>Replace the bullets in [class.copy.elision] paragraph 1 to allow copy elision of all objects and subobjects:</p>
-    <div class="lmargin50 stdquote">
-    <p>This elision of copy/move operations, called copy elision, is permitted
-    <span class="cppaddition">for any non-volatile object or it's non-volatile nested object if source is not accessed between a copy/move construction of it and its destruction.</span>
-    <span class="cppdeletion">in the following circumstances (which may be combined to eliminate multiple copies):</span>
-    </p>
-    <p class="cppdeletion">&ndash; in a return statement in a function with a class return type, when the expression is the name of
-    a non-volatile automatic object (other than a function parameter or a variable introduced by the
-    exception-declaration of a handler (18.3)) with the same type (ignoring cv-qualification) as the function
-    return type, the copy/move operation can be omitted by constructing the automatic object directly
-    into the function call’s return object</p>
-
-    <p class="cppdeletion">&ndash; in a throw-expression (8.17), when the operand is the name of a non-volatile automatic object (other than
-    a function or catch-clause parameter) whose scope does not extend beyond the end of the innermost
-    enclosing try-block (if there is one), the copy/move operation from the operand to the exception
-    object (18.1) can be omitted by constructing the automatic object directly into the exception object</p>
-
-    <p class="cppdeletion">&ndash; when the exception-declaration of an exception handler (Clause 18) declares an object of the same
-    type (except for cv-qualification) as the exception object (18.1), the copy operation can be omitted by
-    treating the exception-declaration as an alias for the exception object if the meaning of the program will
-    be unchanged except for the execution of constructors and destructors for the object declared by the
-    exception-declaration. [ Note: There cannot be a move from the exception object because it is always
-    an lvalue. — end note ]</p>
-    <p><...></p>
-    </div>
-
-    <p>This will allow optimizing <code>std::pair</code>, <code>std::tuple</code>, all the aggregate initializable types AND probably <code>std::variant</code>,
-    <code>std::optional</code>, many user provided classes, functions that accept temporary and exit before it is modified. For example <a href="https://godbolt.org/g/yQ5tYX">https://godbolt.org/g/yQ5tYX</a>:</p>
-<pre class="lmargin50">
-struct count_copy {
-    count_copy();
-    count_copy(const count_copy&amp);
-    void modify();
-};
-
-static count_copy some_function(count_copy data) {
-    data.modify();
-    return data;                    // copy construction: `data` is a function parameter
-}
-
-count_copy example_final() {
-    count_copy c0;
-    auto res = some_function(c0);   // copy construction: `data{c0}`
-    return res;
-}
-</pre>
-<p>Could be optimized to avoid two copy constructions:</p>
-<pre class="lmargin50">
-struct count_copy {
-    count_copy();
-    count_copy(const count_copy&);
-    void modify();
-};
-
-count_copy example_final() {
-    return count_copy{}.modify();
-}</pre>
+    <p>Use the "Ultimate copy elision" wording from a separate paper.</p>
 
 
     <h2>VIII. Minor points</h2>
