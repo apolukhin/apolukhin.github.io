@@ -33,7 +33,7 @@
     <address>&nbsp;</address>
     <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2017-12-25</address>
+    <address>Date: 2017-12-27</address>
     <h1>Ultimate copy elision</h1>
 
     <!--p 
@@ -54,25 +54,30 @@ href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r1.html">P053
     <h2>II. The pitfall</h2>
     <h4>A. Teaching practice</h4>
     <p>For decades almost all the teaching materials were telling people to decompose program into functions for maintainability and code re-usability.
-    That good advice leads to code with many functions. Compiler developers noted that and started inlining functions more aggressively.
-    Currently inlining is one of the major optimizations [<a href="https://youtu.be/FnGCDLhaxKU?t=26m20s">Understanding Compiler Optimization, 26m20s by Chandler Carruth</a>].</p>
+    That good advice leads to code with many functions. Compiler developers noted that and started inlining functions more aggressively.</p>
+    <p>Currently inlining is one of the major optimizations [<a href="https://youtu.be/FnGCDLhaxKU?t=26m20s">Understanding Compiler Optimization, 26m20s by Chandler Carruth</a>]
+    and compilers inline a lot.</p>
 
     <h4>B. Copy elision rules</h4>
     <p>Current rules for copy elision mostly assume that a function from source code remains a function in a binary.
-    This works perfectly fine in a world without inlining, aliasing reasoning and link time optimization.</p>
-    <p>But that's suboptimal for modern compilers. If the function is inlined then the compiler "sees" the whole function body along with function parameters.
+    This works perfectly fine in a world without inlining, aliasing reasoning and link time optimization. But if the function
+    is inlined then the compiler "sees" the whole function body along with function parameters.
     This unleashes a whole new world of optimizations (See section III for examples), but existing copy elision rules prevent those optimizations.</p>
+
+    <p>Current rules are suboptimal for modern compilers and prevent optimizations.</p>
 
     <h4>C. std::move/rvalues is not a panacea</h4>
     <p>We have <code>std::array</code>, <code>std::basic_string</code>, <code>std::function</code>, <code>std::variant</code>, <code>std::optional</code>
     nd other classes that may store a lot of data on the stack.
-    "Moving" instances of those classes may result in copying a lot of bytes. Copy elision could be more profitable for such classes.</p>
+    "Moving" instances of those classes may result in copying a lot of bytes.</p>
+    <p>Copy elision could be more profitable.</p>
 
     <h4>D. std::move/rvalues rules may be obscure</h4>
     <p>What is the optimal way to return something from a function? For named object we must just return. For a subobject we must return it with <code>std::move</code>.
     For a function parameter we must return it by <code>std::move</code>. If we return a reference to local object we have to <code>std::move</code> it.
     We must also return elements from structured binding by <code>std::move</code>, but only if the element is not a reference to an value returned by reference before decomposition... 
     Do we have to apply std::move for a member function call on a local variable when the function call returns reference?..</p>
+    <p>Beginners and even some advanced programmers do not always know about those obscure rules and already assume that the compiler will do the job for them.</p>
 
     <h4>E. Sum up</h4>
     <p>We were teaching people for decades to write functions. Committee was improving the C++ language by providing features for advanced programmers to optimize the functions,
@@ -300,40 +305,45 @@ int caller() {
 
     <h2>IV. General idea</h2>
     <p>All the examples from above were producing code that after inlining (and some other optimizations) contains copy/move constructor call followed by a call to destructor.
-    In pseudocode it could be shown as following:</p>
+    Something close to the following could be found in dissassembly:
 <pre class="lmargin50">
-int caller() {
-    A a;
-
-    &lt;...&gt;
-
-    A b = a;
-    a.~A();
-
-    &lt;...&gt;
-
-    A c = std::move(b);
-    b.~A();
-
-    &lt;...&gt;
-
-    c.~A();
-
-    &lt;...&gt;
-}</pre>
-    <p>The idea of this paper is to allow the compiler to elide those copyings:</p>
+caller():                       ; int caller() {
+    sub     rsp, 24             ;
+    lea     rdi, [rsp+13]       ;
+    call    A::A()              ;     A a;
+    &lt;...&gt;                       ;     // some other code
+    lea     rsi, [rsp+13]       ;
+    lea     rdi, [rsp+14]       ;
+    call    A::A(A const&)      ;     A b = a;
+    lea     rdi, [rsp+13]       ;
+    call    A::~A()             ;     a.~A();
+    &lt;...&gt;                       ;     // some other code
+    lea     rsi, [rsp+14]       ;
+    lea     rdi, [rsp+15]       ;
+    call    A::A(A&&)           ;     A c = std::move(b);
+    lea     rdi, [rsp+14]       ;
+    call    A::~A()             ;     b.~A();
+    &lt;...&gt;                       ;     // some other code
+    lea     rdi, [rsp+15]       ;
+    call    A::~A()             ;     c.~A();
+    &lt;...&gt;                       ;     // some other code
+                                ; }
+</pre>
+    <p>The idea of this paper is to allow the compiler to elide those copies:</p>
 <pre class="lmargin50">
-int caller() {
-    A a;
+caller():                       ; int caller() {
+    sub     rsp, 24             ;
+    lea     rdi, [rsp+15]       ;
+    call    A::A()              ;     A a;
+    &lt;...&gt;                       ;     // some other code
+    &lt;...&gt;                       ;     // some other code
+    &lt;...&gt;                       ;     // some other code
+    lea     rdi, [rsp+15]       ;
+    call    A::~A()             ;     a.~A(); // previously c.~A();
+    &lt;...&gt;                       ;     // some other code
+                                ; }
 
-    &lt;...&gt;
-    &lt;...&gt;
-    &lt;...&gt;
-
-    a.~A(); // previously c.~A();
-
-    &lt;...&gt;
-}</pre>
+</pre>
 
     <h2>V. Addressing common concerns</h2>
     <hr>
@@ -397,12 +407,160 @@ int caller() {
     </ul>
     <hr>
 
-    <p><b>Concern:</b> The problem is not that big. Compilers could inline the constructors and destructors and optimize the resulting code</p>
-    <p><b>Resp:</b> Unfortunately it is much harder to analyze the resulting code and compilers fail in too many cases.</p>
-    <p>Another problem is that constructors and destructors may
-    be located in a separate translation unit, making that inlinement possible only during link time optimization.</p>
-    <p>Constrcutor or destructor could be too big for inlinement and in that case no optimization is possible.</p>
+    <p><b>Concern:</b> How this would change the guidelines? How users shall write their code to get benefits of this optimization?</p>
+    <p><b>Resp:</b> This optimization won't change the guidelines in the nearest future. Threat this optimization as one of the compiler optimizations that you could not directly control, like inlining, jump threading, loop fusion, or common subexpression elimination.</p>
+    <p>Guidelines may change after major compilers adopt the optimization. In that case there could be found a common pattern that triggers it and that pattern could be taught. Probably the existing
+    guidelines some day would evolve into "If you've got a function bigger than 15 lines of code, you may use <code>std::move</code> for returning objects that are not constructed at the
+    beginning of the function. Otherwise just return the value."</p>
     <hr>
+
+    <p><b>Concern:</b> Extracting a subobject from an object is scary. I can no longer assume that the object I construct as a subobject is in any way part of myself, nor can it assume that any sibling subobjects will always be around.</p>
+    <p><b>Resp:</b> The proposed wording makes sure that the subobjects is not used between copy/move construction and destruction. Object that is constructed as a subobject is a part of the object
+    as long as you use it as a subobject. As soon as you copy/move and destroy it, you can not use it any more by existing C++ rules. That's the place were the optimization steps in,
+    removing the copy/move+destruction and reusing the subobject.</p>
+
+
+    <p><b>Concern:</b> The problem is not that big because compilers could inline the constructors and destructors, optimize the resulting code</p>
+    <p><b>Resp:</b> Yes they do that. But the resulting code is suboptimal, because even for <code>std::string</code> compilers could not optimize away all the dead stores.
+    Consider the following example:</p>
+    <pre class="lmargin50">
+#include &lt;utility&gt;
+#include &lt;string&gt;
+
+std::pair&lt;std::string, std::string&gt; produce();
+
+static std::string first_non_empty_move() {
+    auto v = produce();
+    if (!v.first.empty()) {
+        return <span class="notes">std::move(</span>v.first<span class="notes">)</span>;
+    }
+    return <span class="notes">std::move(</span>v.second<span class="notes">)</span>;
+}
+
+int example_1_move() {
+    return first_non_empty_move().size();
+}
+</pre>
+    <p>Note that <code>std::move</code> is used and everything must be optimal. But it's not, because with proposed in this paper copy
+    elision rules the resulting code could be much shorter and with lest conditional jumps:</p>
+
+
+
+<table border="1" rules="cols" style="width: 100%">
+<tr><th style="width: 33%">Without copy elision</th><th style="width: 33%">With copy elision</th></tr>
+<tr><th><a href="https://godbolt.org/g/3xZvtw">https://godbolt.org/g/3xZvtw</a></th><th><a href="https://godbolt.org/g/RiTmPE">https://godbolt.org/g/RiTmPE</a></th></tr>
+<tr>
+    <td valign="top" style="border-right: solid 1px #000;"><pre>
+example_1_move():
+    push    rbp
+    push    rbx
+    sub     rsp, 104
+    lea     rdi, [rsp+32]
+    mov     rbx, rsp
+    call    produce[abi:cxx11]()
+    mov     rax, QWORD PTR [rsp+40]
+    test    rax, rax
+    je      .L2
+    lea     rdx, [rbx+16]
+    lea     rcx, [rsp+48]
+    mov     QWORD PTR [rsp], rdx
+    mov     rdx, QWORD PTR [rsp+32]
+    cmp     rdx, rcx
+    je      .L13
+    mov     QWORD PTR [rsp], rdx
+    mov     rdx, QWORD PTR [rsp+48]
+    mov     QWORD PTR [rsp+16], rdx
+.L4:
+    mov     QWORD PTR [rsp+8], rax
+    lea     rax, [rsp+48]
+    mov     rdi, QWORD PTR [rsp+64]
+    mov     QWORD PTR [rsp+40], 0
+    mov     BYTE PTR [rsp+48], 0
+    mov     QWORD PTR [rsp+32], rax
+    lea     rax, [rsp+80]
+    cmp     rdi, rax
+    je      .L6
+    call    operator delete(void*)
+    jmp     .L6
+.L2:
+    lea     rax, [rbx+16]
+    lea     rdx, [rsp+80]
+    mov     QWORD PTR [rsp], rax
+    mov     rax, QWORD PTR [rsp+64]
+    cmp     rax, rdx
+    je      .L14
+    mov     QWORD PTR [rsp], rax
+    mov     rax, QWORD PTR [rsp+80]
+    mov     QWORD PTR [rsp+16], rax
+.L8:
+    mov     rax, QWORD PTR [rsp+72]
+    mov     QWORD PTR [rsp+8], rax
+.L6:
+    mov     rdi, QWORD PTR [rsp+32]
+    lea     rax, [rsp+48]
+    cmp     rdi, rax
+    je      .L9
+    call    operator delete(void*)
+.L9:
+    mov     rdi, QWORD PTR [rsp]
+    add     rbx, 16
+    mov     rbp, QWORD PTR [rsp+8]
+    cmp     rdi, rbx
+    je      .L1
+    call    operator delete(void*)
+.L1:
+    add     rsp, 104
+    mov     eax, ebp
+    pop     rbx
+    pop     rbp
+    ret
+.L14:
+    movdqa  xmm0, XMMWORD PTR [rsp+80]
+    movaps  XMMWORD PTR [rsp+16], xmm0
+    jmp     .L8
+.L13:
+    movdqa  xmm0, XMMWORD PTR [rsp+48]
+    movaps  XMMWORD PTR [rsp+16], xmm0
+    jmp     .L4
+    </pre></td>
+    <td valign="top" style="border-right: solid 1px #000;"><pre>
+    example_1_optimized():
+    push    rbx
+    sub     rsp, 64
+    mov     rdi, rsp
+    call    produce[abi:cxx11]()
+    mov     rax, QWORD PTR [rsp+8]
+    test    rax, rax
+    mov     ebx, eax
+    jne     .L3
+    mov     ebx, DWORD PTR [rsp+40]
+.L3:
+    mov     rdi, QWORD PTR [rsp+32]
+    lea     rax, [rsp+48]
+    cmp     rdi, rax
+    je      .L4
+    call    operator delete(void*)
+.L4:
+    mov     rdi, QWORD PTR [rsp]
+    lea     rdx, [rsp+16]
+    cmp     rdi, rdx
+    je      .L1
+    call    operator delete(void*)
+.L1:
+    add     rsp, 64
+    mov     eax, ebx
+    pop     rbx
+    ret
+    </pre></td>
+</tr>
+</table>
+
+    <p>Inlining the constructors and destructors and optimization of the resulting code fails in many cases:</p>
+    <ul>
+        <li>It is much harder to analyze the resulting code because it's bigger, touches more memory and registers.</li>
+        <li>Constructors and destructors may be located in a separate translation unit, making that inlinement possible only during link time optimization.</li>
+        <li>Constrcutor or destructor could be too big for inlinement and in that case no optimization is possible.</li>
+    </ul>
 
 
     <h2>VI. Ultimate solution for relaxing [class.copy.elision]</h2>
