@@ -418,6 +418,7 @@ caller():                       ; int caller() {
     <p><b>Resp:</b> The proposed wording makes sure that the subobjects is not used between copy/move construction and destruction. Object that is constructed as a subobject is a part of the object
     as long as you use it as a subobject. As soon as you copy/move and destroy it, you can not use it any more by existing C++ rules. That's the place were the optimization steps in,
     removing the copy/move+destruction and reusing the subobject.</p>
+    <hr>
 
 
     <p><b>Concern:</b> The problem is not that big because compilers could inline the constructors and destructors, optimize the resulting code</p>
