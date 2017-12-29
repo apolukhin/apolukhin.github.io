@@ -7,6 +7,7 @@
 
 		<style type="text/css">
 			.addition { color: green; text-decoration: underline; }
+			.deletion {  text-decoration: line-through; background-color: #FCC; }
 			.changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
 			.addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
 			.changed-added { background-color: #CFF0FC ;}
@@ -20,7 +21,7 @@
 		<address>&nbsp;</address>
 		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
 		<address>&nbsp;</address>
-		<address>Date: 2017-12-20</address>
+		<address>Date: 2017-12-29</address>
 		<h1>Constexpr for swap and swap related functions</h1>
 
 		<!--p class='changed-added'>Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0202r2.html">P0202R2</a> are marked with blue.</p-->
@@ -93,7 +94,7 @@ some proprietary. It is impossible to investigate all of them to be 100%
 
 		<h3>A. Modifications to "Header &lt;algorithm&gt; synopsis" [algorithms.general]</h3>
 		<p><b>Note for editor:</b> All the functions in [algorithms.general] must be marked with <code>constexpr</code>, except functions
-		<code>shuffle</code>, <code>sample</code>, <code>stable_sort</code>, <code>stable_partition</code>, <code>inplace_merge</code>, functions accepting <code>ExecutionPolicy</code>.
+		<code>shuffle</code>, <code>sample</code>, <code>stable_sort</code>, <code>stable_partition</code>, <code>inplace_merge</code>, functions accepting <code>ExecutionPolicy</code>.</p>
 		<pre>
 
 // 28.6.3, swap
@@ -441,8 +442,17 @@ Requires: a[i] shall be swappable with (20.5.3.2) b[i] for all i in the range [0
 Effects: As if by swap_ranges(a, a + N, b).
 		</pre>
 
+		<h3>E. Modifications for P0858 [iterator.requirements.general]</h3>
+		<p><b>Note for editor:</b> Apply this change if P0858 is accepted</p>
+		<p style="padding-left:2em">Iterators are called <em>constexpr iterator</em>s
+        if all operations provided to satisfy iterator category operations are constexpr functions, except for</p>
+        <ul style="padding-left:3em">
+          <li><span class="deletion"><code>swap</code>,</span></li>
+          <li>a pseudo-destructor call (8.2.4 [expr.pseudo]), and</li>
+          <li>the construction of an iterator with a singular value.</li>
+        </ul>
 
-		<h3>E. Feature-testing macro</h3>
+		<h3>F. Feature-testing macro</h3>
 		<p>For the purposes of SG10, we recommend the feature-testing macro name <code>__cpp_lib_constexpr_swap_algorithms</code>.</p>
 
 
