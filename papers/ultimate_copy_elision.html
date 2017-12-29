@@ -302,6 +302,20 @@ int caller() {
     return detect_copy{}.modify();
 }</pre>
 
+    <h4>I. Storing a parameter in a class</h4>
+<pre class="lmargin50">
+struct B {
+   detect_copy a;
+   B(const detect_copy&amp; a): a(a) { }
+};
+
+int main() {
+   (B(detect_copy()));
+}
+</pre>
+    <p>[class.copy.elision] forbids copy elision in that case. This issue was reported in <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_active.html#1049">CWG #1049</a>.</p>
+    <p>In disassembly call to the copy constructor immediately followed by a call to the destructor: <a href="https://godbolt.org/g/zFWJNc">https://godbolt.org/g/zFWJNc</a>.</p>
+
 
     <h2>IV. General idea</h2>
     <p>All the examples from above were producing code that after inlining (and some other optimizations) contains copy/move constructor call followed by a call to destructor.
@@ -600,6 +614,11 @@ evaluated in another context. — end note ]</p>
     consumes a lot of time and scales badly because attempts to allow a specific optimization without a way to inspect the abilities of all the compilers. This increases a risk of
     spending a lot of time on a case that would not be implementable in the nearest future or spending a lot of time on a case that is not profitable for that particular compiler.</p>
     <p>It seems better to allow compiler developers to choose optimizations as they are the ones who know the weak and strong parts of the underlying optimizer.</p>
+
+
+<h2>VIII. Acknowledgements</h2>
+    <p>Many thanks to Marc Glisse for providing an reference to the CWG #1049.</p>
+    <p>Many thanks to Nicol Bolas for rising many concerns.</p>
 
     <script type="text/javascript">
         function colorize_texts(texts) {
