@@ -29,7 +29,7 @@
                 <a class="nav-link active d-none d-md-block d-lg-none" href="./consulting.html"><span lang="en">Trainings</span><span lang="ru">Тренинги</span></a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="./publications.html"><span lang="en">Publications</span><span lang="ru">Публикации</span> <span lang="en" class="sr-only">(current)</span><span lang="ru" class="sr-only">(текущая)</span></a>
+                <a class="nav-link" href="./publications.html"><span lang="en">Publications</span><span lang="ru">Публикации</span></a>
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="./presentations.html"><span lang="en">Presentations</span><span lang="ru">Презентации</span></a>
@@ -65,27 +65,27 @@
           </p>
           <div id="book-second" lang="en" class="jumbotron">
             <h1>Traintings and Consulting</h1>
-            <p>С++ - is huge. Traintings and Consulting are meant for helping you to deal with the language, show best practices and improve quality of your applications.</p>
-            <p><a onclick="$('#lang-select').val('ru').change(); return false;" href="#">Switch to Russian language, for more info.</a></p>
+            <p>С++ - is huge. Trainings and Consulting are meant for helping you to deal with the language, show best practices and improve quality of your applications.</p>
+            <p>I'd be pleased to answer any questions you may have. Use e-mail for contacting me: <b>antoshkka</b>@gmail.com (note the two 'k'!)</p>
           </div>
           <div lang="ru" class="jumbotron">
             <h1>Корпоративные тренинги и консультации</h1>
             <p>С++ - популярный активно развивающийся язык программирования общего назначения с огромным количеством возможностей.</p>
             <p>Цель тренингов - повысить скорость разработки; увеличить производительность, отзывчивость и надёжность ваших приложений; обратить внимание разработчиков на полезные вещи
             языка и рассказать о подводных камнях и особенностях.</p>
-            <p>Любые вопросы по тренингам и консультациям можно задавать на почту <b>antoshkka</b>@gmail.com</p>
+            <p>Любые вопросы по тренингам и консультациям можно задавать на почту <b>antoshkka</b>@gmail.com (две буквы 'k'!)</p>
           </div>
 
         <hr class="featurette-divider">
         <div class="row featurette">
           <div class="col-md-12">
             <h2 lang="ru" class="featurette-heading">Эффективная стандартная библиотека</h2>
-            <h2 lang="en" class="featurette-heading">Effective usage of Standard Library and Boost</h2>
+            <h2 lang="en" class="featurette-heading">Effective usage of the Standard Library and Boost</h2>
             <img class="featurette-image img-fluid mx-auto" style="width:100%" alt="Library" src="html_assets/library.jpg" >
             <div lang="ru" class="lead">
-                <p>Курс посвящён эффективному решению задач срадствами стандартной библиотеки и библиотек Boost. Приблизительный план:</p>
+                <p>Курс посвящён эффективному решению задач средствами стандартной библиотеки и библиотек Boost. Приблизительный план:</p>
                 <ul>
-                    <li>Алгоримы:
+                    <li>Алгоритмы:
                         <ul>
                             <li>O-большое</li>
                             <li>O-большое на практике</li>
@@ -95,9 +95,9 @@
                     </li>
                     <li>Структуры данных:
                         <ul>
-                            <li>string (SSO, пустые строчки, cache friendlines)</li>
-                            <li>string_view (пустые строчки, нуль терминация, cache friendlines)</li>
-                            <li>vector (аллокации, cache friendlines)</li>
+                            <li>string (SSO, пустые строчки, cache friendliness)</li>
+                            <li>string_view (пустые строчки, нуль терминация, cache friendliness)</li>
+                            <li>vector (аллокации, cache friendliness)</li>
                             <li>list/deque (аллокации, многопоточность)</li>
                             <li>unordered_map (производительность, ограничения, более эффективные решения)</li>
                             <li>map</li>
@@ -132,6 +132,57 @@
                     </li>
                 </ul>
             </div> <!-- lead -->
+            <div lang="en" class="lead">
+                <p>Course is devoted to effective solving of tasks using Standard Library and Boost. Topics:</p>
+                <ul>
+                    <li>Algorithms:
+                        <ul>
+                            <li>Big-O</li>
+                            <li>Big-O in practice</li>
+                            <li>Algorithms for everyday use that you've missed</li>
+                            <li>Pitfalls of the &lt;algorithm&gt; (memory allocations, move semantics and iterators)</li>
+                        </ul>
+                    </li>
+                    <li>Структуры данных:
+                        <ul>
+                            <li>string (SSO, empty strings, cache friendliness)</li>
+                            <li>string_view (empty strings, 0-termination, cache friendliness)</li>
+                            <li>vector (allocations, cache friendliness)</li>
+                            <li>list/deque (allocations, multithreading)</li>
+                            <li>unordered_map (perf, limitations, more effective solutions)</li>
+                            <li>map</li>
+                            <li>Other vectors (small, stack)</li>
+                            <li>Flat associative containers</li>
+                            <li>Pitfalls (noexcept, move construction)</li>
+                            <li>Optimization tips (move, move_iterator)</li>
+                        </ul>
+                    </li>
+                    <li>Multithreading:
+                        <ul>
+                            <li>thread (detach, join)</li>
+                            <li>mutex</li>
+                            <li>atomic (memory model)</li>
+                            <li>conditional_variable (effective notify())</li>
+                            <li>call_once</li>
+                            <li>Pitfalls (multiple locks, RAII)</li>
+                            <li>Optimization tips (critical section size, performance in case of cores growth)</li>
+                        </ul>
+                    </li>
+                    <li>For everyday coding:
+                        <ul>
+                            <li>variant</li>
+                            <li>optional</li>
+                            <li>unique_ptr</li>
+                            <li>shared_ptr</li>
+                            <li>ProgramOptions</li>
+                            <li>Filesystem</li>
+                            <li>LexicalCast</li>
+                            <li>function</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div> <!-- lead -->
+
           </div>
         </div>
 
@@ -140,12 +191,13 @@
           <div class="col-md-12">
             <h2 class="featurette-heading">C++11, C++14 <span lang="ru">и</span><span lang="en">and</span> C++17</h2>
             <img class="featurette-image img-fluid mx-auto" style="width:100%" alt="C++ проект и современная архитектура" src="html_assets/skyscrapper.jpg" >
-            <div lang="ru" class="lead">
-                <p>Лучшие практики использования новинок стандартной библиотеки и языка C++ для решения продуктовых задач. Приблизительный план:</p>
+            <div class="lead">
+                <p lang="ru">Лучшие практики использования новинок стандартной библиотеки и языка C++ для решения продуктовых задач. Приблизительный план:</p>
+                <p lang="en">Course is devoted to effective solving of tasks using modern features of C++. Topics:</p>
                 <ul>
-                    <li>С++11:
+                    <li>C++11:
                         <ul>
-                            <li>move семантика</li>
+                            <li>move <span lang="ru">семантика</span><span lang="en">semantics</span></li>
                             <li>auto</li>
                             <li>range based for</li>
                             <li>initilizer list</li>
@@ -162,26 +214,26 @@
                             <li>unique_ptr</li>
                             <li>shared_ptr</li>
                             <li>function</li>
-                            <li>Псевдослучайные и другие генераторы чисел</li>
+                            <li><span lang="ru">Псевдослучайные и другие генераторы чисел</span><span lang="en">Random numbers</span></li>
 
                             <li>thread (detach, join)</li>
                             <li>mutex</li>
                             <li>atomic (memory model)</li>
-                            <li>conditional_variable (эффективный notify())</li>
+                            <li>conditional_variable (<span lang="ru">эффективный</span><span lang="en">effective</span> notify())</li>
                             <li>call_once</li>
                         </ul>
                     </li>
-                    <li>С++14:
+                    <li>C++14:
                         <ul>
                             <li>generic lambda</li>
                             <li>lambda capture expressions</li>
                             <li>[[deprecated]]</li>
 
                             <li>shared_mutex</li>
-                            <li>Гетерогенный поиск</li>
+                            <li><span lang="ru">Гетерогенный поиск</span><span lang="en">Heterogeneous search</span></li>
                         </ul>
                     </li>
-                    <li>С++17:
+                    <li>C++17:
                         <ul>
                             <li>string_view</li>
                             <li>optional</li>
@@ -197,18 +249,29 @@
                             <li>structured bindings</li>
                             <li>if constexpr</li>
                             <li>if/switch with initialization</li>
-                            <li>deduction guildes</li>
+                            <li>deduction guides</li>
                         </ul>
                     </li>
-                    <li>Миграция на новые стандарты:
+                    <li lang="ru">Миграция на новые стандарты:
                         <ul>
-                            <li>C++?? -> С++11</li>
-                            <li>C++?? -> С++14</li>
-                            <li>C++?? -> С++17</li>
+                            <li>C++?? -> C++11</li>
+                            <li>C++?? -> C++14</li>
+                            <li>C++?? -> C++17</li>
                             <li>Какой стандарт лучше сейчас использовать?</li>
                             <li>Производительность кода</li>
                             <li>Производительность разработки</li>
                             <li>Трудозатраты</li>
+                        </ul>
+                    </li>
+                    <li lang="en">Migration to the modern Standards:
+                        <ul>
+                            <li>C++?? -> C++11</li>
+                            <li>C++?? -> C++14</li>
+                            <li>C++?? -> C++17</li>
+                            <li>What Standard do we have to use right now??</li>
+                            <li>Performance</li>
+                            <li>Development speed</li>
+                            <li>Labor costs</li>
                         </ul>
                     </li>
                 </ul>
