@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="Compile and run C++ code in your browser">
+    <meta name="author" content="Antony Polukhin">
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-111974110-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-111974110-1');
+</script>
+
+
+    <title>Antony's Attic: Compile and Run</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="html_assets/bootstrap.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="html_assets/custom.css" rel="stylesheet">
+  </head>
+
+  <body>
+    <header>
+        <nav class="navbar navbar-expand-md fixed-top navbar-dark bg-dark">
+          <a class="navbar-brand" href="./index.html#">Antony's Attic</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+
+          <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+            <ul class="navbar-nav mr-auto">
+              <li class="nav-item">
+                <a class="nav-link d-md-none d-lg-block" href="./consulting.html"><span lang="en">Trainings&amp;Consulting</span><span lang="ru">Корпоративные тренинги</span></a>
+                <a class="nav-link d-none d-md-block d-lg-none" href="./consulting.html"><span lang="en">Trainings</span><span lang="ru">Тренинги</span></a>
+              </li>
+              <li class="nav-item d-none d-md-block d-lg-none">
+                <div class="dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Other
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
+                        <a class="dropdown-item" href="./publications.html"><span lang="en">Publications</span><span lang="ru">Публикации</span></a>
+                        <a class="dropdown-item" href="./presentations.html"><span lang="en">Presentations</span><span lang="ru">Презентации</span></a>
+                        <a class="dropdown-item" href="./developer.html"><span lang="en">Development Corner</span><span lang="ru">Уголок Разработки</span></a>
+                    </div>
+                </div>
+              </li>
+              <li class="nav-item d-md-none d-lg-block">
+                <a class="nav-link" href="./publications.html"><span lang="en">Publications</span><span lang="ru">Публикации</span></a>
+              </li>
+              <li class="nav-item d-md-none d-lg-block">
+                <a class="nav-link" href="./presentations.html"><span lang="en">Presentations</span><span lang="ru">Презентации</span></a>
+              </li>
+              <li class="nav-item d-md-none d-lg-block">
+                <a class="nav-link" href="./developer.html"><span lang="en">Development Corner</span><span lang="ru">Уголок Разработки</span></a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link active" href="./compile.html"><span lang="en">Run C++</span><span lang="ru">Запуск С++</span></a>
+              </li>
+            </ul>
+            <form class="form-inline my-2 my-lg-0">
+                <span class="navbar-text">Lang&nbsp;/&nbsp;Язык:&nbsp;</span>
+                <select id="lang-select" class="bg-white" onchange="select_language(this.options[this.selectedIndex].value)">
+                    <option lang="ru" value="en" selected>English</option>
+                    <option  lang="en" value="ru">Русский</option>
+                </select>
+            </form>
+          </div>
+        </nav>
+    </header>
+
+
+    <!-- Content -->
+
+
+
+    <main role="main" class="container">
+
+      <div class="row row-offcanvas row-offcanvas-right">
+
+        <div class="col-12 col-md-12">          
+          
+        <hr class="d-block d-sm-none">
+          
+          <div id="book-second" lang="en" class="jumbotron">
+            <h1>Compile and Run C++ in browser</h1>
+          </div>
+          <div lang="ru" class="jumbotron">
+            <h1>Компилируйте и запускайте C++ в браузере</h1>
+          </div>
+		</div>
+
+        <hr class="featurette-divider">
+        
+        <div class="row featurette">
+
+				<div class="col-md-6">
+					<p class="nowrap">Program arguments: <input class="w-100" id="input" value="world!"/></p>
+				</div>
+				<div class="col-md-6">
+					<p class="nowrap">Compilation command: <input class="w-100" id="compile_command" value="g++ -std=c++17 -Wall -Wextra main.cpp"/></p>
+				</div>
+				
+				
+				
+				<div class="col-12">
+					<pre id="output">&lt;...&gt;</pre>
+			    </div>
+				
+				<div class="col-12 text-right">
+			    </div>
+			    
+					
+				<div class="col-12">
+					
+					<button class="btn btn-outline-success btn-lg" onclick='editor.run();'>Run</button> 
+					<button class="btn btn-outline-secondary btn-lg" onclick='editor.compile();'>Compile</button>
+                <hr class="featurette-divider">
+					<div id="code">#include &lt;iostream&gt;
+#include &lt;string&gt;
+#include &lt;array&gt;
+#include &lt;algorithm&gt;
+#include &lt;iterator&gt;
+
+int main(int /*argc*/, const char* argv[]) {
+     std::array v = {                           // C++17 deduction guides at work :)
+        "Hello ",
+        argv[1]
+    };
+
+    std::copy(
+        std::begin(v),
+        std::end(v),
+        std::ostream_iterator&lt;const char*&gt;(std::cerr, " ")
+    );
+}	    
+				    </div>
+				</div>
+				
+				
+        </div>
+      </div><!--/row-->
+
+      <hr>
+
+    </main><!--/.container-->
+
+    <footer>
+        <p lang="en" class="text-right">© 2017-2018 Antony Polukhin.</p>
+        <p lang="ru" class="text-right">© 2017-2018 Полухин Антон.</p>
+    </footer>
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="html_assets/jquery-3.js"></script>
+    <script>window.jQuery || document.write('<script src="../../../../assets/js/vendor/jquery.min.js"><\/script>')</script>
+    <script src="html_assets/custom.js"></script>
+	<script src="http://apolukhin.github.io/Boost-Cookbook/assets/js/ace/ace.js"></script>
+    <script src="html_assets/compile.js"></script>
+	<script>
+        $(function() {
+		    editor.init(ace.edit("code"), $("#input"), $("#output"), $("#compile_command"));
+	    });
+	</script>
+    <script src="html_assets/popper.js"></script>
+    <script src="html_assets/bootstrap.js"></script>
+
+</body></html>
