@@ -46,7 +46,7 @@ href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r1.html">P053
 
     <h2>I. Quick Introduction</h2>
     <p>[class.copy.elision]
-    in the current working draft provides a whitelist of cases when copy elision is permitted. With the current strict rules, it is impossible
+    in the current working draft [<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/n4713.pdf">N4713</a>] provides a whitelist of cases when copy elision is permitted. With the current strict rules, it is impossible
     to elide copying while returning a subobject,
     so users of the C++ language have to write code like <code>return std::move(some_pair.second);</code> in order to get better performance. But even with <code>std::move</code> the generated code 
     may be not as good as it could be with the copy elided.</p>
