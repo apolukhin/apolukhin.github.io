@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html><head>
-    <title>Subobjects copy elision</title>
+    <title>Copy elision for subobjects</title>
     <meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
     <meta http-equiv="Content-Language" content="en-us">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -33,7 +33,7 @@
     <address>&nbsp;</address>
     <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2017-12-29</address>
+    <address>Date: 2018-01-08</address>
     <h1>Subobjects copy elision</h1>
 
     <!--p 
@@ -50,7 +50,7 @@ href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r1.html">P053
     to elide copying while returning a subobject,
     so users of the C++ language have to write code like <code>return std::move(some_pair.second);</code> in order to get better performance. But even with <code>std::move</code> the generated code 
     may be not as good as it could be with the copy elided.</p>
-    <p>This paper provides motivation for a future proposal to relax the [class.copy.elision] rules in order to allow compilers to produce better code.</p>
+    <p>This paper proposes to relax the [class.copy.elision] rules in order to allow compilers to produce better code.</p>
 
     <h2>II. Motivating example #1</h2>
     <p>Consider the following code:</p>
@@ -72,12 +72,12 @@ int example_1() {
     return first_non_empty().size();
 }
 </pre>
-    <p>Currently compilers compile <code>example_1()</code> to following steps:</p>
+    <p>Currently, compilers compile <code>example_1()</code> to the following steps:</p>
     <ol>
-    <li>call <code>produce()</code></li>
+    <li>call <code>produce()</code> to initialize <code>v</code></li>
     <li>evaluate the condition of the <code>if</code> statement</li>
-    <li>copy construct <code>std::string</code> from either <code>v.first</code> or <code>v.second</code></li>
-    <li>call destructor for <code>v</code></li>
+    <li>copy construct a <code>std::string</code> from either <code>v.first</code> or <code>v.second</code></li>
+    <li>call the destructor for <code>v</code></li>
     <li>return the size of the copy constructed <code>std::string</code></li>
     </ol>
 <p>User may try to optimize the <code>first_non_empty()</code> by adding <code>std::move</code> to turn the copy construction of the string into a move construction.</p>
@@ -101,7 +101,7 @@ int example_1_move() {
 }
 </pre>
 
-<p>Unfortunately, the above improvement <b>requires a highly experienced user</b> and still <b>does not produce an optimal result</b>: compilers are still not always able to optimize out all the unnecessary operations after inlining.</p>
+<p>Unfortunately, the above improvement <b>requires a highly experienced user</b> and still <b>does not produce an optimal result</b>: compilers are still not always able to optimize out all the unnecessary operations, even after inlining.</p>
 
 <p>Ideally,
  compilers should be allowed to optimize away 
@@ -125,9 +125,9 @@ int example_1_optimized() {
 
 <p>Compilers
  could do the above optimization if the callee is inlined and subobject 
-copy elision is allowed (as proposed in this paper).
-In that case compiler could allocate enough
-stack space for storing the owning object <code>v</code> in the caller, call the destructors of non-returned-from-the-callee subobjects and proceed with subobject as a return value.</p>
+copy elision were allowed (as proposed in this paper).
+In that case, a compiler could allocate enough
+stack space for storing the owning object <code>v</code> in the caller, call the destructors of non-returned-from-the-callee subobjects and proceed with the subobject as a return value.</p>
 
 <p>But [class.copy.elision] currently prevents that optimization:</p>
 <pre class="lmargin50 stdquote">
@@ -143,7 +143,7 @@ circumstances (which may be combined to eliminate multiple copies):
 
 
 
-<p>Here's how the compiler-optimized assemblies for the above 3 code snippets look like:</p>
+<p>Here are the compiler-optimized assemblies for the above 3 code snippets:</p>
 <table border="1" rules="cols" style="width: 100%">
 <tr><th style="width: 33%">example_1()</th><th style="width: 33%">example_1_move()</th><th style="width: 33%">example_1_optimized()</th></tr>
 <tr><th><a href="https://godbolt.org/g/V6KqWv">https://godbolt.org/g/V6KqWv</a></th><th><a href="https://godbolt.org/g/3xZvtw">https://godbolt.org/g/3xZvtw</a></th><th><a href="https://godbolt.org/g/RiTmPE">https://godbolt.org/g/RiTmPE</a></th></tr>
@@ -387,7 +387,7 @@ example_1_move():
 <h3 class="notes"><b>example_1_optimized() pros:</b> avoided copy construction, avoided destructor call, smaller binary, faster code.</h3>
 
     <h2>III. Motivating example #2</h2>
-    <p>Let's change the above example to use a type with non-trivial destructor, for example <code>std::variant</code>:</p>
+    <p>Let's change the above example to use a type, such as <code>std::variant</code>, with a non-trivial destructor:</p>
 <pre class="lmargin50">
 #include &lt;variant&gt;
 #include &lt;string&gt;
@@ -406,7 +406,7 @@ int example_2() {
 }
 </pre>
 
-<p>Without user help compilers are forced to copy construct <code>std::string</code> from <code>*p</code>.</p><p> Such code often appears in practice, where functions like <code>get_string()</code> are defined in header file of the library and <code>example_2()</code> like functions are written by some other developers in source file.</p> <p>Experienced users may change the above code to be more optimal:</p>
+<p>Without user help, compilers are forced to copy construct <code>std::string</code> from <code>*p</code>.</p><p> Such code often appears in practice, where functions like <code>get_string()</code> are defined in header file of the library and <code>example_2()</code> like functions are written by some other developers in source file.</p> <p>Experienced users may improve the above code to be more optimal:</p>
 
 <pre class="lmargin50">
 #include &lt;variant&gt;
@@ -1105,7 +1105,7 @@ example_3_optimized():
 
 
 
-    <h2>V. Simple solution for relaxing [class.copy.elision]</h2>
+    <h2>V. Proposed wording 1: A simple solution for relaxing [class.copy.elision]</h2>
     <p>Modify the [class.copy.elision] paragraph 1 to allow copy elision for returning subobjects of the objects with defaulted destructor:</p>
     <div class="lmargin50 stdquote">
     <p>This elision of copy/move operations, called copy elision, is permitted
@@ -1121,14 +1121,14 @@ in the following circumstances (which may be combined to eliminate multiple copi
     </ul>
     <p>the copy/move operation can be omitted by inlining the function call, constructing the automatic object directly
     in the caller,
-    calling the destructors for non-returned subobjects and treating target as another way to refer to the subobject.</p>
+    calling the destructors for non-returned subobjects and treating the target as another way to refer to the subobject.</p>
     </div>
     <p><...></p>
     </div>
     <p>This will allow optimizing <code>std::pair</code>, <code>std::tuple</code> and all the aggregate initializable types.</p>
 
 
-    <h2>VI. Generic solution for relaxing [class.copy.elision]</h2>
+    <h2>VI. Proposed wording 2: A generic solution for relaxing [class.copy.elision]</h2>
     <p>Modify the [class.copy.elision] paragraph 1 to allow copy elision for returning subobjects of the objects (dropped the "<i>defaulted destructor</i>" requirement):</p>
     <div class="lmargin50 stdquote">
     <p>This elision of copy/move operations, called copy elision, is permitted
@@ -1143,7 +1143,7 @@ in the following circumstances (which may be combined to eliminate multiple copi
     </ul>
     <p>the copy/move operation can be omitted by inlining the function call, constructing the automatic object directly
     in the caller,
-    calling the destructors for non-returned subobjects and treating target as another way to refer to the subobject.</p>
+    calling the destructors for non-returned subobjects and treating the target as another way to refer to the subobject.</p>
     </div>
     <p><...></p>
     </div>
@@ -1151,15 +1151,15 @@ in the following circumstances (which may be combined to eliminate multiple copi
     <code>std::optional</code>, many user provided classes.</p>
 
 
-    <h2>VII. Ultimate solution for relaxing [class.copy.elision]</h2>
-    <p>Use the "Ultimate copy elision" wording from a separate paper.</p>
+    <h2>VII. Proposed wording 3: An ultimate solution for relaxing [class.copy.elision]</h2>
+    <p>Use the "Ultimate copy elision" wording from our companion paper P0889R0.</p>
 
 
     <h2>VIII. Minor points</h2>
-    <p>Automatically applying <code>std::move</code> to returned subobjects may be a good idea, but for a separate proposal. As was shown in the first two examples copy elision
+    <p>Automatically applying <code>std::move</code> to returned subobjects may be a good idea, but for a separate proposal. As was shown in the first two examples, copy elision
     could be profitable even with moving out the subobject.</p>
 
-    <p>It would be wrong to guarantee the above optimizations as they are highly dependent on inlining and aliasing reasoning of the compiler.</p>
+    <p>It would be wrong to guarantee/require the above optimizations as they are highly dependent on inlining and aliasing reasoning of the compiler.</p>
 
     <p>Copy elision of subobjects could be useful in many cases. The paper tries to allow more optimizations rather than forcing some particular optimizations.
     Thus, compiler vendors may find alternatives to the above optimizations. 
@@ -1167,18 +1167,18 @@ in the following circumstances (which may be combined to eliminate multiple copi
 
 
     <h2>IX. Acknowledgements</h2>
-    <p>Many thanks to Walter E. Brown for fixing numerous issues in early versions of this paper.</p>
+    <p>Many thanks to Walter E. Brown for fixing numerous issues in draft versions of this paper.</p>
     <p>Many thanks to Eyal Rozenberg for numerous useful comments.</p>
     <p>Many thanks to Vyacheslav Napadovsky for helping with the assembly and the optimizations.</p>
     <p>Thanks also
  to Marc Glisse for pointing me to the forbidden copy elision cases,
 and to Thomas Köppe, Peter Dimov, Richard Smith, Gabriel Dos Reis, 
 Anton Bikineev for
-    participating in early discussions and for helping me to assemble my thoughts.</p>
+    participating in early discussions and thus helping me to assemble my thoughts.</p>
 
 
     <h2>X. Feature-testing macro</h2>
-	<p>For the purposes of SG10, we recommend the feature-testing macro name __cpp_subobject_copy_elision.</p>
+	<p>For the purposes of SG10, we recommend the feature-testing macro name <code>__cpp_subobject_copy_elision</code>.</p>
 
     <script type="text/javascript">
         function colorize_texts(texts) {
