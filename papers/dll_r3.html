@@ -23,13 +23,13 @@
 
 	</head>
 	<body bgcolor="#ffffff">
-		<address>Document number: D0275R3</address>
+		<address>Document number: P0275R3</address>
 		<address>Project: Programming Language C++</address>
 		<address>Audience: Library Evolution Working Group</address>
 		<address>&nbsp;</address>
 		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
 		<address>&nbsp;</address>
-		<address>Date: 2018-01-07</address>
+		<address>Date: 2018-02-01</address>
 		<h1>A Proposal to add Classes and Functions Required for Dynamic Library Load</h1>
 
 
@@ -440,17 +440,17 @@ constexpr d<span class='changed-deleted'>l</span>l_mode  operator~ (d<span class
 <div class="changed-added">
 <pre>rtld_lazy</pre>
     <div class="desc"><i>Effects:</i> As if applying RTLD_LAZY on POSIX.</div>
-    <div class="desc"><i>Value:</i> <code>0</code> if platform does not have RTLD_LAZY equivalent.</div>
+    <div class="desc"><i>Value:</i> <code>0</code> if platform does not have RTLD_LAZY equivalent. Platform specific value of RTLD_LAZY equivalent otherwise.</div>
 
 <pre>rtld_now</pre>
     <div class="desc"><i>Effects:</i> As if applying RTLD_NOW on POSIX.</div>
-    <div class="desc"><i>Value:</i> <code>0</code> if platform does not have RTLD_NOW equivalent.</div>
+    <div class="desc"><i>Value:</i> <code>0</code> if platform does not have RTLD_NOW equivalent. Platform specific value of RTLD_NOW equivalent otherwise.</div>
 <pre>rtld_global</pre>
     <div class="desc"><i>Effects:</i> As if applying RTLD_GLOBAL on POSIX.</div>
-    <div class="desc"><i>Value:</i> <code>0</code> if platform does not have RTLD_GLOBAL equivalent.</div>
+    <div class="desc"><i>Value:</i> <code>0</code> if platform does not have RTLD_GLOBAL equivalent. Platform specific value of RTLD_GLOBAL equivalent otherwise.</div>
 <pre>rtld_local</pre>
     <div class="desc"><i>Effects:</i> As if applying RTLD_LOCAL on POSIX.</div>
-    <div class="desc"><i>Value:</i> <code>0</code> if platform does not have RTLD_LOCAL equivalent.</div>
+    <div class="desc"><i>Value:</i> <code>0</code> if platform does not have RTLD_LOCAL equivalent. Platform specific value of RTLD_LOCAL equivalent otherwise.</div>
 
 </div>
 
@@ -779,7 +779,7 @@ imported_t&lt;SymbolT&gt; import(shared_library&amp;&amp; library, const string&
 			<li>Dropped <code>import</code> functions</li>
 			<li>Added feature testing macro</li>
 			<li>"append_decorations" => "add_decorations"</li>
-			<li><code>dll_mode</code> description rewritten</li>
+			<li><code>dl<span class='changed-deleted'>l</span>_mode</code> description rewritten</li>
 			<li>Multiple minor improvements</li>
 			<li>Rebased to N4687</li>
 		</ul>

@@ -22,18 +22,18 @@
         </style>
     </head>
     <body bgcolor="#ffffff">
-        <address>Document number: D0539R3</address>
+        <address>Document number: P0539R3</address>
         <address>Project: Programming Language C++</address>
-        <address>Audience: SG6 Numerics</address>
+        <address>Audience: SG6 Numerics, Library Evolution</address>
         <address>&nbsp;</address>
         <address>Igor Klevanets &lt;<a href="mailto:cerevra@yandex.ru">cerevra@yandex.ru</a>&gt;, &lt;<a href="mailto:cerevra@yandex-team.ru">cerevra@yandex-team.ru</a>&gt;</address>
         <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
         <address>&nbsp;</address>
-        <address>Date: 2017-12-04</address>
+        <address>Date: 2018-01-31</address>
         <h1>A Proposal to add wide_int Template Class</h1>
 
         <p class='changed-added'>Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r2.html">P0539R2</a> are marked with blue.<p>
-        <p><input type="checkbox" id="show_deletions" onchange="show_hide_deleted()"> Show deleted lines from P0275R2.</p>
+        <p><input type="checkbox" id="show_deletions" onchange="show_hide_deleted()"> Show deleted lines from P0539R2.</p>
         <p class='notes'>Green lines are notes for the <b>editor</b> or for the <b>SG6</b> that must not be treated as part of the wording.</p>
         <h2>I. Introduction and Motivation</h2>
         <p>Current standard provides signed and unsigned int8_t, int16_t, int32_t, int64_t. It is usually enough for every day tasks, but sometimes appears a need in big numbers: for cryptography, IPv6, very big counters etc. Non-standard type __int128 which is provided by gcc and clang illuminates this need. But there is no cross-platform solution and no way to satisfy future needs in even more big numbers.</p>

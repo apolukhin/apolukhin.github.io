@@ -22,14 +22,14 @@
         </style>
     </head>
     <body bgcolor="#ffffff">
-        <address>Document number: D0880R0</address>
+        <address>Document number: P0880R0</address>
         <address>Project: Programming Language C++</address>
-        <address>Audience: SG6 Numerics</address>
+        <address>Audience: SG6 Numerics, Library Evolution</address>
         <address>&nbsp;</address>
         <address>Igor Klevanets &lt;<a href="mailto:cerevra@yandex.ru">cerevra@yandex.ru</a>&gt;, &lt;<a href="mailto:cerevra@yandex-team.ru">cerevra@yandex-team.ru</a>&gt;</address>
         <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
         <address>&nbsp;</address>
-        <address>Date: 2017-11-20</address>
+        <address>Date: 2018-01-31</address>
         <h1>Numbers interaction</h1>
 
         <!--p class='changed-added'>Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r1.html">P0539R1</a> are marked with blue.<p-->
@@ -50,16 +50,16 @@
 
         <h2>III. Design</h2>
         <p>Imagine that we have numeric classes <code>A</code>, <code>B</code> and <code>C</code> and wish to provide wording for all the interactions of those types.
-        in that case we'll have to describe 126 functions ((A, B, C) x (*, /, -, +, %, &, |, ^, <, >, <=, >=, ==, !=) x (A, B, C)). Such description tends to be error prone and scales badly.
+        In that case we'll have to describe 126 functions ((A, B, C) x (*, /, -, +, %, &, |, ^, <, >, <=, >=, ==, !=) x (A, B, C)). Such description tends to be error prone and scales badly.
         Addition of one more numeric class will force us to describe 224 functions.</p>
 
-        <p>To avoid that issue the proposal defines:</p>
+        <p>To avoid that issue the proposal:</p>
         <ul>
-            <li><code>Arithmetic</code> and <code>Integral</code> concepts that depend on <code>std::numeric_limits&lt;Arithmetic&gt;::is_specialized</code> and <code>std::numeric_limits&lt;Integral&gt;::is_integer</code></li>
+            <li>defines <code>Arithmetic</code> and <code>Integral</code> concepts that require <code>std::numeric_limits&lt;Arithmetic&gt;::is_specialized</code> and <code>std::numeric_limits&lt;Integral&gt;::is_integer</code> to be true</li>
             <li>converts different numeric types to a single type using <code>common_type_t</code></li>
         </ul>
 
-        <p>Now we can define a all the operations for numeric classes like this:</p>
+        <p>using the above approach we can define a all the operations for numeric classes like this:</p>
 <pre>template&lt;typename Arithmetic1, typename Arithmetic2&gt;
   common_type_t&lt;Arithmetic1, Arithmetic2&gt;
   constexpr operator*(const Arithmetic1&amp; lhs, const Arithmetic2&amp; rhs);</pre>

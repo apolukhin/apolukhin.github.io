@@ -1,0 +1,257 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+        <title>A Proposal to add stack trace library</title>
+        <meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+        <meta http-equiv="Content-Language" content="en-us">
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+        <style type="text/css">
+            .addition { color: green; }
+            .right { float:right; }
+            .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+            .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+            .changed-added { background-color: #CFF0FC ;}
+            .notes { background-color: #80D080 ;}
+            pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
+            .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; }
+            body {max-width: 1024px; margin-left: 25px;}
+            .cppkeyword { color: blue; }
+            .cppcomment { color: green; }
+            .cppcomment > .cppkeyword{ color: green; }
+            .cpptext { color: #2E8B57; }
+        </style>
+    </head>
+    <body bgcolor="#ffffff">
+        <address>Document number: P0881R0</address>
+        <address>Project: Programming Language C++</address>
+        <address>Audience: Library Evolution</address>
+        <address>&nbsp;</address>
+        <address>Alexey Gorgurov &lt;<a href="mailto:leha-bot@yandex.ru">leha-bot@yandex.ru</a>&gt;, &lt;<a href="mailto:no-vista@yandex.ru">no-vista@yandex.ru</a>&gt;</address>
+        <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+        <address>&nbsp;</address>
+        <address>Date: 2018-01-23</address>
+        <h1>A Proposal to add stack trace library</h1>
+
+        <!--p class='notes'>Green lines are notes for the <b>editor</b> or for the <b>SG14</b> that must not be treated as part of the wording.</p-->
+        <h2>I. Motivation</h2>
+	<p>In the current working draft [<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/n4713.pdf">N4713</a>] there is no way to get,store and decode the current call sequence.
+	Such call sequences are useful for debugging and post mortem debugging. They are popular in other programming languages (like Java, C#, Python).</p>
+
+	<p>Pretty often assertions can't describe the whole picture of a bug and do not provide enough information to locate the problem.
+	For example, you can see the following message on out-of-range access:</p>
+<pre>
+boost/array.hpp:123: T& boost::array&lt;T, N&gt;::operator[](boost::array&lt;T, N&gt;::size_type): Assertion '(i &lt; N)&&("out of range")' failed.
+Aborted (core dumped)</pre>
+	<p>That's not enough information in the assert message to locate the problem without debugger.</p>
+	<p>This paper proposes classes that could simplify debugging and may change the assertion meassage into the following:</p>
+<pre>
+Expression 'i &lt; N' is false in function 'T& boost::array&lt;T, N&gt;::operator[](boost::array&lt;T, N&gt;::size_type) [with T = int; long unsigned int N = 5ul; boost::array&lt;T, N&gt;::reference = int&; boost::array&lt;T, N&gt;::size_type = long unsigned int]': out of range.
+Backtrace:
+ 0# boost::assertion_failed_msg(char const*, char const*, char const*, char const*, long) at ../example/assert_handler.cpp:39
+ 1# boost::array&lt;int, 5ul&gt;::operator[](unsigned long) at ../../../boost/array.hpp:124
+ 2# bar(int) at ../example/assert_handler.cpp:17
+ 3# foo(int) at ../example/assert_handler.cpp:25
+ 4# bar(int) at ../example/assert_handler.cpp:17
+ 5# foo(int) at ../example/assert_handler.cpp:25
+ 6# main at ../example/assert_handler.cpp:54
+ 7# 0x00007F991FD69F45 in /lib/x86_64-linux-gnu/libc.so.6
+ 8# 0x0000000000401139
+</pre>
+
+	<h2>II. Impact on the Standard</h2>
+	<p>This proposal is a pure library extension and it does not break the existing code and does not degrade performance.
+	It does not require any changes in the core language and could be implemented in the standard C++.</p>
+
+	<h2>III. Design Decisions</h2>
+	<p>The design is based on the Boost.Stacktrace library, a popular library that does not depend on any non-standard library components.</p>
+	<p><b>Note about signal safety:</b> this proposal does not attempt to provide a signal-safe solution for capturing and decoding stacktraces.
+	Such functionality currently is not implementable on some of the popular platforms. However, the paper attempts to provide extendable solution, that may be made signal safe some day.</p>
+	<p><b>Note on performance:</b> during Boost.Stacktrace development phase many users requested a fast way to store stack trace, without decoding the function names. This functionality is preserved in the paper.</p>
+
+
+    <h2>IV. Proposed Interface</h2>
+	<h3>Header &lt;stacktrace&gt; synopsis</h3>
+	<pre>
+namespace std {
+
+  class stack_frame;
+
+  template&lt;typename Allocator&gt;
+  class basic_stacktrace;
+
+  // free functions
+
+  // This is the alias to use unless you'd like to provide a specific allocator to basic_stacktrace.
+  using stacktrace = basic_stacktrace&lt;allocator&lt;stack_frame&gt;&gt;;
+
+  // Outputs stacktrace in a human readable format to output stream.
+  template&lt;typename CharT, typename TraitsT, typename Allocator&gt;
+  basic_ostream&lt; CharT, TraitsT &gt; &amp; operator&lt;&lt;(basic_ostream&lt;CharT, TraitsT&gt;&amp; os, const basic_stacktrace&lt;Allocator&gt;&amp; bt);
+
+  // Outputs stacktrace in a human readable format to string.
+  template&lt;typename Allocator&gt;
+  string to_string(const basic_stacktrace&lt;Allocator&gt;&amp; f);
+
+  // Outputs frame in a human readable format to string.
+  string to_string(const stack_frame&amp; f);
+
+  // Outputs frame in a human readable format to output stream.
+  template&lt;typename CharT, typename TraitsT&gt;
+  basic_ostream&lt; CharT, TraitsT &gt;&amp; operator&lt;&lt;(basic_ostream&lt;CharT, TraitsT&gt;&amp; os, const stack_frame&amp; f);
+}
+		</pre>
+
+
+	<h3>Class stack_frame</h3>
+	<p>The stack_frame class stores a pointer to function and allows querying information about that function.</p>
+	<pre>
+namespace std {
+  class stack_frame {
+  public:
+    using native_frame_ptr_t = <i>unspecified</i>;
+
+    // construct/copy/destruct
+    constexpr stack_frame() noexcept;
+    constexpr stack_frame(const stack_frame&amp;) noexcept = default;
+    constexpr stack_frame&amp; operator=(const stack_frame&amp;) = default;
+
+    constexpr explicit stack_frame(native_frame_ptr_t f) noexcept;
+    template&lt;typename T&gt; explicit stack_frame(T* address) noexcept;
+
+    constexpr native_frame_ptr_t address() const noexcept;
+    constexpr explicit operator bool() const noexcept;
+
+    constexpr strong_ordering operator &lt;=&gt;(const stack_frame&amp; rhs) = default;
+
+    // functions that querying information about stored address
+    string name() const;
+    string source_file() const;
+    size_t source_line() const;
+
+  private:
+    native_frame_ptr_t data; // exposition only
+  };
+}
+		</pre>
+
+
+	<h3><code>stack_frame</code> constructors</h3>
+	<pre>stack_frame() noexcept;</pre>
+	<div class="desc">Constructs stack_frame that references nullptr address. Calls to <code>source_file()</code> and <code>source_line()</code> will return empty string. Calls to <code>source_line()</code> will return 0.</div>
+
+	<pre>explicit stack_frame(native_frame_ptr_t addr) noexcept;
+template&lt;typename T&gt; explicit stack_frame(T * addr) noexcept;</pre>
+	<div class="desc">Constructs stack_frame that references addr and could later generate information about that address using platform specific features.</div>
+
+
+	<h3><code>stack_frame</code> member functions</h3>
+	<pre>std::string name() const;</pre>
+	<div class="desc">Returns empty string or platform specific name of the function that the stored address is pointing to. Throws std::bad_alloc if not enough memory to construct resulting string.</div>
+
+	<pre>constexpr native_frame_ptr_t address() const noexcept;</pre>
+	<div class="desc">Returns address stored by this.</div>
+
+	<pre>std::string source_file() const;</pre>
+	<div class="desc">Returns empty string or path to the source file, where the function of the frame is defined. Returns empty string if this->source_line() == 0. Throws std::bad_alloc if not enough memory to construct resulting string.</div>
+
+	<pre>std::string source_line() const;</pre>
+	<div class="desc">Returns 0 or code line in the source file, where the function of the stored address is defined. Throws std::bad_alloc if not enough memory to construct resulting string.</div>
+
+	<pre>explicit operator bool() const noexcept;</pre>
+	<div class="desc">Returns true if this stores and address other than NULL.</div>
+
+
+	<h3>Class template &lt;basic_stacktrace&gt;</h3>
+	<p>The basic_stacktrace template class stores current call sequence on construction and provides functions for querying information about the call sequence.</p>
+	<pre>
+namespace std {
+  template&lt;typename Allocator&gt;
+  class basic_stacktrace {
+  public:
+    using value_type = stack_frame;
+    using const_reference = const value_type &amp;;
+    using size_type = <i>implementation-defined</i>;
+    using const_iterator = <i>implementation-defined</i>;
+    using allocaotr_type = Allocator;
+
+    // functions that capture current call sequence
+    basic_stacktrace() noexcept;
+    explicit basic_stacktrace(const allocator_type&amp; a) noexcept;
+    basic_stacktrace(size_type skip, size_type max_depth, const allocator_type&amp; a = allocator_type()) noexcept;
+
+    // construct/copy/destruct
+    basic_stacktrace(const basic_stacktrace &);
+    basic_stacktrace(basic_stacktrace &&) noexcept;
+    basic_stacktrace & operator=(const basic_stacktrace &);
+    basic_stacktrace & operator=(basic_stacktrace &&);
+    ~basic_stacktrace();
+
+    // public member functions
+    size_type size() const noexcept;
+    const_reference operator[](size_type ) const noexcept;
+    const_iterator begin() const noexcept;
+    const_iterator end() const noexcept;
+
+    explicit operator bool() const noexcept;
+
+    template &lt;typename Allocator2&gt;
+    strong_ordering operator &lt;=&gt;(const basic_stacktrace&lt; Allocator2 &gt;&amp; rhs) = default;
+
+  private:
+    vector&lt;value_type&gt;    stack_frames; // exposition only
+  };
+
+}
+		</pre>
+
+	<h3><code>basic_stacktrace</code> constructors</h3>
+	<pre>basic_stacktrace() noexcept;
+explicit basic_stacktrace(const allocator_type & a) noexcept;</pre>
+
+	<div class="desc">Stores the current call sequence inside *this without querying information about each call.</div>
+	<div class="desc">Any exception raised during this operation is
+	silently ignored. In case of exception <code>(bool)*this</code> is <code>false</code></div>
+
+<pre>basic_stacktrace(size_type skip, size_type max_depth, const allocator_type&amp; a = allocator_type()) noexcept;</pre>
+	<div class="desc">Stores [skip; skip + max_depth) of the current function call sequence inside *this without querying information about each call.</div>
+	<div class="desc">Any exception raised during this operation is
+	silently ignored. In case of exception <code>(bool)*this</code> is <code>false</code></div>
+
+	<h3><code>basic_stacktrace</code> member functions</h3>
+	<pre>const_reference operator[](size_type frame_no) const noexcept;</pre>
+	<div class="desc">Returns frame that references the actual frame info, stored inside *this.</div>
+	<div class="desc">Parameters: <code>frame_no</code> - zero-based index of frame to return. 0 is the function index where stacktrace was constructed and index close to this->size() contains function main().</div>
+
+	<pre>explicit operator bool() const noexcept;</pre>
+	<div class="desc">Returns true if call sequence was successfully stored.</div>
+
+
+	<h2>V. Feature-testing macro</h2>
+    <p>For the purposes of SG10 we recommend the feature-testing macro name <code>__cpp_lib_stacktrace</code>.</p>
+
+        <script type="text/javascript">
+            function colorize_texts(texts) {
+                for (var i = 0; i < texts.length; ++i) {
+                    var text = texts[i].innerHTML;
+                    text = text.replace(/namespace|enum|void|constexpr|extern|noexcept|bool|template|class |struct|auto|const |typename|explicit|public|private|#include|inline|typedef|static_assert|static_cast|static/g,"<span class='cppkeyword'>$&<\/span>");
+                    text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+                    texts[i].innerHTML = text;
+                }
+            }
+
+            colorize_texts(document.getElementsByTagName("pre"));
+            colorize_texts(document.getElementsByTagName("code"));
+
+            var show = false;
+            function show_hide_deleted() {
+                var to_change = document.getElementsByClassName('changed-deleted');
+                for (var i = 0; i < to_change.length; ++i) {
+                    to_change[i].style.display = (show ? 'block' : 'none');
+                }
+
+                show = !show;
+            }
+            show_hide_deleted()
+        </script>
+</body></html>
+
