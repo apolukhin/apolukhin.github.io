@@ -5,7 +5,7 @@
     <meta name="description" content="Compile and run C++ code in your browser">
     <meta name="author" content="Antony Polukhin">
 
-    <link rel="canonical" href="http://apolukhin.github.io/compile.html" />
+    <link rel="canonical" href="http://apolukhin.github.io/en/compile.html" />
     <link rel="alternate" href="http://apolukhin.github.io/en/compile.html" hreflang="en" />
     <link rel="alternate" href="http://apolukhin.github.io/compile.html" hreflang="ru" />
 
@@ -23,10 +23,10 @@
     <title>Antony's Attic: Compile and Run</title>
 
     <!-- Bootstrap core CSS -->
-    <link href="html_assets/bootstrap.css" rel="stylesheet">
+    <link href="../html_assets/bootstrap.css" rel="stylesheet">
 
     <!-- Custom styles for this template -->
-    <link href="html_assets/custom.css" rel="stylesheet">
+    <link href="../html_assets/custom.css" rel="stylesheet">
   </head>
 
   <body>
@@ -40,8 +40,8 @@
           <div class="collapse navbar-collapse" id="navbarsExampleDefault">
             <ul class="navbar-nav mr-auto">
               <li class="nav-item">
-                <a class="nav-link d-md-none d-xl-block" href="./consulting.html">Корпоративные тренинги</a>
-                <a class="nav-link d-none d-md-block d-xl-none" href="./consulting.html">Тренинги</a>
+                <a class="nav-link d-md-none d-xl-block" href="./consulting.html">Trainings&amp;Consulting</a>
+                <a class="nav-link d-none d-md-block d-xl-none" href="./consulting.html">Trainings</a>
               </li>
               <li class="nav-item d-none d-md-block d-lg-none">
                 <div class="dropdown">
@@ -49,27 +49,27 @@
                         Other
                     </a>
                     <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
-                        <a class="dropdown-item" href="./publications.html">Публикации</a>
-                        <a class="dropdown-item" href="./presentations.html">Презентации</a>
-                        <a class="dropdown-item" href="./developer.html">Уголок Разработки</a>
+                        <a class="dropdown-item" href="./publications.html">Publications</a>
+                        <a class="dropdown-item" href="./presentations.html">Presentations</a>
+                        <a class="dropdown-item" href="./developer.html">Development Corner</a>
                     </div>
                 </div>
               </li>
               <li class="nav-item d-md-none d-lg-block">
-                <a class="nav-link" href="./publications.html">Публикации</a>
+                <a class="nav-link" href="./publications.html">Publications</a>
               </li>
               <li class="nav-item d-md-none d-lg-block">
-                <a class="nav-link" href="./presentations.html">Презентации</a>
+                <a class="nav-link" href="./presentations.html">Presentations</a>
               </li>
               <li class="nav-item d-md-none d-lg-block">
-                <a class="nav-link" href="./developer.html">Уголок Разработки</a>
+                <a class="nav-link" href="./developer.html">Development Corner</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link active" href="http://apolukhin.github.io/compile.html">Запуск С++</a>
+                <a class="nav-link active" href="http://apolukhin.github.io/en/compile.html">Run C++</a>
               </li>
             </ul>
             <form class="form-inline my-2 my-lg-0">
-                <a class="btn btn-primary bg-light" onclick="select_language2('en')">In English</a>
+                <a class="btn btn-primary bg-light" onclick="select_language2('ru')">На Русском</a>
             </form>
           </div>
         </nav>
@@ -85,22 +85,21 @@
       <div class="row row-offcanvas row-offcanvas-right">
 
         <div class="col-12 col-md-12">
-
         <hr class="d-block d-sm-none">
 
           <div id="book-second" class="jumbotron">
-            <h1>Компилируйте и запускайте C++ в браузере</h1>
+            <h1>Compile and Run C++ in browser</h1>
           </div>
 
         <hr class="featurette-divider">
-
+        
         <div class="row featurette">
 
 				<div class="col-md-6">
-					<p class="nowrap">Аргументы: <input class="w-100" id="input" value="world!"/></p>
+					<p class="nowrap">Program arguments: <input class="w-100" id="input" value="world!"/></p>
 				</div>
 				<div class="col-md-6">
-					<p class="nowrap">Команда компиляции: <input class="w-100" id="compile_command" value="g++ -std=c++17 -Wall -Wextra main.cpp"/></p>
+					<p class="nowrap">Compilation command: <input class="w-100" id="compile_command" value="g++ -std=c++17 -Wall -Wextra main.cpp"/></p>
 				</div>
 
 
@@ -111,11 +110,9 @@
 				<div class="col-12 text-right">
 			    </div>
 
-
 				<div class="col-12">
-
-					<button class="btn btn-outline-success btn-lg" onclick='editor.run();'>Запустить</button> 
-					<button class="btn btn-outline-secondary btn-lg" onclick='editor.compile();'>Скомпилировать</button>
+					<button class="btn btn-outline-success btn-lg" onclick='editor.run();'>Run</button> 
+					<button class="btn btn-outline-secondary btn-lg" onclick='editor.compile();'>Compile</button>
                 <hr class="featurette-divider">
 					<div id="code">#include &lt;iostream&gt;
 #include &lt;string&gt;
@@ -138,8 +135,8 @@ int main(int /*argc*/, const char* argv[]) {
 				    </div>
 				</div>
 		</div>
-				
-				
+
+
         </div>
       </div><!--/row-->
 
@@ -148,24 +145,24 @@ int main(int /*argc*/, const char* argv[]) {
     </main><!--/.container-->
 
     <footer>
-        <p class="text-right">© 2017-2018 Полухин Антон.</p>
+        <p class="text-right">© 2017-2018 Antony Polukhin.</p>
     </footer>
 
 
     <!-- Bootstrap core JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-    <script src="html_assets/jquery-3.js"></script>
+    <script src="../html_assets/jquery-3.js"></script>
     <script>window.jQuery || document.write('<script src="../../../../assets/js/vendor/jquery.min.js"><\/script>')</script>
-    <script src="html_assets/custom.js?2"></script>
-	<script src="Boost-Cookbook/assets/js/ace/ace.js"></script>
-    <script src="html_assets/compile.js"></script>
+    <script src="../html_assets/custom.js?2"></script>
+	<script src="../Boost-Cookbook/assets/js/ace/ace.js"></script>
+    <script src="../html_assets/compile.js"></script>
 	<script>
         $(function() {
 		    editor.init(ace.edit("code"), $("#input"), $("#output"), $("#compile_command"));
 	    });
 	</script>
-    <script src="html_assets/popper.js"></script>
-    <script src="html_assets/bootstrap.js"></script>
+    <script src="../html_assets/popper.js"></script>
+    <script src="../html_assets/bootstrap.js"></script>
 
 </body></html>

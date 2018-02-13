@@ -18,19 +18,18 @@ function get_cookie(cname) {
             return c.substring(name.length, c.length);
         }
     }
-    return "";
+    return undefined;
 }
 
-
-function select_language(language) {
+function select_language2(language) {
     function default_lang() {
         return (navigator.language || navigator.userLanguage).startsWith("ru") ? "ru" : "en"
     }
 
     if (language === undefined) {
         language = get_cookie("language");
-        if (language === "") {
-            language= default_lang();
+        if (language === undefined) {
+            language = default_lang();
         }
     }
 
@@ -38,16 +37,17 @@ function select_language(language) {
         language = default_lang();
     }
 
-    set_cookie("language", language, 31)
-    $("#lang-select").val(language);
+    set_cookie("language", language, 31);
 
-    $("[lang]").each(function () {
-        if ($(this).attr("lang") == language)
-            $(this).show();
-        else
-            $(this).hide();
-    });
+    if (language === "ru" && window.location.href.includes("/en/")) {
+        window.location = window.location.href.replace("/en/", "/");
+    } else if (language === "en" && !window.location.href.includes("/en/")) {
+        var str = window.location.href;
+        var pos = str.lastIndexOf('/');
+        str = str.substring(0, pos) + "/en/" + str.substring(pos + 1);
+        window.location = str;
+    }
 }
 
-select_language()
+select_language2()
 

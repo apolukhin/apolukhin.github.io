@@ -5,6 +5,10 @@
     <meta name="description" content="My personal page on C++ conferences, talks, consulting and WG21 proposals">
     <meta name="author" content="Antony Polukhin">
 
+    <link rel="canonical" href="https://apolukhin.github.io/index.html" />
+    <link rel="alternate" href="https://apolukhin.github.io/en/index.html" hreflang="en" />
+    <link rel="alternate" href="https://apolukhin.github.io/index.html" hreflang="ru" />
+
 <!-- Global site tag (gtag.js) - Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=UA-111974110-1"></script>
 <script>
@@ -37,8 +41,8 @@
           <div class="collapse navbar-collapse" id="navbarsExampleDefault">
             <ul class="navbar-nav mr-auto">
               <li class="nav-item">
-                <a class="nav-link d-md-none d-xl-block" href="./consulting.html"><span lang="en">Trainings&amp;Consulting</span><span lang="ru">Корпоративные тренинги</span></a>
-                <a class="nav-link d-none d-md-block d-xl-none" href="./consulting.html"><span lang="en">Trainings</span><span lang="ru">Тренинги</span></a>
+                <a class="nav-link d-md-none d-xl-block" href="./consulting.html">Корпоративные тренинги</a>
+                <a class="nav-link d-none d-md-block d-xl-none" href="./consulting.html">Тренинги</a>
               </li>
               <li class="nav-item d-none d-md-block d-lg-none">
                 <div class="dropdown">
@@ -46,31 +50,27 @@
                         Other
                     </a>
                     <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
-                        <a class="dropdown-item" href="./publications.html"><span lang="en">Publications</span><span lang="ru">Публикации</span></a>
-                        <a class="dropdown-item" href="./presentations.html"><span lang="en">Presentations</span><span lang="ru">Презентации</span></a>
-                        <a class="dropdown-item" href="./developer.html"><span lang="en">Development Corner</span><span lang="ru">Уголок Разработки</span></a>
+                        <a class="dropdown-item" href="./publications.html">Публикации</a>
+                        <a class="dropdown-item" href="./presentations.html">Презентации</a>
+                        <a class="dropdown-item" href="./developer.html">Уголок Разработки</a>
                     </div>
                 </div>
               </li>
               <li class="nav-item d-md-none d-lg-block">
-                <a class="nav-link" href="./publications.html"><span lang="en">Publications</span><span lang="ru">Публикации</span></a>
+                <a class="nav-link" href="./publications.html">Публикации</a>
               </li>
               <li class="nav-item d-md-none d-lg-block">
-                <a class="nav-link" href="./presentations.html"><span lang="en">Presentations</span><span lang="ru">Презентации</span></a>
+                <a class="nav-link" href="./presentations.html">Презентации</a>
               </li>
               <li class="nav-item d-md-none d-lg-block">
-                <a class="nav-link" href="./developer.html"><span lang="en">Development Corner</span><span lang="ru">Уголок Разработки</span></a>
+                <a class="nav-link" href="./developer.html">Уголок Разработки</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="http://apolukhin.github.io/compile.html"><span lang="en">Run C++</span><span lang="ru">Запуск С++</span></a>
+                <a class="nav-link" href="http://apolukhin.github.io/compile.html">Запуск С++</a>
               </li>
             </ul>
             <form class="form-inline my-2 my-lg-0">
-                <span class="navbar-text">Lang&nbsp;/&nbsp;Язык:&nbsp;</span>
-                <select id="lang-select" class="bg-white" onchange="select_language(this.options[this.selectedIndex].value)">
-                    <option lang="ru" value="en" selected>English</option>
-                    <option  lang="en" value="ru">Русский</option>
-                </select>
+                <a class="btn btn-primary bg-light" onclick="select_language2('en')">In English</a>
             </form>
           </div>
         </nav>
@@ -91,12 +91,7 @@
           <div class="carousel-item active">
             <img class="first-slide" src="html_assets/talk.jpg" alt="First slide">
             <div class="container">
-              <div lang="en" class="carousel-caption">
-                <h1>Talks.</h1>
-                <p>C++ talks on bleeding edge technologies.</p>
-                <p><a class="btn btn-lg btn-primary bg-dark" href="./presentations.html" role="button">See slides</a></p>
-              </div>
-              <div lang="ru" class="carousel-caption">
+              <div class="carousel-caption">
                 <h1>Выступления.</h1>
                 <p>Лекции о новейших технологиях мира C++.</p>
                 <p><a class="btn btn-lg btn-primary bg-dark" href="./presentations.html" role="button">Скачать слайды</a></p>
@@ -106,12 +101,7 @@
           <div class="carousel-item">
             <img class="second-slide" src="html_assets/books.jpg" alt="Second slide">
             <div class="container">
-              <div lang="en" class="carousel-caption">
-                <h1>Boost C++ Libraries Book.</h1>
-                <p>Over 80 online examples on Boost usage for beginners. Upcoming features of the C++ and Boost for professionals.</p>
-                <p><a class="btn btn-lg btn-primary bg-dark" href="./publications.html#book-second" role="button">Learn more</a></p>
-              </div>
-              <div lang="ru" class="carousel-caption">
+              <div class="carousel-caption">
                 <h1>Учебник по Boost C++ Libraries.</h1>
                 <p>Более 80 практических примеров использования библиотек Boost для начинающих разработчиков. Новейшие возможности языка C++ и библиотек Boost для профессионалов.</p>
                 <p><a class="btn btn-lg btn-primary bg-dark" href="./publications.html#book-second" role="button">Узнать больше</a></p>
@@ -120,14 +110,7 @@
           </div>
           <div class="carousel-item">
             <img class="third-slide" src="html_assets/no_memory_leaks.jpg" alt="Third slide">
-            <div lang="en" class="container">
-              <div class="carousel-caption">
-                <h1>Development Corner.</h1>
-                <p>Want to see how my the projects are doing?</p>
-                <p><a class="btn btn-lg btn-primary bg-dark" href="./developer.html" role="button">To the test matrix!</a></p>
-              </div>
-            </div>
-            <div lang="ru" class="container">
+            <div class="container">
               <div class="carousel-caption">
                 <h1>Уголок Разработки.</h1>
                 <p>Хотите увидеть как поживают мои проекты?</p>
@@ -156,81 +139,22 @@
         <div class="row justify-content-center text-center">
           <div class="col-lg-8">
             <img class="rounded" src="html_assets/rocket.png" alt="Rocket" width="140" height="140">
-            <h2 lang="en">Trainings&amp;Consulting</h2>
-            <h2 lang="ru">Корпоративные тренинги и Консультации</h2>
-            <p lang="en">Help in understanding C++; talks and tricks for improving development speed; application performance, latency and reliability of your applications.</p>
-            <p lang="ru">Помощь в освоении C++ и увеличении скорости разработки; производительности, отзывчивости и надёжности ваших приложений.</p>
-            <p lang="en"><a class="btn btn-secondary align-center" href="./consulting.html" role="button">View details »</a></p>
-            <p lang="ru"><a class="btn btn-secondary align-center" href="./consulting.html" role="button">Подробнее »</a></p>
+            <h2>Корпоративные тренинги и Консультации</h2>
+            <p>Помощь в освоении C++ и увеличении скорости разработки; производительности, отзывчивости и надёжности ваших приложений.</p>
+            <p><a class="btn btn-secondary align-center" href="./consulting.html" role="button">Подробнее »</a></p>
           </div>
         </div><!-- /.row -->
 
         <hr class="featurette-divider">
         <div class="row justify-content-center text-center">
           <div class="col-lg-8">
-            <h1 lang="en">My other things:</h1>
-            <h1 lang="ru">Другие мои занятия:</h1>
+            <h1>Другие мои занятия:</h1>
           </div>
         </div><!-- /.row -->
       </div>
 
 
-      <div lang="en" class="container marketing">
-        <!-- Three columns of text below the carousel -->
-        <div class="row">
-          <div class="col-lg-4">
-            <img class="rounded" src="html_assets/wg21ru.png" alt="WG21 Russia" width="140" height="140">
-            <h2>WG21 C++ Russia</h2>
-            <p>Proposals for the international ISO C++ committee for improving C++ langiage and Standard Library.</p>
-            <p><a class="btn btn-secondary" href="./publications.html#proposals" role="button">View details »</a></p>
-          </div><!-- /.col-lg-4 -->
-          <div class="col-lg-4">
-            <img class="rounded" src="html_assets/habr.jpg" alt="Habrahabr Logo" width="140" height="140">
-            <h2>Habrahabr publications</h2>
-            <p>Interesting articles on C++ and programming in general on one of the most popular Russian IT sites.</p>
-            <p><a class="btn btn-secondary" href="./publications.html#habr" role="button">View details »</a></p>
-          </div><!-- /.col-lg-4 -->
-          <div class="col-lg-4">
-            <img class="rounded-circle" src="html_assets/boost.png" alt="Boost logo" width="140" height="140">
-            <h2>Boost</h2>
-            <p>Boost Libraries maintained by Antony, their "health", test coverage and lists of feature requests.</p>
-            <p><a class="btn btn-secondary" href="./developer.html" role="button">View details »</a></p>
-          </div><!-- /.col-lg-4 -->
-        </div><!-- /.row -->
-        
-        <div class="row justify-content-center">
-          <div class="col-lg-4">
-            <img class="rounded" src="html_assets/github.png" alt="Логотип Github" width="140" height="140">
-            <h2>Github</h2>
-            <p>All the repos, pull requests and other stuff</p>
-            <p><a class="btn btn-secondary" href="https://github.com/apolukhin" role="button">Switch to »</a></p>
-          </div><!-- /.col-lg-4 -->
-        </div><!-- /.row -->
-
-        <div class="row justify-content-center">
-          <div class="col-lg-4">
-            <img class="rounded" src="html_assets/cpp_russia.png" alt="Логотип C++Russia" width="140" height="140">
-            <h2>C++ Russia</h2>
-            <p>C++ conferences in Russia</p>
-            <!--p><a class="btn btn-secondary" href="http://cpp-russia.ru/" role="button">Switch to »</a></p-->
-          </div><!-- /.col-lg-4 -->
-          <div class="col-lg-4">
-            <img class="rounded" src="html_assets/youtube.png" alt="Логотип Youtube" width="140" height="140">
-            <h2>Youtube Video</h2>
-            <p>My best video on youtube</p>
-            <p><a class="btn btn-secondary" href="https://www.youtube.com/watch?v=abdeAew3gmQ" role="button">Switch to »</a></p>
-          </div><!-- /.col-lg-4 -->
-          <div class="col-lg-4">
-            <img class="rounded" src="html_assets/corehard.png" alt="Логотип Youtube" width="140" height="140">
-            <h2>C++ Corehard</h2>
-            <p>C++ conferences in Belarus</p>
-            <!--p><a class="btn btn-secondary" href="https://corehard.by" role="button">Switch to »</a></p-->
-          </div><!-- /.col-lg-4 -->
-        </div><!-- /.row -->
-      </div>
-
-
-      <div lang="ru" class="container marketing">
+      <div class="container marketing">
         <div class="row">
           <div class="col-lg-4">
             <img class="rounded" src="html_assets/wg21ru.png" alt="Логотип WG21 Russia" width="140" height="140">
@@ -251,7 +175,7 @@
             <p><a class="btn btn-secondary" href="./developer.html" role="button">Подробнее »</a></p>
           </div><!-- /.col-lg-4 -->
         </div><!-- /.row -->
-        
+
         <div class="row justify-content-center">
           <div class="col-lg-4">
             <img class="rounded" src="html_assets/github.png" alt="Логотип Github" width="140" height="140">
@@ -287,8 +211,7 @@
 
       <!-- FOOTER -->
       <footer class="container">
-        <p lang="en" class="text-right">© 2017-2018 Antony Polukhin.</p>
-        <p lang="ru" class="text-right">© 2017-2018 Полухин Антон.</p>
+        <p class="text-right">© 2017-2018 Полухин Антон.</p>
       </footer>
 
     </main>
@@ -299,7 +222,7 @@
     <!-- Placed at the end of the document so the pages load faster -->
     <script src="html_assets/jquery-3.js"></script>
     <script>window.jQuery || document.write('<script src="../../../../assets/js/vendor/jquery.min.js"><\/script>')</script>
-    <script src="html_assets/custom.js"></script>
+    <script src="html_assets/custom.js?2"></script>
     <script src="html_assets/popper.js"></script>
     <script src="html_assets/bootstrap.js"></script>
 
