@@ -1,4 +1,4 @@
-// Copyright Antony Polukhin, 2016-2017.
+// Copyright Antony Polukhin, 2018.
 //
 // Distibuted as Public domain. Use as you wish.
 //
