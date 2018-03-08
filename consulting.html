@@ -99,56 +99,249 @@
         <hr class="featurette-divider">
         <div class="row featurette">
           <div class="col-md-12">
+            <h2 class="featurette-heading">Из C в С++</h2>
+            <img class="featurette-image img-fluid mx-auto" style="width:100%" alt="Library" src="html_assets/to_cpp.jpg" >
+            <div class="lead">
+                <p>Практический курс для C разработчиков и людей знающих основы C или C++, желающих выучить современный C++. Приблизительный план:</p>
+                <ul>
+<li>Введение:
+  <ul>
+    <li>Пример С кода и типичные проблемы</li>
+    <li>Тот же пример на С++</li>
+    <li>RAII и деструкторы</li>
+  </ul>
+</li>
+
+<li>Основы языка
+  <ul>
+    <li>ссылки и константные ссылки</li>
+    <li>переменные</li>
+    <li>функции</li>
+    <li>передача параметров в функции</li>
+    <li>возврат параметров из функции (упрощённо)</li>
+    <li>перегрузка функций</li>
+    <li>вывод значения</li>
+  </ul>
+</li>
+
+<li>Классы (основы 1)
+  <ul>
+    <li>переменные класса</li>
+    <li>member initialization</li>
+    <li>private/public</li>
+    <li>функции/операторы члены классы</li>
+    <li>константные функции/операторы члены классы</li>
+    <li>конструктор по умолчанию</li>
+    <li>перегрузка операторов</li>
+  </ul>
+</li>
+
+<li>Классы (основы 2)
+  <ul>
+    <li>конструктор копирования</li>
+    <li>конструктор перемещения</li>
+    <li>=deleted;/=default;</li>
+    <li>деструктор</li>
+    <li>оператор явного преобразования</li>
+  </ul>
+</li>
+
+<li>std::string
+  <ul>
+    <li>примеры работы</li>
+    <li>производительность</li>
+    <li>range based for</li>
+    <li>вывод в поток</li>
+  </ul>
+</li>
+
+<li>std::vector
+  <ul>
+    <li>Примеры работы</li>
+    <li>initilizer list</li>
+    <li>Производительность и подводные камни</li>
+    <li>Вывод в поток</li>
+    <li>auto</li>
+    <li>итераторы</li>
+  </ul>
+</li>
+
+<li>Лямбды
+  <ul>
+    <li>"функции без имени"</li>
+    <li>capture</li>
+    <li>capture expressions (C++14)</li>
+    <li>mutable</li>
+  </ul>
+</li>
+
+<li>Алгоритмы и итераторы
+  <ul>
+    <li>O-большое</li>
+    <li>O-большое на практике</li>
+    <li>функциональный объект</li>
+    <li>алгоритмы на каждый день</li>
+    <li>подводные камни &lt;algorithm&gt; (аллокации памяти)</li>
+  </ul>
+</li>
+
+
+<li>Классы (наследование)
+  <ul>
+    <li>приватное наследование</li>
+    <li>protected</li>
+    <li>публичное наследование + protected деструктор</li>
+    <li>срезка</li>
+    <li>static методы</li>
+    <li>static переменные</li>
+    <li>оператор вывода в поток</li>
+  </ul>
+</li>
+
+
+<li>Классы (полиморфизм)
+  <ul>
+    <li>чисто виртуальные функции</li>
+    <li>виртуальные функции</li>
+    <li>final/override</li>
+    <li>виртуальный деструктор</li>
+    <li>static_cast, dynamic_cast, const_cast, reinterpret_cast</li>
+  </ul>
+</li>
+
+<li>Обработка ошибок
+  <ul>
+    <li>исключения</li>
+    <li>noexcept</li>
+    <li>std::error_code</li>
+    <li>Комбинированный подход</li>
+  </ul>
+</li>
+
+
+<li>Шаблоны
+  <ul>
+    <li>Шаблонные функции</li>
+    <li>Шаблонные классы</li>
+    <li>template aliases</li>
+    <li>Шаблонные функции члены класса</li>
+    <li>&lt;type_traits&gt; и static_assert</li>
+  </ul>
+</li>
+
+<li>Контейнеры
+  <ul>
+    <li>std::string</li>
+    <li>std::vector</li>
+    <li>std::unordered_map/set</li>
+    <li>std::map/set</li>
+    <li>гетерогенный поиск</li>
+    <li>std::deque</li>
+    <li>std::list</li>
+    <li>std::forward_list</li>
+  </ul>
+</li>
+
+
+<li>C++11 и C++14
+  <ul>
+    <li>std::move</li>
+    <li>rvalue &amp; lvalue</li>
+    <li>forwarding/universal reference</li>
+    <li>возврат значений из функции</li>
+    <li>move-only типы данных</li>
+    <li>move_iterator</li>
+    <li>"pinned" типы данных</li>
+    <li>unique_ptr</li>
+    <li>shared_ptr и make_shared</li>
+    <li>pair</li>
+    <li>tuple</li>
+    <li>constepxr</li>
+  </ul>
+</li>
+
+<li>Многопоточночть
+  <ul>
+    <li>thread (detach, join)</li>
+    <li>mutex + lock</li>
+    <li>atomic</li>
+    <li>thread_local</li>
+    <li>memory models</li>
+    <li>hardware destructive size + alignas</li>
+    <li>подводные камни (multiple locks, RAII)</li>
+    <li>magic statics + call_once</li>
+    <li>shared_mutex (C++17)</li>
+  </ul>
+</li>
+
+<li>Очереди
+  <ul>
+    <li>conditional_variable (эффективный notify())</li>
+    <li>function</li>
+  </ul>
+</li>
+
+
+                </ul>
+            </div> <!-- lead -->
+
+          </div>
+        </div>
+
+
+        <hr class="featurette-divider">
+        <div class="row featurette">
+          <div class="col-md-12">
             <h2 class="featurette-heading">Эффективная стандартная библиотека</h2>
             <img class="featurette-image img-fluid mx-auto" style="width:100%" alt="Library" src="html_assets/library.jpg" >
             <div class="lead">
-                <p>Курс посвящён эффективному решению задач средствами стандартной библиотеки и библиотек Boost. Приблизительный план:</p>
+                <p>Курс посвещён эффективному решению задач средствами стандартной библиотеки и библиотек Boost. Приблизительный план:</p>
                 <ul>
-                    <li>Алгоритмы:
-                        <ul>
-                            <li>O-большое</li>
-                            <li>O-большое на практике</li>
-                            <li>Алгоритмы на каждый день, о которых мало кто знает</li>
-                            <li>Подводные камни &lt;algorithm&gt; (аллокации памяти, move семантика и итераторы)</li>
-                        </ul>
-                    </li>
-                    <li>Структуры данных:
-                        <ul>
-                            <li>string (SSO, пустые строчки, cache friendliness)</li>
-                            <li>string_view (пустые строчки, нуль терминация, cache friendliness)</li>
-                            <li>vector (аллокации, cache friendliness)</li>
-                            <li>list/deque (аллокации, многопоточность)</li>
-                            <li>unordered_map (производительность, ограничения, более эффективные решения)</li>
-                            <li>map</li>
-                            <li>Разновидности векторов (small, stack)</li>
-                            <li>Плоские ассоциативные контейнеры</li>
-                            <li>Подводные камни (noexcept, move construction)</li>
-                            <li>Советы по оптимизации (move, move_iterator)</li>
-                        </ul>
-                    </li>
-                    <li>Многопоточность:
-                        <ul>
-                            <li>thread (detach, join)</li>
-                            <li>mutex</li>
-                            <li>atomic (memory model)</li>
-                            <li>conditional_variable (эффективный notify())</li>
-                            <li>call_once</li>
-                            <li>Подводные камни (multiple locks, RAII)</li>
-                            <li>Советы по оптимизации (размер критической секции, эффекты от роста числа ядер процессора)</li>
-                        </ul>
-                    </li>
-                    <li>На каждый день:
-                        <ul>
-                            <li>variant</li>
-                            <li>optional</li>
-                            <li>unique_ptr</li>
-                            <li>shared_ptr</li>
-                            <li>ProgramOptions</li>
-                            <li>Filesystem</li>
-                            <li>LexicalCast</li>
-                            <li>function</li>
-                        </ul>
-                    </li>
+<li>Алгоритмы:
+  <ul>
+    <li>O-большое</li>
+    <li>O-большое на практике</li>
+    <li>Алгоритмы на каждый день, о которых мало кто знает</li>
+    <li>Подводные камни &lt;algorithm&gt; (аллокации памяти, move семантика и итераторы)</li>
+  </ul>
+</li>
+<li>Структуры данных:
+  <ul>
+    <li>string (SSO, пустые строчки, cache friendliness)</li>
+    <li>string_view (пустые строчки, нуль терминация, cache friendliness)</li>
+    <li>vector (аллокации, cache friendliness)</li>
+    <li>list/deque (аллокации, многопоточность)</li>
+    <li>unordered_map (производительность, ограничения, более эффективные решения)</li>
+    <li>map</li>
+    <li>Разновидности векторов (small, stack)</li>
+    <li>Плоские ассоциативные контейнеры</li>
+    <li>Подводные камни (noexcept, move construction)</li>
+    <li>Советы по оптимизации (move, move_iterator)</li>
+  </ul>
+</li>
+<li>Многопоточность:
+  <ul>
+    <li>thread (detach, join)</li>
+    <li>mutex</li>
+    <li>atomic (memory model)</li>
+    <li>conditional_variable (эффективный notify())</li>
+    <li>call_once</li>
+    <li>Подводные камни (multiple locks, RAII)</li>
+    <li>Советы по оптимизации (размер критической секции, эффекты от роста числа ядер процессора)</li>
+  </ul>
+</li>
+<li>На каждый день:
+  <ul>
+    <li>variant</li>
+    <li>optional</li>
+    <li>unique_ptr</li>
+    <li>shared_ptr</li>
+    <li>ProgramOptions</li>
+    <li>Filesystem</li>
+    <li>LexicalCast</li>
+    <li>function</li>
+  </ul>
+</li>
                 </ul>
             </div> <!-- lead -->
 
@@ -163,74 +356,74 @@
             <div class="lead">
                 <p>Лучшие практики использования новинок стандартной библиотеки и языка C++ для решения продуктовых задач. Приблизительный план:</p>
                 <ul>
-                    <li>C++11:
-                        <ul>
-                            <li>move семантика</li>
-                            <li>auto</li>
-                            <li>range based for</li>
-                            <li>initilizer list</li>
-                            <li>lambda</li>
-                            <li>final/override</li>
-                            <li>member initialization</li>
-                            <li>static_assert</li>
-                            <li>noexcept</li>
-                            <li>constexpr</li>
-                            <li>=default/=delete</li>
+<li>C++11:
+  <ul>
+    <li>move семантика</li>
+    <li>auto</li>
+    <li>range based for</li>
+    <li>initilizer list</li>
+    <li>lambda</li>
+    <li>final/override</li>
+    <li>member initialization</li>
+    <li>static_assert</li>
+    <li>noexcept</li>
+    <li>constexpr</li>
+    <li>=default/=delete</li>
 
-                            <li>unordered_map</li>
-                            <li>tuple</li>
-                            <li>unique_ptr</li>
-                            <li>shared_ptr</li>
-                            <li>function</li>
-                            <li>Псевдослучайные и другие генераторы чисел</li>
+    <li>unordered_map</li>
+    <li>tuple</li>
+    <li>unique_ptr</li>
+    <li>shared_ptr</li>
+    <li>function</li>
+    <li>Псевдослучайные и другие генераторы чисел</li>
 
-                            <li>thread (detach, join)</li>
-                            <li>mutex</li>
-                            <li>atomic (memory model)</li>
-                            <li>conditional_variable (эффективный notify())</li>
-                            <li>call_once</li>
-                        </ul>
-                    </li>
-                    <li>C++14:
-                        <ul>
-                            <li>generic lambda</li>
-                            <li>lambda capture expressions</li>
-                            <li>[[deprecated]]</li>
+    <li>thread (detach, join)</li>
+    <li>mutex</li>
+    <li>atomic (memory model)</li>
+    <li>conditional_variable (эффективный notify())</li>
+    <li>call_once</li>
+  </ul>
+</li>
+<li>C++14:
+  <ul>
+    <li>generic lambda</li>
+    <li>lambda capture expressions</li>
+    <li>[[deprecated]]</li>
 
-                            <li>shared_mutex</li>
-                            <li>Гетерогенный поиск</li>
-                        </ul>
-                    </li>
-                    <li>C++17:
-                        <ul>
-                            <li>string_view</li>
-                            <li>optional</li>
-                            <li>variant</li>
-                            <li>filesystem</li>
-                            <li>any</li>
-                            <li>nodes</li>
-                            <li>byte</li>
+    <li>shared_mutex</li>
+    <li>Гетерогенный поиск</li>
+  </ul>
+</li>
+<li>C++17:
+  <ul>
+    <li>string_view</li>
+    <li>optional</li>
+    <li>variant</li>
+    <li>filesystem</li>
+    <li>any</li>
+    <li>nodes</li>
+    <li>byte</li>
 
-                            <li>parallel algorithms</li>
-                            <li>special math</li>
+    <li>parallel algorithms</li>
+    <li>special math</li>
 
-                            <li>structured bindings</li>
-                            <li>if constexpr</li>
-                            <li>if/switch with initialization</li>
-                            <li>deduction guides</li>
-                        </ul>
-                    </li>
-                    <li>Миграция на новые стандарты:
-                        <ul>
-                            <li>C++?? -> C++11</li>
-                            <li>C++?? -> C++14</li>
-                            <li>C++?? -> C++17</li>
-                            <li>Какой стандарт лучше сейчас использовать?</li>
-                            <li>Производительность кода</li>
-                            <li>Производительность разработки</li>
-                            <li>Трудозатраты</li>
-                        </ul>
-                    </li>
+    <li>structured bindings</li>
+    <li>if constexpr</li>
+    <li>if/switch with initialization</li>
+    <li>deduction guides</li>
+  </ul>
+</li>
+<li>Миграция на новые стандарты:
+  <ul>
+    <li>C++?? -> C++11</li>
+    <li>C++?? -> C++14</li>
+    <li>C++?? -> C++17</li>
+    <li>Какой стандарт лучше сейчас использовать?</li>
+    <li>Производительность кода</li>
+    <li>Производительность разработки</li>
+    <li>Трудозатраты</li>
+  </ul>
+</li>
                 </ul>
             </div> <!-- lead -->
           </div>
