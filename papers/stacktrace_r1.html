@@ -29,7 +29,7 @@
         <address>Alexey Gorgurov &lt;<a href="mailto:leha-bot@yandex.ru">leha-bot@yandex.ru</a>&gt;, &lt;<a href="mailto:no-vista@yandex.ru">no-vista@yandex.ru</a>&gt;</address>
         <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
         <address>&nbsp;</address>
-        <address>Date: 2018-04-13</address>
+        <address>Date: 2018-04-19</address>
         <h1>A Proposal to add stack trace library</h1>
 
         <p class='changed-added'>Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0881r0.html">P0881R0</a> are marked with blue.<p>
@@ -80,7 +80,7 @@ Backtrace:
 	on the stack or in some other place, where users thinks it is appropriate.</p>
 	<p class="changed-added"><b>Note on returning <code>std::string</code> and not having <code>noexcept</code> on <code>stack_frame::source_line()</code></b>:
 	Unfortunately this is a necessarity on some platforms, where getting source line requires allocating or where source
-	file name <a href="https://github.com/boostorg/stacktrace/blob/a0f948e9f505cb53baf582fccbcb3024fd255ee1/include/boost/stacktrace/detail/frame_msvc.ipp#L213-L219">retuned into</a> a storage
+	file name <a href="https://github.com/boostorg/stacktrace/blob/a0f948e9f505cb53baf582fccbcb3024fd255ee1/include/boost/stacktrace/detail/frame_msvc.ipp#L213-L219">returned into</a> a storage
 	<a href="http://www.qnx.com/developers/docs/6.5.0/index.jsp?topic=%2Fcom.qnx.doc.neutrino_lib_ref%2Fb%2Fbt_get_backtrace.html"> provided by user</a>.</p>
 
 
