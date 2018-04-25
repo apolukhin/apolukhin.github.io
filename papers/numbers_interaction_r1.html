@@ -19,6 +19,9 @@
             .cppcomment { color: green; }
             .cppcomment > .cppkeyword{ color: green; }
             .cpptext { color: #2E8B57; }
+            .lmargin50{margin-left: 50px;}
+            .changed-added { background-color: #CFF0FC ;}
+            .stdquote { background-color: #ECECEC; font-family: Consolas,monospace; }
         </style>
     </head>
     <body bgcolor="#ffffff">
@@ -44,7 +47,8 @@
 
         <h2>II. Changelog</h2>
         <ul>
-            <li>Initial version (split of the <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r2.html">P0539R2</a> paper)</li>
+            <li>R1: Added some examples and clarifications in attempt to address issues, noted by Vicente J. Botet Escriba.</li>
+            <li>R0: Initial version (split of the <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r2.html">P0539R2</a> paper)</li>
         </ul>
 
 
@@ -67,9 +71,94 @@
 
         <p>Each paper that proposes new numeric type has to specialize <code>numeric_limits</code> and <code>common_type</code> to get the interactions.</p>
 
+        <h2>IV. Examples and concerns</h2>
 
-        <h2>IV. Proposed wording</h2>
+        <p><b>Concern:</b>Who decides of what are the common types? If we have overflow_integer, elastic_integer,
+        fixed_point where the common_type will be defined?</p>
 
+        <p><b>Response:</b> Definition of the <code>common_type</code> is actually out of scope of this paper. This paper does not attempt to solve
+        the complexities of <code>commmon_type</code> definitions.</p>
+
+        <p>But let's take some examples to make sure that relying on common_type helps to reduce the burden of operation definitions.
+        Let's split the problem into two parts and take wide_integer and safe_integer as an example. First problem here is to define the
+        <code>common_type_t</code> for the new numeric type instantiated with different template parameters. This is easy to solve in the paper that proposes the new numeric type.</p>
+        <p>In wide_integer paper we define the common type:</p>
+
+<div class="lmargin50 stdquote">
+<pre>template&lt;size_t Bits, typename S, size_t Bits2, typename S2&gt;
+struct common_type&lt;wide_integer&lt;Bits, S&gt;, wide_integer&lt;Bits2, S2&gt;&gt; {
+  using type = wide_integer&lt;max(Bits, Bits2), <i>see below</i>&gt;;
+};</pre>
+
+<p>The signed template parameter indicated by this specialization is following:</p>
+<ul>
+  <li><code>(is_signed_v&lt;S&gt; &amp;&amp; is_signed_v&lt;S2&gt; ? signed : unsigned)</code> if <code>Bits == Bits2</code></li>
+  <li><code>S</code> if <code>Bits > Bits2</code></li>
+  <li><code>S2</code> otherwise</li>
+</ul>
+</div>
+
+        <p>In safe_integer paper we define the common type:</p>
+<div class="lmargin50 stdquote">
+<pre>template&lt;class T1, class T2&gt;
+struct common_type&lt;safe_integer&lt;T1&gt;, safe_integer&lt;T2&gt;&gt; {
+  using type = safe_integer&lt;common_type_t&lt;T1, T2&gt;&gt;;
+};</pre>
+</div>
+
+<p>Here comes the hard part - interactions between arbitrary Arithmetic types and new numeric type. Let's assume that wide_integer accepted first and has common_type defined in the following way:</p>
+
+<div class="lmargin50 stdquote">
+<pre>template&lt;size_t Bits, typename S, typename Arithmetic&gt;
+struct common_type&lt;wide_integer&lt;Bits, S&gt;, Arithmetic&gt; {
+  using type = <i>a lot of complex expressions</i>;
+};</pre>
+
+<pre>template&lt;typename Arithmetic, size_t Bits, typename S&gt;
+struct common_type&lt;Arithmetic, wide_integer&lt;Bits, S&gt;&gt;
+  : common_type&lt;wide_integer&lt;Bits, S&gt;, Arithmetic&gt;;
+</pre>
+</div>
+
+<p>Because the wide_integer paper already accepted, the safe_integer must take that into account while defining the common type and adjust the rules for wide_integer:</p>
+<div class="lmargin50 stdquote">
+<pre>
+template&lt;size_t Bits, typename S, typename Arithmetic&gt;
+struct common_type&lt;wide_integer&lt;Bits, S&gt;, Arithmetic&gt; {
+  using type = <i>a lot of complex expressions</i>;
+};
+    <span class="changed-added">Shuld SFINAE if Arithmetic is safe_integer.</span>
+</pre>
+</div>
+<p>... and define specialization for safe_integers:</p>
+<div class="lmargin50 stdquote">
+<pre>template&lt;class T, class Arithmetic&gt;
+struct common_type&lt;safe_integer&lt;T&gt;, Arithmetic&gt; {
+  using type = safe_integer&lt;common_type_t&lt;T, Arithmetic&gt;&gt;;
+};
+
+template&lt;typename Arithmetic, class T&gt;
+struct common_type&lt;Arithmetic, safe_integer&lt;T&gt;&gt;
+  : common_type&lt;safe_integer&lt;T&gt;, Arithmetic&gt;;
+</pre>
+</div>
+
+<p>Done. Now if this paper (P0880) is accepted then the operations for the above types would be available out of the box.
+Note that all the above manipulations are required even without this paper (P0880).</p>
+
+<p>Above manipulations for defining the common type will work well with fixed_point, dyninteger, wide_integer, safe_integer, dynfloat...
+But fail for elastic_integer that must define the operations in some other way, uncommon to other new numeric types.</p>
+
+
+        <p><b>Concern:</b>If we have overflow_integer, elastic_integer,
+        fixed_point where the common_type will be defined?</p>
+
+        <p><b>Response:</b> This is up to the Standard Library implementors. Probably the specializations would be all located in a single header file
+        along with forward declarations of numeric types or some of
+        the specialization will go into the headers of a particular numeric types directly.</p>
+
+
+        <h2>V. Proposed wording</h2>
 
 <h3>26.2 Definitions<span class="right">[numerics.defns]</span></h3>
 <p class="notes"><b><i>[Note to editor:</i></b> Add the following paragraph to the end of [numerics.defns] <i><b>- end note]</b></i></p>
@@ -167,7 +256,7 @@
 </div>
 
 
-        <h2>V. Feature-testing macro</h2>
+        <h2>VI. Feature-testing macro</h2>
         <p>For the purposes of SG10 we recommend the feature-testing macro name <code>__cpp_lib_num_interop</code>.</p>
 
 
