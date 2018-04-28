@@ -29,12 +29,12 @@
         <address>Igor Klevanets &lt;<a href="mailto:cerevra@yandex.ru">cerevra@yandex.ru</a>&gt;, &lt;<a href="mailto:cerevra@yandex-team.ru">cerevra@yandex-team.ru</a>&gt;</address>
         <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
         <address>&nbsp;</address>
-        <address>Date: 2018-04-17</address>
+        <address>Date: 2018-04-27</address>
         <h1>A Proposal to add wide_int Template Class</h1>
 
         <p class='changed-added'>Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0539r3.html">P0539R3</a> are marked with blue.<p>
         <!--p><input type="checkbox" id="show_deletions" onchange="show_hide_deleted()"> Show deleted lines from P0539R3.</p-->
-        <p class='notes'>Green lines are notes for the <b>editor</b> or for the <b>SG6</b> that must not be treated as part of the wording.</p>
+        <p class='notes'>Green lines are notes for the <b>editor</b> or for the <b>SG6</b>/<b>LEWG</b>/<b>LWG</b> that must not be treated as part of the wording.</p>
         <h2>I. Introduction and Motivation</h2>
         <p>Current standard provides signed and unsigned int8_t, int16_t, int32_t, int64_t. It is usually enough for every day tasks, but sometimes appears a need in big numbers: for cryptography, IPv6, very big counters etc. Non-standard type __int128 which is provided by gcc and clang illuminates this need. But there is no cross-platform solution and no way to satisfy future needs in even more big numbers.</p>
         <p>This is an attempt to solve the problem in a generic way on a library level and provide wording for <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/p0104r0.html">P0104R0: Multi-Word Integer Operations and Types</a>.</p>
@@ -90,19 +90,57 @@
         and leave behind some design questions, like "Is <code>(sizeof(wide_integer&lt;X&gt;)&nbsp;==&nbsp;X&nbsp;/&nbsp;CHAR_BITS)</code> or not?".</p>
         <p>However, we do not wish to shut the door close for extending the abilities of the <code>wide_integer</code> class. Some users may wish to see unit40_t, or unit48_t.</p>
         <p>We insist on <b>interface that allows specifying integers not representable by machine words count</b>. Such extensions of functionality may be discussed in separate papers.</p>
-
-        <p class="changed-added"><b><code>wide_integer</code> mimics the behavior of <code>int</code></b>. Because of that <code>wide_int&lt;40&gt; * wide_int&lt;10&gt;</code>
-        results in <code>wide_int&lt;40&gt;</code>, not <code>wide_int&lt;50&gt;</code>. There are separate proposals for integers that
+<div class="changed-added">
+        <p><b><code>wide_integer</code> mimics the behavior of <code>int</code></b>. Because of that <code>wide_int&lt;128&gt; * wide_int&lt;128&gt;</code>
+        results in <code>wide_int&lt;128&gt;</code>, not <code>wide_int&lt;256&gt;</code>. There are separate proposals for integers that
         are <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0828r0.md">elastic (P0828R0)</a>
         or <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0228r0.pdf">safe (P0228R0)</a>.</p>
 
-        <p class="changed-added">Non template aliases for integers of particular width (for example <code>int128_t</code>)
+        <p>Non template aliases for integers of particular width (for example <code>int128_t</code>)
         are handled in <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/p0102r0.html">separate paper P0102R0</a>. There was an implicit 
         request from LEWG to remove those aliases from this paper, as they were rising a lot of questions on some platforms.</p>
 
-        <p class="changed-added">Interoperability with other arithmetic types was moved to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0880r0.html">a separate paper P0880R0</a>.</p>
+        <p>Interoperability with other arithmetic types was moved to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0880r0.html">a separate paper P0880R0</a>.</p>
+
+        <p>We double checked that <code>constexpr</code> on default constructor does not require zero initialization in non constexpr contexts and still allows zero initialization if explicitly asked:</p>
+        <pre>
+int main() {
+     //constexpr wide_integer&lt;128, unsigned&gt; wi1;  // Not initialized, compile time error
+     wide_integer&lt;128, unsigned&gt; wi1_no_constexpr; // Not initialized, OK
+     constexpr wide_integer&lt;128, unsigned&gt; wi1{};  // Zero initialized, OK
+}
+        </pre>
+
+        <p><b>Open question of Safety vs Habits:</b> current revision of the paper mimics behavior of <code>int</code> even in cases that are considered dangerous.
+        Should we make the <code>wide_integer</code> type more safe by making explicit:</p>
+        <ul>
+            <li>Conversion from any signed to any unsigned type.</li>
+            <li>Narrowing conversions.</li>
+            <li>Conversion to and from floating point types.</li>
+        </ul>
+        <p>or should we be even more close to the interface of <code>int</code> and make implicit:
+        <ul>
+            <li>Conversion to bool.</li>
+        </ul>
+
+        <p>Note that adding <code>explicit</code> would affect only <code>wide_integer</code>s, while there could be a better solution for all the integral types.
+        For example all the integrals could be fixed by
+        some <code>safe_integer&lt;Integral&gt;</code> class, that is very explicit and does additional checks on demand. In that case adding restrictions into <code>wide_integer</code>
+        would just break the interface compatibility with <code>int</code> without big benefit.</p>
+</div>
 
         <h2>IV. Proposed wording</h2>
+<div class="notes">
+<p><b><i>[Note:</i></b> 
+  <p>Here and below we rely on <code>Arithmetic</code> and <code>Integral</code> that are defined in P0880 in [numeric.requirements] as:</p>
+  <p>Functions that accept template parameters starting with <code>Arithmetic</code> shall not participate in overload resolution unless <code>std::numeric_limits&lt;Arithmetic&gt;::is_specialized</code> is true.</p>
+  <p>Functions that accept template parameters starting with <code>Integral</code> shall not participate in overload resolution unless <code>std::numeric_limits&lt;Integral&gt;::is_integer</code> is true.</p>
+
+<p><i><b>- end note]</b></i></p>
+
+</div>
+
+        
 
 <h3>18.3.4 Class template numeric_limits<span class="right">[numeric.limits]</span></h3>
 <p class="notes"><b><i>[Note to editor:</i></b> Add the following sentence after the sentence "Specializations shall be provided for each arithmetic type, both floating-point and integer, including bool." (first sentence in fourth paragraph in [numeric.limits]) <i><b>- end note]</b></i></p>
@@ -229,7 +267,7 @@
   template &lt;size_t Bits&gt;
   using wide_uint = wide_integer&lt;Bits, unsigned&gt;
 </pre>
-<p class="notes"><b><i>[Note to SG6:</i></b> <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/p0102r0.html">P0102R0</a> 
+<p class="notes"><b><i>[Note:</i></b> <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/p0102r0.html">P0102R0</a> 
 proposal with <code>exact_2int</code>, <code>fast_2int</code>, <code>least_2int</code>,
 <code>exact_2uint</code>, <code>fast_2uint</code>, <code>least_2uint</code> requires additional specializations for <code>wide_integer</code>.
  <i><b>- end note]</b></i></p>
@@ -426,7 +464,7 @@ struct common_type&lt;wide_integer&lt;Bits, S&gt;, wide_integer&lt;Bits2, S2&gt;
 </ul>
 <p><i>[Note: </i> <code>common_type</code> follows the <i>usual arithmetic conversions</i> design. <i>- end note]</i></p>
 
-<p class="notes"><b><i>[Note to SG6:</i></b> <code>common_type</code> attempts to follow the <i>usual arithmetic conversions</i> design here for interoperability between different numeric types. Following two specializations must be moved to a more generic place and enriched with usual arithmetic conversion rules for <b>all the other</b> numeric classes that specialize <code>std::numeric_limits</code><i><b>- end note]</b></i></p>
+<p class="notes"><b><i>[Note:</i></b> <code>common_type</code> attempts to follow the <i>usual arithmetic conversions</i> design here for interoperability between different numeric types. Following two specializations must be moved to a more generic place and enriched with usual arithmetic conversion rules for <b>all the other</b> numeric classes that specialize <code>std::numeric_limits</code><i><b>- end note]</b></i></p>
 <pre>template&lt;size_t Bits, typename S, typename Arithmetic&gt;
 struct common_type&lt;wide_integer&lt;Bits, S&gt;, Arithmetic&gt; {
   using type = <i>see below</i>;
