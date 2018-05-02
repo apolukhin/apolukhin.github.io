@@ -29,11 +29,11 @@
         <address>Igor Klevanets &lt;<a href="mailto:cerevra@yandex.ru">cerevra@yandex.ru</a>&gt;, &lt;<a href="mailto:cerevra@yandex-team.ru">cerevra@yandex-team.ru</a>&gt;</address>
         <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
         <address>&nbsp;</address>
-        <address>Date: 2018-04-27</address>
+        <address>Date: 2018-05-02</address>
         <h1>A Proposal to add wide_int Template Class</h1>
 
         <p class='changed-added'>Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0539r3.html">P0539R3</a> are marked with blue.<p>
-        <!--p><input type="checkbox" id="show_deletions" onchange="show_hide_deleted()"> Show deleted lines from P0539R3.</p-->
+        <p><input type="checkbox" id="show_deletions" onchange="show_hide_deleted()"> Show deleted lines from P0539R3.</p>
         <p class='notes'>Green lines are notes for the <b>editor</b> or for the <b>SG6</b>/<b>LEWG</b>/<b>LWG</b> that must not be treated as part of the wording.</p>
         <h2>I. Introduction and Motivation</h2>
         <p>Current standard provides signed and unsigned int8_t, int16_t, int32_t, int64_t. It is usually enough for every day tasks, but sometimes appears a need in big numbers: for cryptography, IPv6, very big counters etc. Non-standard type __int128 which is provided by gcc and clang illuminates this need. But there is no cross-platform solution and no way to satisfy future needs in even more big numbers.</p>
@@ -105,25 +105,27 @@
         <p>We double checked that <code>constexpr</code> on default constructor does not require zero initialization in non constexpr contexts and still allows zero initialization if explicitly asked:</p>
         <pre>
 int main() {
-     //constexpr wide_integer&lt;128, unsigned&gt; wi1;  // Not initialized, compile time error
-     wide_integer&lt;128, unsigned&gt; wi1_no_constexpr; // Not initialized, OK
-     constexpr wide_integer&lt;128, unsigned&gt; wi1{};  // Zero initialized, OK
+     //constexpr wide_integer&lt;128, unsigned&gt; wi;   // Not initialized in constexpr context - compile time error
+     wide_integer&lt;128, unsigned&gt; wi_no_init;       // Not initialized - OK
+     constexpr wide_integer&lt;128, unsigned&gt; wi{};   // Zero initialized - OK
 }
         </pre>
 
-        <p><b>Open question of Safety vs Habits:</b> current revision of the paper mimics behavior of <code>int</code> even in cases that are considered dangerous.
-        Should we make the <code>wide_integer</code> type more safe by making explicit:</p>
+        <p>Current revision of the paper mimics behavior of <code>int</code> even in cases that are considered dangerous.
+        It is possible to make <code>wide_integer</code> type more safe by making explicit:</p>
         <ul>
             <li>Conversion from any signed to any unsigned type.</li>
             <li>Narrowing conversions.</li>
             <li>Conversion to and from floating point types.</li>
-        </ul>
-        <p>or should we be even more close to the interface of <code>int</code> and make implicit:
-        <ul>
             <li>Conversion to bool.</li>
         </ul>
 
-        <p>Note that adding <code>explicit</code> would affect only <code>wide_integer</code>s, while there could be a better solution for all the integral types.
+        <p>Such change will break the compatibility of <code>wide_integer</code> and <code>int</code>. Consider the case, when you have some template function 
+        <code>foo(Arithmetic a)</code> that works with arithmetic types. Function is huge and it was developed a long time ago. If interface of <code>wide_integer</code> is same as the
+        interface of <code>int</code> then <code>foo()</code> could work with it. But if we make some of
+        the conversions explicit, then <code>foo()</code> function must be adjusted.</p>
+
+        <p>Also note that adding <code>explicit</code> would affect only <code>wide_integer</code>s, while there could be a better solution for all the integral types.
         For example all the integrals could be fixed by
         some <code>safe_integer&lt;Integral&gt;</code> class, that is very explicit and does additional checks on demand. In that case adding restrictions into <code>wide_integer</code>
         would just break the interface compatibility with <code>int</code> without big benefit.</p>
@@ -148,12 +150,7 @@ int main() {
 
 <h3>26.??.1 Header &lt;wide_integer&gt; synopsis<span class="right">[numeric.wide_integer.syn]</span></h3>
 <pre>namespace std {
-<span class="changed-deleted">
-  enum class signedness {
-      Unsigned,
-      Signed
-  };
-</span>
+
   // 26.??.2 class template wide_integer
   template&lt;size_t Bits, typename S&gt; class wide_integer;
 
@@ -377,8 +374,8 @@ proposal with <code>exact_2int</code>, <code>fast_2int</code>, <code>least_2int<
 
     // 26.??.2.?? observers:
     template &lt;typename Arithmetic&gt; constexpr operator Arithmetic() const noexcept;
-    constexpr explicit operator bool() const noexcept;
-
+    <span class="changed-deleted">constexpr explicit operator bool() const noexcept;
+</span>
   private:
     byte data[Bits / CHAR_BITS]; // exposition only
   };
@@ -388,6 +385,10 @@ of a compile time specified bitness.</p>
 <p>Template parameter <code>Bits</code> specifies exact <i>bits</i> count to store the integer value. <code>Bits % (sizeof(int) * CHAR_BITS)</code> is eqaul to 0.
 <code>sizeof(wide_integer&lt;Bits, unsigned&gt;)</code> and <code>sizeof(wide_integer&lt;Bits, signed&gt;)</code> are required to
 be equal to <code>Bits * CHAR_BITS</code>.</p>
+
+<p class="changed-added">When size of <code>wide_integer</code> is equal to a size of builtin integral type then the alignment of that
+<code>wide_integer</code> is equal to alignment of the builtin type.</p>
+
 <p>Template parameter <code>S</code> specifies signedness of the stored integer value and is either <code>signed</code> or <code>unsigned</code>.</p>
 
 <h4>26.??.2.?? wide_integer constructors <span class="right">[numeric.wide_integer.cons]</span></h4>
@@ -631,6 +632,8 @@ basic_istream&lt;Char, Traits&gt;&amp; operator&gt;&gt;(basic_istream&lt;Char, T
         <h2>V. Feature-testing macro</h2>
         <p>For the purposes of SG10 we recommend the feature-testing macro name <code>__cpp_lib_wide_integer</code>.</p>
 
+        <h2 class="changed-added">VI. Acknowledgements</h2>
+        <p class="changed-added">Many thanks to Alex Strelnikov	and John McFarlane for sharing useful ideas and thoughts.</p>
 
         <script type="text/javascript">
             function colorize_texts(texts) {
