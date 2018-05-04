@@ -29,7 +29,7 @@
         <address>Igor Klevanets &lt;<a href="mailto:cerevra@yandex.ru">cerevra@yandex.ru</a>&gt;, &lt;<a href="mailto:cerevra@yandex-team.ru">cerevra@yandex-team.ru</a>&gt;</address>
         <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
         <address>&nbsp;</address>
-        <address>Date: 2018-05-02</address>
+        <address>Date: 2018-05-03</address>
         <h1>A Proposal to add wide_int Template Class</h1>
 
         <p class='changed-added'>Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0539r3.html">P0539R3</a> are marked with blue.<p>
@@ -45,6 +45,9 @@
         <p class='changed-added'>Differences with P0539R3:</p>
         <ul class='changed-added'>
             <li>More paragraphs in "III. Design and paper limitations"</li>
+            <li>Added requirements on wide_integer alignment and layout</li>
+            <li>Dropped the <code>explicit</code> from <code>operator bool()</code></li>
+            <li>Permitted implementations to add overloads (mostly for adding explicit overloads that do not generate warnings)</li>
         </ul>
         <p>Differences with P0539R2:</p>
         <ul>
@@ -386,10 +389,23 @@ of a compile time specified bitness.</p>
 <code>sizeof(wide_integer&lt;Bits, unsigned&gt;)</code> and <code>sizeof(wide_integer&lt;Bits, signed&gt;)</code> are required to
 be equal to <code>Bits * CHAR_BITS</code>.</p>
 
-<p class="changed-added">When size of <code>wide_integer</code> is equal to a size of builtin integral type then the alignment of that
-<code>wide_integer</code> is equal to alignment of the builtin type.</p>
+<p class="changed-added">When size of <code>wide_integer</code> is equal to a size of builtin integral type then the alignment and layout of that
+<code>wide_integer</code> is equal to the alignment and layout of the builtin type.</p>
 
 <p>Template parameter <code>S</code> specifies signedness of the stored integer value and is either <code>signed</code> or <code>unsigned</code>.</p>
+
+<div class="changed-added">
+<p>Implementations are permitted to add explicit conversion operators and explicit or implicit constructors for <code>Arithmetic</code> and for <code>Integral</code> types.</p>
+<p><i>[Example:</i></p><pre>
+    template &lt;class Arithmetic&gt;
+        [[deprecated("Implicit conversions to builtin arithmetic types are not safe!")]]
+    constexpr operator Arithmetic() const noexcept;
+
+    explicit constexpr operator bool() const noexcept;
+    explicit constexpr operator int() const noexcept;
+    ...</pre><p><i>— end example ]</i></p>
+</div>
+
 
 <h4>26.??.2.?? wide_integer constructors <span class="right">[numeric.wide_integer.cons]</span></h4>
 <pre>constexpr wide_integer() noexcept = default;</pre>
@@ -444,10 +460,20 @@ template&lt;typename Integral&gt; constexpr wide_integer&lt;Bits, S&gt;&amp; ope
 
 <h4>26.??.2.?? wide_integer observers <span class="right">[numeric.wide_integer.observers]</span></h4>
 <pre>template &lt;typename Arithmetic&gt; constexpr operator Arithmetic() const noexcept;</pre>
+<div class="changed-deleted">
 <div class="desc"><i>Returns:</i> If <code>Arithmetic</code> type is an integral type then it is constructed from <code>*this</code> using the integral conversion rules [conv.integral]. Otherwise <code>Arithmetic</code> is constructed from <code>*this</code> using the floating-integral conversion rules [conv.fpint].</div>
 
 <pre>constexpr explicit operator bool() const noexcept;</pre>
 <div class="desc"><i>Returns:</i> <code>true</code> if <code>*this</code> is not equal to 0.</div>
+</div>
+
+
+<div class="changed-added">
+<div class="desc"><i>Returns:</i> If <code>is_integral_v&lt;Arithmetic&gt;</code> then <code>Arithmetic</code> is constructed from <code>*this</code> using the integral conversion rules [conv.integral]. If <code>is_floating_point_v&lt;Arithmetic&gt;</code>, then <code>Arithmetic</code> is constructed from <code>*this</code> using the floating-integral conversion rules [conv.fpint]. Otherwise the operator shall not participate in overload resolution.</div>
+</div>
+
+
+
 
 
 <h3>26.??.?? Specializations of common_type <span class="right">[numeric.wide_integer.traits.specializations]</span></h3>
