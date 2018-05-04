@@ -22,7 +22,7 @@
         </style>
     </head>
     <body bgcolor="#ffffff">
-        <address>Document number: D0881R1</address>
+        <address>Document number: P0881R1</address>
         <address>Project: Programming Language C++</address>
         <address>Audience: Library Evolution</address>
         <address>&nbsp;</address>
@@ -36,7 +36,7 @@
         <p><input type="checkbox" id="show_deletions" onchange="show_hide_deleted()"> Show deleted lines from P0881R0.</p>
 
         <h2>I. Motivation</h2>
-	<p>In the current working draft [<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/n4713.pdf">N4713</a>] there is no way to get,store and decode the current call sequence.
+	<p>In the current working draft [<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/n4741.pdf">N4741</a>] there is no way to get, store and decode the current call sequence.
 	Such call sequences are useful for debugging and post mortem debugging. They are popular in other programming languages (like Java, C#, Python).</p>
 
 	<p>Pretty often assertions can't describe the whole picture of a bug and do not provide enough information to locate the problem.
@@ -60,6 +60,7 @@ Backtrace:
  8# 0x0000000000401139
 </pre>
 
+
 	<h2>II. Impact on the Standard</h2>
 	<p>This proposal is a pure library extension and it does not break the existing code and does not degrade performance.
 	It does not require any changes in the core language and could be implemented in the standard C++.</p>
@@ -82,7 +83,10 @@ Backtrace:
 	Unfortunately this is a necessarity on some platforms, where getting source line requires allocating or where source
 	file name <a href="https://github.com/boostorg/stacktrace/blob/a0f948e9f505cb53baf582fccbcb3024fd255ee1/include/boost/stacktrace/detail/frame_msvc.ipp#L213-L219">returned into</a> a storage
 	<a href="http://www.qnx.com/developers/docs/6.5.0/index.jsp?topic=%2Fcom.qnx.doc.neutrino_lib_ref%2Fb%2Fbt_get_backtrace.html"> provided by user</a>.</p>
-
+	<p class="changed-added"><b>Note on expected implementation</b>:
+	We assume that Standard Library implementations would allow to disable/enable gathering stack traces by a compiler switch that does not require recompiling the whole project.
+	In other words, we expect to see a compiler option like <code>-fno-stacktrace</code> or <code>libstacktrace/lib_stacktrace_noop</code> libraries with the same ABI that would
+	force the constructor of the <code>basic_stacktrace</code> to do nothing. This feature is implemented in Boost.Stacktrace and is highly requested in big projects.</p>
 
     <h2>IV. Proposed Interface</h2>
 	<h3>Header &lt;stacktrace&gt; synopsis</h3>
