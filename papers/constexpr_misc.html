@@ -22,7 +22,7 @@
 		<address>&nbsp;</address>
 		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
 		<address>&nbsp;</address>
-		<address>Date: 2018-04-25</address>
+		<address>Date: 2018-05-03</address>
 		<h1>Misc constexpr bits</h1>
 
 		<h2>I. Introduction and Motivation</h2>
@@ -38,7 +38,7 @@
 		</p>
 
 
-		<h2>III. Proposed wording relative to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/n4727.pdf">N4727</a></h2>
+		<h2>III. Proposed wording relative to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/n4741.pdf">N4741</a></h2>
 		<p>All the additions to the Standard are marked with <span class="addition">underlined green</span>.</p>
 		<p class="notes">Green lines are notes for the <b>editor</b> that must not be treated as part of the wording.</p>
 
@@ -169,7 +169,34 @@ namespace std {
 	<p class="notes">All the functions marked with  <code>constexpr</code> in previous paragraph of this document
 	must be accordingly marked with <code>constexpr</code> in [tuple.cnstr], [tuple.assign], [tuple.swap].</p>
 
-		<h3>5. Modifications to "Class template array overview" [array.overview]</h3>
+		<h3>5. Modifications to "Header &lt;array&gt; synopsis" [array.syn]</h3>
+<pre>
+#include &lt;initializer_list&gt;
+
+namespace std {
+    // 26.3.7, class template array
+    template&lt;class T, size_t N&gt; struct array;
+
+    template&lt;class T, size_t N&gt;
+      <span class="addition">constexpr</span> bool operator==(const array&lt;T, N&gt;&amp; x, const array&lt;T, N&gt;&amp; y);
+    template&lt;class T, size_t N&gt;
+      <span class="addition">constexpr</span> bool operator!=(const array&lt;T, N&gt;&amp; x, const array&lt;T, N&gt;&amp; y);
+    template&lt;class T, size_t N&gt;
+      <span class="addition">constexpr</span> bool operator&lt; (const array&lt;T, N&gt;&amp; x, const array&lt;T, N&gt;&amp; y);
+    template&lt;class T, size_t N&gt;
+      <span class="addition">constexpr</span> bool operator&gt; (const array&lt;T, N&gt;&amp; x, const array&lt;T, N&gt;&amp; y);
+    template&lt;class T, size_t N&gt;
+      <span class="addition">constexpr</span> bool operator&lt;=(const array&lt;T, N&gt;&amp; x, const array&lt;T, N&gt;&amp; y);
+    template&lt;class T, size_t N&gt;
+      <span class="addition">constexpr</span> bool operator&gt;=(const array&lt;T, N&gt;&amp; x, const array&lt;T, N&gt;&amp; y);
+    template&lt;class T, size_t N&gt;
+      <span class="addition">constexpr</span> void swap(array&lt;T, N&gt;&amp; x, array&lt;T,N&gt;&amp; y) noexcept(noexcept(x.swap(y)));
+
+    ...
+}
+</pre>
+
+<h3>6. Modifications to "Class template array overview" [array.overview]</h3>
 <pre>
     template&lt;class T, size_t N>
     struct array {
@@ -183,7 +210,7 @@ namespace std {
     };
 </pre>
 
-<h3>6. Modifications to "array member functions" [array.members]</h3>
+<h3>7. Modifications to "array member functions" [array.members]</h3>
 <pre>
 <span class="addition">constexpr</span> void fill(const T&amp; u);
     Effects: As if by fill_n(begin(), N, u).
@@ -194,7 +221,7 @@ namespace std {
     exception, and does not cause iterators to become associated with the other container. — end note ]
 </pre>
 
-<h3>7. Modifications to "array specialized algorithms" [array.special]</h3>
+<h3>8. Modifications to "array specialized algorithms" [array.special]</h3>
 <pre>
 template&lt;class T, size_t N&gt;
 <span class="addition">constexpr</span> void swap(array&lt;T, N&gt;&amp; x, array&lt;T, N&gt;&amp; y) noexcept(noexcept(x.swap(y)));
@@ -205,7 +232,7 @@ template&lt;class T, size_t N&gt;
 </pre>
 
 
-<h3>8. Modifications to "General container requirements" [container.requirements.general]</h3>
+<h3>9. Modifications to "General container requirements" [container.requirements.general]</h3>
 <pre>
     Table 85 lists operations that are provided for some types of containers but not others. Those containers for
     which the listed operations are provided shall implement the semantics described in Table 85 unless otherwise
@@ -213,7 +240,7 @@ template&lt;class T, size_t N&gt;
     satisfy the constexpr iterator requirement then the operations described in Table 85 are constexpr.</span>
 </pre>
 
-<h3>9. Modifications to all the char_traits specializations [char.traits.specializations.*]</h3>
+<h3>10. Modifications to all the char_traits specializations [char.traits.specializations.*]</h3>
 <pre>
     static <span class="addition">constexpr</span> char_type* move(char_type* s1, const char_type* s2, size_t n);
     static <span class="addition">constexpr</span> char_type* copy(char_type* s1, const char_type* s2, size_t n);
@@ -224,13 +251,13 @@ template&lt;class T, size_t N&gt;
 	<p class="notes">All the functions marked with <code>constexpr</code> in previous paragraph of this document
 	must be accordingly marked with <code>constexpr</code> in [char.traits.specializations.*].</p>
 
-<h3>10. Modifications to "Class template basic_string_view" [string.view.template]</h3>
+<h3>11. Modifications to "Class template basic_string_view" [string.view.template]</h3>
 <pre>
     // 24.4.2.6, string operations
     <span class="addition">constexpr</span> size_type copy(charT* s, size_type n, size_type pos = 0) const;
 </pre>
 
-<h3>11. Modifications to "String operations" [string.view.ops]</h3>
+<h3>12. Modifications to "String operations" [string.view.ops]</h3>
 <pre>
 <span class="addition">constexpr</span> size_type copy(charT* s, size_type n, size_type pos = 0) const;
     Let rlen be the smaller of n and size() - pos.
@@ -241,7 +268,7 @@ template&lt;class T, size_t N&gt;
     Complexity: O(rlen).
 </pre>
 
-<h3>12. Modifications to "Class template default_searcher" [func.search.default]</h3>
+<h3>13. Modifications to "Class template default_searcher" [func.search.default]</h3>
 <pre>
 template&lt;class ForwardIterator1, class BinaryPredicate = equal_to&lt;&gt;&gt;
 class default_searcher {
@@ -271,7 +298,7 @@ operator()(ForwardIterator2 first, ForwardIterator2 last) const;
 </pre>
 
 
-<h3>13. Modifications to "Header &lt;iterator&gt; synopsis" [iterator.synopsis]</h3>
+<h3>14. Modifications to "Header &lt;iterator&gt; synopsis" [iterator.synopsis]</h3>
 <pre>
     template&lt;class Container&gt; class back_insert_iterator;
     template&lt;class Container&gt;
@@ -287,7 +314,7 @@ operator()(ForwardIterator2 first, ForwardIterator2 last) const;
 </pre>
 
 
-<h3>14. Modifications to "Class template back_insert_iterator" [back.insert.iterator]</h3>
+<h3>15. Modifications to "Class template back_insert_iterator" [back.insert.iterator]</h3>
 <pre>
 namespace std {
     template&lt;class Container>
@@ -320,7 +347,7 @@ namespace std {
 	<p class="notes">All the functions marked with <code>constexpr</code> in previous paragraph of this document
 	must be accordingly marked with <code>constexpr</code> in [back.insert.iter.*] and [back.inserter].</p>
 
-<h3>15. Modifications to "Class template front_insert_iterator" [front.insert.iterator]</h3>
+<h3>16. Modifications to "Class template front_insert_iterator" [front.insert.iterator]</h3>
 <pre>
 namespace std {
     template&lt;class Container&gt;
@@ -354,7 +381,7 @@ namespace std {
 
 
 
-<h3>16. Modifications to "Class template insert_iterator" [insert.iterator]</h3>
+<h3>17. Modifications to "Class template insert_iterator" [insert.iterator]</h3>
 <pre>
 namespace std {
     template&lt;class Container&gt;
@@ -390,7 +417,7 @@ namespace std {
 
 
 
-		<h3>17. Feature-testing macro</h3>
+		<h3>18. Feature-testing macro</h3>
 		<p>For the purposes of SG10, we recommend the feature-testing macro name <code>__cpp_lib_constexpr_misc</code>.</p>
 
 
