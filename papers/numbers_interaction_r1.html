@@ -32,14 +32,14 @@
         <address>Igor Klevanets &lt;<a href="mailto:cerevra@yandex.ru">cerevra@yandex.ru</a>&gt;, &lt;<a href="mailto:cerevra@yandex-team.ru">cerevra@yandex-team.ru</a>&gt;</address>
         <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
         <address>&nbsp;</address>
-        <address>Date: 2018-04-18</address>
+        <address>Date: 2018-05-03</address>
         <h1>Numbers interaction</h1>
 
         <!--p class='changed-added'>Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r1.html">P0539R1</a> are marked with blue.<p-->
         <!--p><input type="checkbox" id="show_deletions" onchange="show_hide_deleted()"/> Show deleted lines from P0275R1.</p-->
-        <p class='notes'>Green lines are notes for the <b>editor</b> or for the <b>SG6</b> that must not be treated as part of the wording.</p>
+        <p class='notes'>Green lines are notes for the <b>editor</b> or for the <b>SG6</b>/<b>LEWG</b> that must not be treated as part of the wording.</p>
         <h2>I. Introduction and Motivation</h2>
-        <p>SG6 currently works on multiple new classes that represent numbers (see <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r2.html">P0539R2</a>
+        <p>SG6/LEWG currently works on multiple new classes that represent numbers (see <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0539r2.html">P0539R2</a>
         and <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0037r4.md">P0037R4</a> for examples). However, those new classes do not interract well with each other.</p>
         <p>This paper attempts to solve the problem in a generic way on a library level and provide wording for interactions of different new numeric types.</p>
         <p>A proof of concept implementation available at: <a href="https://github.com/cerevra/int/tree/master/v3">https://github.com/cerevra/int/tree/master/v3</a>.
@@ -158,6 +158,11 @@ But fail for elastic_integer that must define the operations in some other way, 
         the specialization will go into the headers of a particular numeric types directly.</p>
 
 
+        <p><b>Concern:</b>Do we really wish to rely on <code>std::numeric_limits</code> and on <code>std::common_type</code> that could be specialized by user?</p>
+        <p><b>Response:</b> It depends on the goals we are trying to achieve. If we also wish to provide means for simple integration of user defined types and standard library typrs - then yes,
+        we have to rely on them. Otherwise we could define <code>Arithmetic</code> and <code>Integral</code> in terms of <code>is_arithmetic_v&lt;T&gt;</code> and <code>is_integral_v&lt;T&gt;</code>
+        (just like Concepts TS does).</p>
+
         <h2>V. Proposed wording</h2>
 
 <h3>26.2 Definitions<span class="right">[numerics.defns]</span></h3>
@@ -175,7 +180,7 @@ But fail for elastic_integer that must define the operations in some other way, 
 <div>
 
 <p>Following operators are defined for types <code>T</code> and <code>U</code> if <code>T</code> and <code>U</code> have a defined <code>common_type_t&lt;T, U&gt;</code> and satisfy the <code>Arithmetic</code> or <code>Integral</code> requirements from [numeric.requirements] <i>[Note:</i> Implementations are encouraged to provide optimized specializations of the following operators <i>- end note]</i>:</p>
-<p class="notes"><b><i>[Note to SG6:</i></b> We may add to <code>Arithmetic</code> and <code>Integral</code> concepts additional requirement that <code>std::numeric_limits&lt;<i>Integral-or-Arithmetic</i>&gt;::is_interoprable</code> shall be true. In that case no user code will be broken even if user already added following operators. However this seems to be an overkill. <i><b>- end note]</b></i></p>
+<p class="notes"><b><i>[Note to SG6/LEWG:</i></b> We may add to <code>Arithmetic</code> and <code>Integral</code> concepts additional requirement that <code>std::numeric_limits&lt;<i>Integral-or-Arithmetic</i>&gt;::is_interoprable</code> shall be true. In that case no user code will be broken even if user already added following operators. However this seems to be an overkill. <i><b>- end note]</b></i></p>
 
 
 <pre>template&lt;typename Arithmetic1, typename Arithmetic2&gt;
