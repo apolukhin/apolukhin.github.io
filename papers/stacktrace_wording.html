@@ -1,0 +1,319 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>Wording for the stack trace library</title>
+    <meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+    <meta http-equiv="Content-Language" content="en-us">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <style type="text/css">
+        .addition { color: green; }
+        .right { float:right; }
+        .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+        .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+        .changed-added { background-color: #CFF0FC ;}
+        .notes { background-color: #80D080 ;}
+        pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
+        .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; }
+        body {max-width: 1024px; margin-left: 25px;}
+        .cppkeyword { color: blue; }
+        .cppcomment { color: green; }
+        .cppcomment > .cppkeyword{ color: green; }
+        .cpptext { color: #2E8B57; }
+    </style>
+</head>
+<body bgcolor="#ffffff">
+    <address>Document number: D????R0</address>
+    <address>Project: Programming Language C++</address>
+    <address>Audience: Library Working group</address>
+    <address>&nbsp;</address>
+    <address>Alexey Gorgurov &lt;<a href="mailto:leha-bot@yandex.ru">leha-bot@yandex.ru</a>&gt;, &lt;<a href="mailto:no-vista@yandex.ru">no-vista@yandex.ru</a>&gt;</address>
+    <address>Antony Polukhin, Yandex.Taxi Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+    <address>&nbsp;</address>
+    <address>Date: 2018-07-11</address>
+    <h1>Wording for the stack trace library</h1>
+
+    <h2>I. Introduction</h2>
+    <p>This paper presents the detailed wording changes to implement <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0881r1.html">
+    P0881R1 "A Proposal to add stack trace library"</a>. Any differences in semantics to P0881R1 are unintentional.</p>
+
+    <h2>II. Wording</h2>
+    <h3>23.? Call sequence [stacktrace]</h3>
+    <p>This subclause describes components that C++ programs may use to store current call sequence,
+    query information about the stored call sequence or particular function at runtime.</p>
+
+    <p><i>[Note:</i> Implementations shall provide link time options to disable/enable
+    call sequence capturing.<i>- end note]</i></p>
+    <h3>23.?.1 Header &lt;stacktrace&gt; synopsis [stacktrace.synop]</h3>
+    <pre>
+namespace std {
+  // 23.?.2, class stack_frame
+  class stack_frame;
+
+  // 23.?.3, class basic_stacktrace
+  template&lt;class Allocator&gt;
+  class basic_stacktrace;
+
+  // basic_stacktrace typedef names
+  using stacktrace = basic_stacktrace&lt;allocator&lt;stack_frame&gt;&gt;;
+
+  // 23.?.4, non-member functions
+  template&lt;class Allocator&gt;
+  string to_string(const basic_stacktrace&lt;Allocator&gt;&amp; st);
+
+  string to_string(const stack_frame&amp; f);
+
+  template&lt;class charT, class traits, class Allocator&gt;
+  basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(basic_ostream&lt;charT, traits&gt;&amp; os, const basic_stacktrace&lt;Allocator&gt;&amp; st);
+
+  template&lt;class charT, class traits&gt;
+  basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(basic_ostream&lt;charT, traits&gt;&amp; os, const stack_frame&amp; f);
+}
+        </pre>
+
+
+    <h3>23.?.2 Class stack_frame [stacktrace.frame]</h3>
+    <pre>
+namespace std {
+  class stack_frame {
+  public:
+    // 23.?.2.1, member typedefs
+    using native_frame_ptr_t = <i>implementation-defined</i>;
+
+    // 23.?.2.2, construct/copy/destroy
+    constexpr stack_frame() noexcept;
+    constexpr stack_frame(const stack_frame&amp; other) noexcept = default;
+
+    constexpr explicit stack_frame(native_frame_ptr_t f) noexcept;
+    template&lt;class T&gt; explicit stack_frame(T* address) noexcept;
+
+    ~stack_frame() = default;
+
+    // 23.?.2.3, assignment
+    constexpr stack_frame&amp; operator=(const stack_frame&amp; other) noexcept = default;
+
+    // 23.?.2.4, observers
+    constexpr native_frame_ptr_t address() const noexcept;
+    constexpr explicit operator bool() const noexcept;
+
+    // 23.?.2.5, comparisons
+    constexpr strong_ordering operator&lt;=&gt;(const stack_frame&amp; rhs) noexcept;
+
+    // 23.?.2.6, query
+    string name() const;
+    string source_file() const;
+    size_t source_line() const;
+
+  private:
+    native_frame_ptr_t data; // exposition only
+  };
+}
+        </pre>
+    <p>The <code>stack_frame</code> class is a wrapper for all the function pointer types. It provides operations for querying information not deducable from function signature.</p>
+
+
+    <h3>23.?.2.1 <code>stack_frame</code> member typedefs [stacktrace.frame.typedefs]</h3>
+    <pre>using native_frame_ptr_t = <i>implementation-defined</i>;</pre>
+    <div class="desc">Implementation defined pointer type capable of holding <code>nullptr</code> and addresses of functions with any signature.</div>
+
+    <h3>23.?.2.2 <code>stack_frame</code> construct/copy/destroy [stacktrace.frame.con]</h3>
+    <pre>constexpr stack_frame() noexcept;</pre>
+    <div class="desc"><i>Postconditions:</i> <code>!*this</code>.</div>
+
+    <pre>constexpr stack_frame(const stack_frame&amp; other) noexcept = default;</pre>
+    <div class="desc"><i>Postconditions:</i> <code>this-&gt;address() == other->address()</code>.</div>
+
+    <pre>explicit stack_frame(native_frame_ptr_t addr) noexcept;</pre>
+    <div class="desc"><i>Postconditions:</i> <code>this-&gt;address() == addr</code>.</div>
+
+    <pre>template&lt;class T&gt; explicit stack_frame(T* addr) noexcept;</pre>
+    <div class="desc"><i>Postconditions:</i> <code>this-&gt;address() == reinterpret_cast&lt;native_frame_ptr_t&gt;(addr)</code>.</div>
+    <div class="desc"><i>Remarks:</i> This signature shall not participate in overload resolution unless <code>sizeof(T*) == sizeof(native_frame_ptr_t)</code>.</div>
+
+    <pre>~stack_frame() = default;</pre>
+    <div class="desc"><i>Effects:</i> Releases unspecified resources associated with the <code>stack_frame</code>, if any.</div>
+
+
+    <h3>23.?.2.3 <code>stack_frame</code> assignment [stacktrace.frame.assign]</h3>
+    <pre>constexpr stack_frame&amp; operator=(const stack_frame&amp; other) noexcept = default;</pre>
+    <div class="desc"><i>Postconditions:</i> <code>this-&gt;address() == other->address()</code>.</div>
+
+
+    <h3>23.?.2.4 <code>stack_frame</code> observers [stacktrace.frame.obs]</h3>
+    <pre>constexpr native_frame_ptr_t address() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> Address of a wrapped function, if present; <code>nullptr</code> otherwise.</div>
+
+    <pre>constexpr explicit operator bool() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>true</code> if <code>this-&gt;address() != nullptr</code>.</div>
+
+
+    <h3>23.?.2.5 <code>stack_frame</code> comparisons [stacktrace.frame.comp]</h3>
+    <pre>constexpr strong_ordering operator&lt;=&gt;(const stack_frame&amp; rhs) noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>this-&gt;address() &lt;=&gt; rhs.address()</code>.</div>
+
+
+    <h3>23.?.2.6 <code>stack_frame</code> query [stacktrace.frame.query]</h3>
+    <pre>string name() const;</pre>
+    <div class="desc"><i>Returns:</i> Platform specific name of the wrapped function, if present and such information is available; empty string otherwise.</div>
+    <div class="desc"><i>Throws:</i> <code>bad_alloc</code> if memory for the internal data structures or the resulting string cannot be allocated.</div>
+
+    <pre>string source_file() const;</pre>
+    <div class="desc"><i>Returns:</i> The presumed name of the source file [cpp.predefined] with definition of the wrapped function, if present and such information is available; empty string otherwise.</div>
+    <div class="desc"><i>Throws:</i> <code>bad_alloc</code> if memory for the internal data structures or the resulting string cannot be allocated.</div>
+
+    <pre>size_t source_line() const;</pre>
+    <div class="desc"><i>Returns:</i> The presumed line number (within the source file) [cpp.predefined] with beginning of the definition of the wrapped function, if present and such information is available; 0 otherwise.</div>
+    <div class="desc"><i>Throws:</i> <code>bad_alloc</code> if memory for the internal data structures cannot be allocated.</div>
+
+
+
+
+    <h3>23.?.3 Class template <code>basic_stacktrace</code> [stacktrace.basic.template]</h3>
+    <pre>
+namespace std {
+  template&lt;class Allocator&gt;
+  class basic_stacktrace {
+  public:
+    using value_type = stack_frame;
+    using const_reference = const value_type&amp;;
+    using size_type = <i>implementation-defined</i>;
+    using const_iterator = <i>implementation-defined</i>;
+    using allocator_type = Allocator;
+
+    // 23.?.3.1, construct/copy/destroy
+    basic_stacktrace() noexcept;
+    explicit basic_stacktrace(const allocator_type&amp; a) noexcept;
+    basic_stacktrace(size_type skip, size_type max_depth, const allocator_type&amp; a = allocator_type()) noexcept;
+
+    basic_stacktrace(const basic_stacktrace&amp; other);
+    basic_stacktrace(basic_stacktrace&amp;&amp; other) noexcept;
+    basic_stacktrace&amp; operator=(const basic_stacktrace&amp; other);
+    basic_stacktrace&amp; operator=(basic_stacktrace&amp;&amp; other) noexcept;
+    ~basic_stacktrace();
+
+    // 23.?.3.2, observers
+    size_type size() const noexcept;
+    const_reference operator[](size_type ) const;
+    const_iterator begin() const noexcept;
+    const_iterator end() const noexcept;
+
+    explicit operator bool() const noexcept;
+
+    // 23.?.3.3, comparisons
+    template &lt;class Allocator2&gt;
+    strong_ordering operator&lt;=&gt;(const basic_stacktrace&lt; Allocator2 &gt;&amp; rhs) noexcept;
+
+  private:
+    vector&lt;value_type&gt;    stack_frames; // exposition only
+  };
+
+}
+        </pre>
+    <p>The <code>basic_stacktrace</code> template class stores current call sequence on construction and provides access to the stored <code>stack_frame</code>s.</p>
+
+    <h3>23.?.3.1 <code>basic_stacktrace</code> construct/copy/destroy [stacktrace.basic.con]</h3>
+    <pre>basic_stacktrace() noexcept;
+explicit basic_stacktrace(const allocator_type&amp; a) noexcept;</pre>
+    <div class="desc"><i>Effects:</i> Stores the current call sequence without querying information about calls.</div>
+    <div class="desc"><i>Postconditions:</i> <code>!*this</code> if failed to store non-empty call sequence; <code>*this == true</code> otherwise.</div>
+
+    <pre>basic_stacktrace(size_type skip, size_type max_depth, const allocator_type&amp; a = allocator_type()) noexcept;</pre>
+    <div class="desc"><i>Effects:</i> Stores <code>[skip; skip + max_depth)</code> of the current zero-indexed call sequence without querying information about calls.</div>
+    <div class="desc"><i>Postconditions:</i> <code>!*this</code> if failed to store non-empty call sequence; <code>*this == true</code> otherwise.</div>
+
+
+    <pre>basic_stacktrace(const basic_stacktrace&amp; other);</pre>
+    <div class="desc"><i>Effects:</i> Constructs an object of class <code>basic_stacktrace</code> from <code>other</code>.</div>
+    <div class="desc"><i>Postconditions:</i> <code>*this == other</code>.</div>
+    <div class="desc"><i>Throws:</i> <code>bad_alloc</code> if memory for the internal data structures could not be allocated.</div>
+
+    <pre>basic_stacktrace(basic_stacktrace&amp;&amp; other) noexcept;</pre>
+    <div class="desc"><i>Effects:</i> Constructs an object of class <code>basic_stacktrace</code> from <code>other</code>.</div>
+    <div class="desc"><i>Postconditions:</i> <code>other</code> is left in a valid state with an unspecified value.</div>
+
+
+    <pre>basic_stacktrace&amp; operator=(const basic_stacktrace&amp; other);</pre>
+    <div class="desc"><i>Effects:</i> Replaces the call sequence strored inside <code>*this</code> with the call sequence of <code>other</code>.</div>
+    <div class="desc"><i>Returns:</i> <code>*this</code>.</div>
+    <div class="desc"><i>Throws:</i> <code>bad_alloc</code> if memory for the internal data structures could not be allocated.</div>
+    
+    <pre>basic_stacktrace&amp; operator=(basic_stacktrace&amp;&amp; other) noexcept;</pre>
+    <div class="desc"><i>Effects:</i> Replaces the call sequence strored inside <code>*this</code> with the call sequence of <code>other</code>.</div>
+    <div class="desc"><i>Postconditions:</i> <code>other</code> is left in a valid state with an unspecified value.</div>
+    <div class="desc"><i>Returns:</i> <code>*this</code>.</div>
+
+
+    <pre>~basic_stacktrace();</pre>
+    <div class="desc"><i>Effects:</i> Releases unspecified resources associated with the <code>basic_stacktrace</code>.</div>
+
+    <h3>23.?.3.2 <code>basic_stacktrace</code> observers [stacktrace.basic.obs]</h3>
+    <pre>size_type size() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> Length of the stored call sequence.</div>
+
+    <pre>const_reference operator[](size_type frame_no) const;</pre>
+    <div class="desc"><i>Requires:</i> <code>frame_no &lt; size()</code>.</div>
+    <div class="desc"><i>Returns:</i> <code>*(begin() + frame_no)</code>.</div>
+    <div class="desc"><i>Throws:</i> Nothing.</div>
+
+    <pre>const_iterator begin() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> A random access iterator referring to the <code>stack_frame</code> where the call sequence was captured.</div>
+
+    <pre>const_iterator end() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> A random access iterator which is past the <code>stack_frame</code> referring to the <code>main()</code> function.</div>
+
+    <pre>explicit operator bool() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>true</code> if call sequence was successfully stored.</div>
+
+
+    <h3>23.?.3.3 <code>basic_stacktrace</code> comparisons [stacktrace.basic.comp]</h3>
+    <pre>template &lt;class Allocator2&gt;
+strong_ordering operator&lt;=&gt;(const basic_stacktrace&lt; Allocator2 &gt;&amp; rhs) noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>this-&gt;size() &lt;=&gt; rhs.size()</code> if <code>this-&gt;size() != rhs.size()</code>.
+    <code>lexicographical_compare_3way(this-&gt;begin(), this-&gt;end(), rhs.begin(), rhs.end())</code> otherwise.</div>
+
+
+    <h3>23.?.4 Non-member functions [stacktrace.nonmembers]</h3>
+    <pre>template&lt;class Allocator&gt;
+string to_string(const basic_stacktrace&lt;Allocator&gt;&amp; st);</pre>
+    <div class="desc"><i>Returns:</i> A multiline string with indexed information about each stored call.</div>
+
+    <pre>string to_string(const stack_frame&amp; f);</pre>
+    <div class="desc"><i>Returns:</i> A string with information about a frame.</div>
+
+    <pre>template&lt;class charT, class traits, class Allocator&gt;
+basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(basic_ostream&lt;charT, traits&gt;&amp; os, const basic_stacktrace&lt;Allocator&gt;&amp; st);</pre>
+    <div class="desc"><i>Effects:</i> As if by <code>os &lt;&lt; to_string(bt);</code></div>
+    <div class="desc"><i>Returns:</i> <code>os</code>.</div>
+
+  <pre>template&lt;class charT, class traits&gt;
+basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(basic_ostream&lt;charT, traits&gt;&amp; os, const stack_frame&amp; f);</pre>
+    <div class="desc"><i>Effects:</i> As if by <code>os &lt;&lt; to_string(f);</code></div>
+    <div class="desc"><i>Returns:</i> <code>os</code>.</div>
+
+    <h2>III. Feature-testing macro</h2>
+    <p>Add a row into the "Standard library feature-test macros" table [support.limits.general]:
+    <table border="1"><tr><td><code>__cpp_lib_stacktrace</code></td><td>201811</td><td><code>&lt;stacktrace&gt;</code></td></tr></table>
+
+        <script type="text/javascript">
+            function colorize_texts(texts) {
+                for (var i = 0; i < texts.length; ++i) {
+                    var text = texts[i].innerHTML;
+                    text = text.replace(/namespace|enum|void|constexpr|extern|noexcept|bool|template|class |struct|auto|const |typename|explicit|public|private|#include|inline|typedef|static_assert|static_cast|static/g,"<span class='cppkeyword'>$&<\/span>");
+                    text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+                    texts[i].innerHTML = text;
+                }
+            }
+
+            colorize_texts(document.getElementsByTagName("pre"));
+            colorize_texts(document.getElementsByTagName("code"));
+
+            function show_hide_deleted() {
+                var to_change = document.getElementsByClassName('changed-deleted');
+                for (var i = 0; i < to_change.length; ++i) {
+                    to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
+                }
+            }
+            show_hide_deleted()
+        </script>
+</body></html>
+

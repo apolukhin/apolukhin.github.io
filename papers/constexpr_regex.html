@@ -1,0 +1,191 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>Constexpr regex</title>
+    <meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+    <meta http-equiv="Content-Language" content="en-us">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <style type="text/css">
+        .addition { color: green; text-decoration: underline; }
+        .deletion {  text-decoration: line-through; background-color: #FCC; }
+        .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+        .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+        .changed-added { background-color: #CFF0FC ;}
+        .notes { background-color: #80D080 ;}
+        body {max-width: 1024px; margin-left: 25px;}
+    </style>
+</head>
+<body>
+    <address>Document number: D????R0</address>
+    <address>Project: Programming Language C++</address>
+    <address>Audience: Library Evolution Working group</address>
+    <address>&nbsp;</address>
+    <address>Antony Polukhin, Yandex.Taxi Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+    <address>&nbsp;</address>
+    <address>Date: 2018-07-11</address>
+    <h1>Constexpr regex</h1>
+
+    <h2>I. Introduction and Motivation</h2>
+    <p>Many existing programming languages compile/translate user-provided regular expressions before the actual program execution. This speeds up run times a lot,
+    as the construction and optimization of the internal finite state machine from the regular expression is a time consuming operation.</p>
+
+    <p>Consider the following C++ example:</p>
+<pre>
+bool is_valid_mail(std::string_view mail) {
+    static const std::regex mail_regex(R"((?:(?:[^&lt;&gt;()\[\].,;:\s@\"]+(?:\.[^&lt;&gt;()\[\].,;:\s@\"]+)*)|\".+\")@(?:(?:[^&lt;&gt;()\[\].,;:\s@\"]+\.)+[^&lt;&gt;()\[\].,;:\s@\"]{2,}))");
+
+    return std::regex_match(
+        std::cbegin(mail),
+        std::cend(mail),
+        mail_regex
+    );
+}
+</pre>
+
+    <p>For C++17, the finite state machine for the above code is built at runtime at the first execution of the <code>is_valid_mail</code> function.
+     What's worse, that time consuming operation is executed under the mutex.</p>
+
+    <p>With latest changes applied to the constant expressions it is now possible to significantly improve existing <code>std::basic_regex</code> by allowing
+    it to construct a finite state machine at the compile time. We just need to mark <code>std::basic_regex</code> and functions that it use for building FSM
+    with <code>constexpr</code>.</p>
+
+
+    <h2>II. Impact on the Standard</h2>
+    <p>This proposal is a pure library extension and it does not break the existing valid code and improves performance.
+    It does not require any changes in the core language but relies on the upcomming core language features
+    <a href="https://wg21.link/P0595">P0595 "std::is_constant_evaluated()"</a> and
+    <a href="https://wg21.link/P0784">P0784 "More constexpr containers"</a>.</p>
+
+    <h2>III. std::locale and constexpr</h2>
+    <p>libstdc++ and libc++ construct std::locale in the constructors of std::basic_regex.
+    This prevents std::basic_regex constructors from being constexpr.</p>
+    <p>However, the only notes on std::locale construction are in [re.regex.locale]: "Returns the result of traits_inst.imbue(loc)
+    where traits_inst is a (default-initialized) instance of the template type argument traits stored within the object.".
+    This probably allows to have a optional&lt;regex_traits&gt; inside the std::basic_regex and initialize regex_traits (and the std::locale) on first usage.</p>
+    <p>So the lazy-initilization of std::locale in std::basic_regex allows to have constexpr std::basic_regex constructors.</p>
+
+
+    <h2>IV. Proposed wording relative to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/n4741.pdf">N4741</a></h2>
+    <p>All the additions to the Standard are marked with <span class="addition">underlined green</span>.</p>
+    <p class="notes">Green lines are notes for the <b>editor</b> that must not be treated as part of the wording.</p>
+
+    <h3>1. Modifications to "Class template regex_traits" [re.regex]</h3>
+    <pre>
+namespace std {
+  template&lt;class charT&gt;
+  struct regex_traits {
+    using char_type = charT;
+    using string_type = basic_string&lt;char_type&gt;;
+    using locale_type = locale;
+    using char_class_type = <i>bitmask_type</i>;
+
+    regex_traits();
+    static <span class="addition">constexpr</span> size_t length(const char_type* p);
+    charT translate(charT c) const;
+    charT translate_nocase(charT c) const;
+    template&lt;class ForwardIterator&gt;
+      string_type transform(ForwardIterator first, ForwardIterator last) const;
+    template&lt;class ForwardIterator&gt;
+      string_type transform_primary(
+        ForwardIterator first, ForwardIterator last) const;
+    template&lt;class ForwardIterator&gt;
+      string_type lookup_collatename(
+        ForwardIterator first, ForwardIterator last) const;
+    template&lt;class ForwardIterator&gt;
+      char_class_type lookup_classname(
+        ForwardIterator first, ForwardIterator last, bool icase = false) const;
+    bool isctype(charT c, char_class_type f) const;
+    int value(charT ch, int radix) const;
+    locale_type imbue(locale_type l);
+    locale_type getloc() const;
+  };
+}
+        </pre>
+
+    <p class="notes">All the functions marked with <code>constexpr</code> in previous paragraph of this document
+    must be accordingly marked with <code>constexpr</code> in detailed description of <code>regex_traits</code> functions.</p>
+
+    <h3>2. Modifications to "Class template basic_regex" [re.traits]</h3>
+    <p class="notes">Add the following paragraph after the second paragraph:</p>
+    <p class="addition">Internal finite state machine construction is a constant expression if arguments of the <code>basic_regex</code> constructor are
+    constant expressions.</p>
+    <p class="notes">Addjust the synopsys after the Table 124 "Character class names and corresponding ctype masks":</p>
+    <pre>
+    &lt;...&gt;
+
+    // 31.8.1, construct/copy/destroy
+    <span class="addition">constexpr</span> basic_regex();
+    explicit <span class="addition">constexpr</span> basic_regex(const charT* p, flag_type f = regex_constants::ECMAScript);
+    <span class="addition">constexpr</span> basic_regex(const charT* p, size_t len, flag_type f = regex_constants::ECMAScript);
+    <span class="addition">constexpr</span> basic_regex(const basic_regex&amp;);
+    <span class="addition">constexpr</span> basic_regex(basic_regex&amp;&amp;) noexcept;
+    template&lt;class ST, class SA&gt;
+    explicit <span class="addition">constexpr</span> basic_regex(const basic_string&lt;charT, ST, SA&gt;&amp; p,
+        flag_type f = regex_constants::ECMAScript);
+    template&lt;class ForwardIterator&gt;
+    <span class="addition">constexpr</span> basic_regex(ForwardIterator first, ForwardIterator last,
+        flag_type f = regex_constants::ECMAScript);
+    <span class="addition">constexpr</span> basic_regex(initializer_list&lt;charT&gt;, flag_type = regex_constants::ECMAScript);
+
+    <span class="addition">constexpr</span> ~basic_regex();
+
+    <span class="addition">constexpr</span> basic_regex&amp; operator=(const basic_regex&amp;);
+    <span class="addition">constexpr</span> basic_regex&amp; operator=(basic_regex&amp;&amp;) noexcept;
+    <span class="addition">constexpr</span> basic_regex&amp; operator=(const charT* ptr);
+    <span class="addition">constexpr</span> basic_regex&amp; operator=(initializer_list&lt;charT&gt; il);
+    template&lt;class ST, class SA&gt;
+    <span class="addition">constexpr</span> basic_regex&amp; operator=(const basic_string&lt;charT, ST, SA&gt;&amp; p);
+
+    // 31.8.2, assign
+    <span class="addition">constexpr</span> basic_regex&amp; assign(const basic_regex&amp; that);
+    <span class="addition">constexpr</span> basic_regex&amp; assign(basic_regex&amp;&amp; that) noexcept;
+    <span class="addition">constexpr</span> basic_regex&amp; assign(const charT* ptr, flag_type f = regex_constants::ECMAScript);
+    <span class="addition">constexpr</span> basic_regex&amp; assign(const charT* p, size_t len, flag_type f);
+    template&lt;class string_traits, class A&gt;
+    <span class="addition">constexpr</span> basic_regex&amp; assign(const basic_string&lt;charT, string_traits, A&gt;&amp; s,
+        flag_type f = regex_constants::ECMAScript);
+    template&lt;class InputIterator&gt;
+    <span class="addition">constexpr</span> basic_regex&amp; assign(InputIterator first, InputIterator last,
+        flag_type f = regex_constants::ECMAScript);
+    <span class="addition">constexpr</span> basic_regex&amp; assign(initializer_list&lt;charT&gt;,
+        flag_type = regex_constants::ECMAScript);
+
+    // 31.8.3, const operations
+    <span class="addition">constexpr</span> unsigned mark_count() const;
+    <span class="addition">constexpr</span> flag_type flags() const;
+
+    // 31.8.4, locale
+    locale_type imbue(locale_type l);
+    locale_type getloc() const;
+
+    // 31.8.5, swap
+    <span class="addition">constexpr</span> void swap(basic_regex&amp;);
+  };
+
+  template&lt;class ForwardIterator&gt;
+  basic_regex(ForwardIterator, ForwardIterator, regex_constants::syntax_option_type = regex_constants::ECMAScript)
+    -&gt; basic_regex&lt;typename iterator_traits&lt;ForwardIterator&gt;::value_type&gt;;
+}
+    </pre>
+
+
+    <p class="notes">All the functions marked with <code>constexpr</code> in previous paragraph of this document
+    must be accordingly marked with <code>constexpr</code> in [re.traits.construct], [re.regex.assign], [re.regex.operations] and [re.regex.swap].</p>
+
+
+    <h2>IV. Feature-testing macro</h2>
+    <p>Add a row into the "Standard library feature-test macros" table [support.limits.general]:
+    <table border="1"><tr><td><code>__cpp_lib_constexpr_regex</code></td><td>201811</td><td></td></tr></table>
+
+        <script type="text/javascript">
+            function show_hide_deleted() {
+                var to_change = document.getElementsByClassName('changed-deleted');
+                for (var i = 0; i < to_change.length; ++i) {
+                    to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
+                }
+            }
+            show_hide_deleted()
+        </script>
+</body></html>
+
