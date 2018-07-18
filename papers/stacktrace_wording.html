@@ -25,26 +25,42 @@
 <body bgcolor="#ffffff">
     <address>Document number: D????R0</address>
     <address>Project: Programming Language C++</address>
-    <address>Audience: Library Working group</address>
+    <address>Audience: Library Evolution Working Group, Library Working Group, Core Working Group</address>
     <address>&nbsp;</address>
     <address>Alexey Gorgurov &lt;<a href="mailto:leha-bot@yandex.ru">leha-bot@yandex.ru</a>&gt;, &lt;<a href="mailto:no-vista@yandex.ru">no-vista@yandex.ru</a>&gt;</address>
     <address>Antony Polukhin, Yandex.Taxi Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2018-07-11</address>
+    <address>Date: 2018-07-18</address>
     <h1>Wording for the stack trace library</h1>
 
     <h2>I. Introduction</h2>
     <p>This paper presents the detailed wording changes to implement <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0881r1.html">
-    P0881R1 "A Proposal to add stack trace library"</a>. Any differences in semantics to P0881R1 are unintentional.</p>
+    P0881R1 "A Proposal to add stack trace library"</a>. There are small differences in semantics to P0881R1 that shuld be revised by LEWG.</p>
 
     <h2>II. Wording</h2>
-    <h3>23.? Call sequence [stacktrace]</h3>
-    <p>This subclause describes components that C++ programs may use to store current call sequence,
-    query information about the stored call sequence or particular function at runtime.</p>
+    <h3>23.? Stacktrace [stacktrace]</h3>
+    <!--p>A sequence of functions (f<sub>0</sub>, ..., f<sub>i</sub>, ..., f<sub>n</sub>) called <i>stacktrace</i>,
+    where:</p>
+    <ul>
+        <li>f<sub>0</sub> is the current function or one of the callers of the current function,</li>
+        <li>for each <sub>i</sub> in range [1, n) function f<sub>i</sub> is one of the callers of f<sub>i-1</sub>,</li>
+        <li>f<sub>n</sub> is the <code>main</code> function or one of the callers of the <code>main</code> function.</li>
+    </ul-->
 
-    <p><i>[Note:</i> Implementations shall provide link time options to disable/enable
-    call sequence capturing.<i>- end note]</i></p>
-    <h3>23.?.1 Header &lt;stacktrace&gt; synopsis [stacktrace.synop]</h3>
+    <p>Define <code>CALLER(x)</code> as a function that returns the caller of the function <code>x</code>; <code>NTH_CALLER<sub>n</sub>(x)</code> as a function <code>NTH_CALLER<sub>n-1</sub>(CALLER(x))</code> for <code>n &gt;= 2</code> and <code>NTH_CALLER<sub>1</sub>(x)</code> as <code>CALLER(x)</code>.
+    A sequence of functions (f<sub>0</sub>, ..., f<sub>j</sub>, ..., f<sub>m</sub>) called <i>stacktrace</i>,
+    where:</p>
+    <ul>
+        <li>f<sub>0</sub> is the current function or the result of applying <code>NTH_CALLER<sub>n1</sub>(x)</code> to the current function with implementation-defined <code>n1</code>,</li>
+        <li>for each <sub>j</sub> in range (0, m] function f<sub>j</sub> is the result of applying <code>NTH_CALLER<sub>nj</sub>(x)</code> to the f<sub>j-1</sub> with implementation-defined <code>nj</code> and <code>m</code>,</li>
+        <li>f<sub>m</sub> also is the <code>main</code> function or is the result of applying <code>NTH_CALLER<sub>nm</sub>(x)</code> to the <code>main</code> function with implementation-defined <code>nm</code>.</li>
+    </ul>
+
+
+    <p>This subclause describes components that C++ programs may use to store the <i>stacktrace</i> of the current thread of execution,
+    query information about the stored <i>stacktrace</i> or particular function at runtime.</p>
+
+    <h3>23.?.1 Header &lt;stacktrace&gt; synopsis [stacktrace.syn]</h3>
     <pre>
 namespace std {
   // 23.?.2, class stack_frame
@@ -77,92 +93,73 @@ namespace std {
 namespace std {
   class stack_frame {
   public:
-    // 23.?.2.1, member typedefs
-    using native_frame_ptr_t = <i>implementation-defined</i>;
+    // member typedefs
+    using native_frame_ptr_t = void(*)();
 
-    // 23.?.2.2, construct/copy/destroy
+    // 23.?.2.1, construct/copy/assign/destroy
     constexpr stack_frame() noexcept;
+    template&lt;class T&gt; explicit stack_frame(T addr) noexcept;
     constexpr stack_frame(const stack_frame&amp; other) noexcept = default;
-
-    constexpr explicit stack_frame(native_frame_ptr_t f) noexcept;
-    template&lt;class T&gt; explicit stack_frame(T* address) noexcept;
-
+    constexpr stack_frame&amp; operator=(const stack_frame&amp; other) noexcept = default;
     ~stack_frame() = default;
 
-    // 23.?.2.3, assignment
-    constexpr stack_frame&amp; operator=(const stack_frame&amp; other) noexcept = default;
-
-    // 23.?.2.4, observers
+    // 23.?.2.2, observers
     constexpr native_frame_ptr_t address() const noexcept;
     constexpr explicit operator bool() const noexcept;
 
-    // 23.?.2.5, comparisons
-    constexpr strong_ordering operator&lt;=&gt;(const stack_frame&amp; rhs) noexcept;
+    constexpr strong_ordering operator&lt;=&gt;(const stack_frame&amp; rhs) noexcept = default;
 
-    // 23.?.2.6, query
+    // 23.?.2.3, query
+    const char* raw_name() const;
     string name() const;
     string source_file() const;
     size_t source_line() const;
 
   private:
-    native_frame_ptr_t data; // exposition only
+    native_frame_ptr_t frame_ptr; // exposition only
   };
 }
         </pre>
-    <p>The <code>stack_frame</code> class is a wrapper for all the function pointer types. It provides operations for querying information not deducable from function signature.</p>
+    <p>An object of class <code>stack_frame</code> stores an address of any function type or an address of any member function type or it has no
+    value. <code>stack_frame</code> provides operations for querying information not deducible from function type.</p>
 
 
-    <h3>23.?.2.1 <code>stack_frame</code> member typedefs [stacktrace.frame.typedefs]</h3>
-    <pre>using native_frame_ptr_t = <i>implementation-defined</i>;</pre>
-    <div class="desc">Implementation defined pointer type capable of holding <code>nullptr</code> and addresses of functions with any signature.</div>
-
-    <h3>23.?.2.2 <code>stack_frame</code> construct/copy/destroy [stacktrace.frame.con]</h3>
+    <h3>23.?.2.1 <code>stack_frame</code> construct/copy/assign/destroy [stacktrace.frame.con]</h3>
     <pre>constexpr stack_frame() noexcept;</pre>
-    <div class="desc"><i>Postconditions:</i> <code>!*this</code>.</div>
+    <div class="desc"><i>Postconditions:</i> <code>frame_ptr == nullptr</code>.</div>
 
-    <pre>constexpr stack_frame(const stack_frame&amp; other) noexcept = default;</pre>
-    <div class="desc"><i>Postconditions:</i> <code>this-&gt;address() == other->address()</code>.</div>
+    <pre>template&lt;class T&gt; explicit stack_frame(T addr) noexcept;</pre>
+    <div class="desc"><i>Requires:</i> <code>T</code> is a function pointer or a member function pointer.</div>
+    <div class="desc"><i>Effects:</i> Stores address of a function pointed by <code>addr</code> in <code>frame_ptr</code> if <code>T</code> is a function pointer.
 
-    <pre>explicit stack_frame(native_frame_ptr_t addr) noexcept;</pre>
-    <div class="desc"><i>Postconditions:</i> <code>this-&gt;address() == addr</code>.</div>
-
-    <pre>template&lt;class T&gt; explicit stack_frame(T* addr) noexcept;</pre>
-    <div class="desc"><i>Postconditions:</i> <code>this-&gt;address() == reinterpret_cast&lt;native_frame_ptr_t&gt;(addr)</code>.</div>
-    <div class="desc"><i>Remarks:</i> This signature shall not participate in overload resolution unless <code>sizeof(T*) == sizeof(native_frame_ptr_t)</code>.</div>
-
-    <pre>~stack_frame() = default;</pre>
-    <div class="desc"><i>Effects:</i> Releases unspecified resources associated with the <code>stack_frame</code>, if any.</div>
+    Otherwise let <code>T</code> denote a pointer to a member function of <code>X</code>. In that case stores the address of a function pointed by <code>addr</code> for
+    instances of type <code>X</code> in <code>frame_ptr</code>.
+    </div>
 
 
-    <h3>23.?.2.3 <code>stack_frame</code> assignment [stacktrace.frame.assign]</h3>
-    <pre>constexpr stack_frame&amp; operator=(const stack_frame&amp; other) noexcept = default;</pre>
-    <div class="desc"><i>Postconditions:</i> <code>this-&gt;address() == other->address()</code>.</div>
-
-
-    <h3>23.?.2.4 <code>stack_frame</code> observers [stacktrace.frame.obs]</h3>
+    <h3>23.?.2.2 <code>stack_frame</code> observers [stacktrace.frame.obs]</h3>
     <pre>constexpr native_frame_ptr_t address() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> Address of a wrapped function, if present; <code>nullptr</code> otherwise.</div>
+    <div class="desc"><i>Returns:</i> <code>frame_ptr</code>.</div>
 
     <pre>constexpr explicit operator bool() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code>true</code> if <code>this-&gt;address() != nullptr</code>.</div>
+    <div class="desc"><i>Returns:</i> <code>frame_ptr != nullptr</code>.</div>
 
 
-    <h3>23.?.2.5 <code>stack_frame</code> comparisons [stacktrace.frame.comp]</h3>
-    <pre>constexpr strong_ordering operator&lt;=&gt;(const stack_frame&amp; rhs) noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code>this-&gt;address() &lt;=&gt; rhs.address()</code>.</div>
+    <h3>23.?.2.3 <code>stack_frame</code> query [stacktrace.frame.query]</h3>
+    <pre>const char* raw_name() const;</pre>
+    <div class="desc"><i>Returns:</i> An implementation-defined NTBS or <code>nullptr</code>.</div>
+    <div class="desc"><i>Throws:</i> <code>bad_alloc</code> if memory for the internal data structures cannot be allocated.</div>
 
-
-    <h3>23.?.2.6 <code>stack_frame</code> query [stacktrace.frame.query]</h3>
     <pre>string name() const;</pre>
-    <div class="desc"><i>Returns:</i> Platform specific name of the wrapped function, if present and such information is available; empty string otherwise.</div>
+    <div class="desc"><i>Returns:</i> Platform-specific name of the function pointed by <code>frame_ptr</code>, if present and such information is available; empty string otherwise.</div>
     <div class="desc"><i>Throws:</i> <code>bad_alloc</code> if memory for the internal data structures or the resulting string cannot be allocated.</div>
 
     <pre>string source_file() const;</pre>
-    <div class="desc"><i>Returns:</i> The presumed name of the source file [cpp.predefined] with definition of the wrapped function, if present and such information is available; empty string otherwise.</div>
+    <div class="desc"><i>Returns:</i> The presumed name of the source file [cpp.predefined] with the definition of the wrapped function, if present and such information is available; empty string otherwise.</div>
     <div class="desc"><i>Throws:</i> <code>bad_alloc</code> if memory for the internal data structures or the resulting string cannot be allocated.</div>
 
     <pre>size_t source_line() const;</pre>
-    <div class="desc"><i>Returns:</i> The presumed line number (within the source file) [cpp.predefined] with beginning of the definition of the wrapped function, if present and such information is available; 0 otherwise.</div>
+    <div class="desc"><i>Returns:</i> The presumed line number (within the source file) [cpp.predefined] with the beginning of the definition of the wrapped function, if present and such information is available; 0 otherwise.</div>
     <div class="desc"><i>Throws:</i> <code>bad_alloc</code> if memory for the internal data structures cannot be allocated.</div>
 
 
@@ -189,7 +186,7 @@ namespace std {
     basic_stacktrace(basic_stacktrace&amp;&amp; other) noexcept;
     basic_stacktrace&amp; operator=(const basic_stacktrace&amp; other);
     basic_stacktrace&amp; operator=(basic_stacktrace&amp;&amp; other) noexcept;
-    ~basic_stacktrace();
+    ~basic_stacktrace() = default;
 
     // 23.?.3.2, observers
     size_type size() const noexcept;
@@ -202,24 +199,21 @@ namespace std {
     // 23.?.3.3, comparisons
     template &lt;class Allocator2&gt;
     strong_ordering operator&lt;=&gt;(const basic_stacktrace&lt; Allocator2 &gt;&amp; rhs) noexcept;
-
-  private:
-    vector&lt;value_type&gt;    stack_frames; // exposition only
   };
 
 }
         </pre>
-    <p>The <code>basic_stacktrace</code> template class stores current call sequence on construction and provides access to the stored <code>stack_frame</code>s.</p>
+    <p>The <code>basic_stacktrace</code> template class stores the <i>stacktrace</i> of the current thread of execution on construction and provides access to the stored <i>stacktrace</i>.</p>
 
     <h3>23.?.3.1 <code>basic_stacktrace</code> construct/copy/destroy [stacktrace.basic.con]</h3>
     <pre>basic_stacktrace() noexcept;
 explicit basic_stacktrace(const allocator_type&amp; a) noexcept;</pre>
-    <div class="desc"><i>Effects:</i> Stores the current call sequence without querying information about calls.</div>
-    <div class="desc"><i>Postconditions:</i> <code>!*this</code> if failed to store non-empty call sequence; <code>*this == true</code> otherwise.</div>
+    <div class="desc"><i>Effects:</i> Stores the <i>stacktrace</i> of the current thread of execution.</div>
+    <div class="desc"><i>Postconditions:</i> <code>!*this</code> if failed to store <i>stacktrace</i> of the current thread of execution; <code>!!*this</code> otherwise.</div>
 
     <pre>basic_stacktrace(size_type skip, size_type max_depth, const allocator_type&amp; a = allocator_type()) noexcept;</pre>
-    <div class="desc"><i>Effects:</i> Stores <code>[skip; skip + max_depth)</code> of the current zero-indexed call sequence without querying information about calls.</div>
-    <div class="desc"><i>Postconditions:</i> <code>!*this</code> if failed to store non-empty call sequence; <code>*this == true</code> otherwise.</div>
+    <div class="desc"><i>Effects:</i> Stores subrange [f<sub>skip</sub>, f<sub>min(skip + max_depth, n)</sub>) of the <i>stacktrace</i> of the current thread of execution, where (f<sub>0</sub>, ..., f<sub>n</sub>) represents a whole <i>stacktrace</i>.</div>
+    <div class="desc"><i>Postconditions:</i> <code>!*this</code> if failed to store non-empty <i>stacktrace</i> of the current thread of execution; <code>!!*this</code> otherwise.</div>
 
 
     <pre>basic_stacktrace(const basic_stacktrace&amp; other);</pre>
@@ -233,22 +227,18 @@ explicit basic_stacktrace(const allocator_type&amp; a) noexcept;</pre>
 
 
     <pre>basic_stacktrace&amp; operator=(const basic_stacktrace&amp; other);</pre>
-    <div class="desc"><i>Effects:</i> Replaces the call sequence strored inside <code>*this</code> with the call sequence of <code>other</code>.</div>
+    <div class="desc"><i>Effects:</i> Replaces the <i>stacktrace</i> stored inside <code>*this</code> with the <i>stacktrace</i> of <code>other</code>.</div>
     <div class="desc"><i>Returns:</i> <code>*this</code>.</div>
     <div class="desc"><i>Throws:</i> <code>bad_alloc</code> if memory for the internal data structures could not be allocated.</div>
     
     <pre>basic_stacktrace&amp; operator=(basic_stacktrace&amp;&amp; other) noexcept;</pre>
-    <div class="desc"><i>Effects:</i> Replaces the call sequence strored inside <code>*this</code> with the call sequence of <code>other</code>.</div>
+    <div class="desc"><i>Effects:</i> Replaces the <i>stacktrace</i> strored inside <code>*this</code> with the <i>stacktrace</i> of <code>other</code>.</div>
     <div class="desc"><i>Postconditions:</i> <code>other</code> is left in a valid state with an unspecified value.</div>
     <div class="desc"><i>Returns:</i> <code>*this</code>.</div>
 
-
-    <pre>~basic_stacktrace();</pre>
-    <div class="desc"><i>Effects:</i> Releases unspecified resources associated with the <code>basic_stacktrace</code>.</div>
-
     <h3>23.?.3.2 <code>basic_stacktrace</code> observers [stacktrace.basic.obs]</h3>
     <pre>size_type size() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> Length of the stored call sequence.</div>
+    <div class="desc"><i>Returns:</i> Length of the stored <i>stacktrace</i>.</div>
 
     <pre>const_reference operator[](size_type frame_no) const;</pre>
     <div class="desc"><i>Requires:</i> <code>frame_no &lt; size()</code>.</div>
@@ -256,13 +246,13 @@ explicit basic_stacktrace(const allocator_type&amp; a) noexcept;</pre>
     <div class="desc"><i>Throws:</i> Nothing.</div>
 
     <pre>const_iterator begin() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> A random access iterator referring to the <code>stack_frame</code> where the call sequence was captured.</div>
+    <div class="desc"><i>Returns:</i> A random access iterator referring to the <code>stack_frame</code> initialized by the first function of the stored <i>stacktrace</i>.</div>
 
     <pre>const_iterator end() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> A random access iterator which is past the <code>stack_frame</code> referring to the <code>main()</code> function.</div>
+    <div class="desc"><i>Returns:</i> A random access iterator which is past the <code>stack_frame</code> referring to the last function of the stored <i>stacktrace</i>.</div>
 
     <pre>explicit operator bool() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code>true</code> if call sequence was successfully stored.</div>
+    <div class="desc"><i>Returns:</i> <code>true</code> if <i>stacktrace</i> was successfully stored.</div>
 
 
     <h3>23.?.3.3 <code>basic_stacktrace</code> comparisons [stacktrace.basic.comp]</h3>
@@ -275,10 +265,10 @@ strong_ordering operator&lt;=&gt;(const basic_stacktrace&lt; Allocator2 &gt;&amp
     <h3>23.?.4 Non-member functions [stacktrace.nonmembers]</h3>
     <pre>template&lt;class Allocator&gt;
 string to_string(const basic_stacktrace&lt;Allocator&gt;&amp; st);</pre>
-    <div class="desc"><i>Returns:</i> A multiline string with indexed information about each stored call.</div>
+    <div class="desc"><i>Returns:</i> An implementation-specific multiline string with information about each function of a <i>stacktrace</i>.</div>
 
     <pre>string to_string(const stack_frame&amp; f);</pre>
-    <div class="desc"><i>Returns:</i> A string with information about a frame.</div>
+    <div class="desc"><i>Returns:</i> An implementation-specific string with information about the stored in <code>f</code> function address.</div>
 
     <pre>template&lt;class charT, class traits, class Allocator&gt;
 basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(basic_ostream&lt;charT, traits&gt;&amp; os, const basic_stacktrace&lt;Allocator&gt;&amp; st);</pre>
@@ -293,6 +283,10 @@ basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(basic_ostream&lt;charT,
     <h2>III. Feature-testing macro</h2>
     <p>Add a row into the "Standard library feature-test macros" table [support.limits.general]:
     <table border="1"><tr><td><code>__cpp_lib_stacktrace</code></td><td>201811</td><td><code>&lt;stacktrace&gt;</code></td></tr></table>
+
+
+    <h2>IV. Acknowledgements</h2>
+    <p>Many thanks to Jens Maurer and JF Bastien for pointing out many issues in the early wording.</p>
 
         <script type="text/javascript">
             function colorize_texts(texts) {
