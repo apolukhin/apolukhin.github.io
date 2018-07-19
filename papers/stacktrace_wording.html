@@ -30,7 +30,7 @@
     <address>Alexey Gorgurov &lt;<a href="mailto:leha-bot@yandex.ru">leha-bot@yandex.ru</a>&gt;, &lt;<a href="mailto:no-vista@yandex.ru">no-vista@yandex.ru</a>&gt;</address>
     <address>Antony Polukhin, Yandex.Taxi Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2018-07-18</address>
+    <address>Date: 2018-07-19</address>
     <h1>Wording for the stack trace library</h1>
 
     <h2>I. Introduction</h2>
@@ -39,26 +39,18 @@
 
     <h2>II. Wording</h2>
     <h3>23.? Stacktrace [stacktrace]</h3>
-    <!--p>A sequence of functions (f<sub>0</sub>, ..., f<sub>i</sub>, ..., f<sub>n</sub>) called <i>stacktrace</i>,
+    <p>Define <code>INVOKER(x)</code> as a function that returns the function that invoked function <code>x</code>; <code>NTH_INVOKER<sub>n</sub>(x)</code> as a function <code>NTH_INVOKER<sub>n-1</sub>(INVOKER(x))</code> for <code>n &gt; 0</code> and <code>NTH_INVOKER<sub>0</sub>(x)</code> as <code>INVOKER(x)</code>.
+    A sequence of functions (f<sub>0</sub>, ..., f<sub>m</sub>) called <i>stacktrace</i>,
     where:</p>
     <ul>
-        <li>f<sub>0</sub> is the current function or one of the callers of the current function,</li>
-        <li>for each <sub>i</sub> in range [1, n) function f<sub>i</sub> is one of the callers of f<sub>i-1</sub>,</li>
-        <li>f<sub>n</sub> is the <code>main</code> function or one of the callers of the <code>main</code> function.</li>
-    </ul-->
-
-    <p>Define <code>CALLER(x)</code> as a function that returns the caller of the function <code>x</code>; <code>NTH_CALLER<sub>n</sub>(x)</code> as a function <code>NTH_CALLER<sub>n-1</sub>(CALLER(x))</code> for <code>n &gt;= 2</code> and <code>NTH_CALLER<sub>1</sub>(x)</code> as <code>CALLER(x)</code>.
-    A sequence of functions (f<sub>0</sub>, ..., f<sub>j</sub>, ..., f<sub>m</sub>) called <i>stacktrace</i>,
-    where:</p>
-    <ul>
-        <li>f<sub>0</sub> is the current function or the result of applying <code>NTH_CALLER<sub>n1</sub>(x)</code> to the current function with implementation-defined <code>n1</code>,</li>
-        <li>for each <sub>j</sub> in range (0, m] function f<sub>j</sub> is the result of applying <code>NTH_CALLER<sub>nj</sub>(x)</code> to the f<sub>j-1</sub> with implementation-defined <code>nj</code> and <code>m</code>,</li>
-        <li>f<sub>m</sub> also is the <code>main</code> function or is the result of applying <code>NTH_CALLER<sub>nm</sub>(x)</code> to the <code>main</code> function with implementation-defined <code>nm</code>.</li>
+        <li>f<sub>0</sub> is the current function or the result of applying <code>NTH_INVOKER<sub>n1</sub>(x)</code> to the current function with implementation-defined <code>n1</code>,</li>
+        <li>for each <sub>j</sub> in range (0, m] function f<sub>j</sub> is the result of applying <code>NTH_INVOKER<sub>nj</sub>(x)</code> to the f<sub>j-1</sub> with implementation-defined <code>nj</code> and <code>m</code>,</li>
+        <li>f<sub>m</sub> also is the <code>main</code> function or is the result of applying <code>NTH_INVOKER<sub>nm</sub>(x)</code> to the <code>main</code> function with implementation-defined <code>nm</code>; <code>m</code> could be zero if current function is the <code>main</code> function.</li>
     </ul>
 
 
-    <p>This subclause describes components that C++ programs may use to store the <i>stacktrace</i> of the current thread of execution,
-    query information about the stored <i>stacktrace</i> or particular function at runtime.</p>
+    <p>This subclause describes components that C++ programs may use to store the stacktrace of the current thread of execution,
+    query information about the stored stacktrace or particular function at runtime.</p>
 
     <h3>23.?.1 Header &lt;stacktrace&gt; synopsis [stacktrace.syn]</h3>
     <pre>
@@ -84,6 +76,11 @@ namespace std {
 
   template&lt;class charT, class traits&gt;
   basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(basic_ostream&lt;charT, traits&gt;&amp; os, const stack_frame&amp; f);
+
+  // 23.?.5, hash support
+  template&lt;class T&gt; struct hash;
+  template&lt;&gt; struct hash&lt;stack_frame&gt;;
+  template&lt;class Allocator&gt; struct hash&lt;basic_stacktrace&lt;Allocator&gt;&gt;;
 }
         </pre>
 
@@ -132,8 +129,7 @@ namespace std {
     <div class="desc"><i>Requires:</i> <code>T</code> is a function pointer or a member function pointer.</div>
     <div class="desc"><i>Effects:</i> Stores address of a function pointed by <code>addr</code> in <code>frame_ptr</code> if <code>T</code> is a function pointer.
 
-    Otherwise let <code>T</code> denote a pointer to a member function of <code>X</code>. In that case stores the address of a function pointed by <code>addr</code> for
-    instances of type <code>X</code> in <code>frame_ptr</code>.
+    Otherwise stores the address of a member function pointed by <code>addr</code> in <code>frame_ptr</code> in an implementation-defined manner.
     </div>
 
 
@@ -151,7 +147,7 @@ namespace std {
     <div class="desc"><i>Throws:</i> <code>bad_alloc</code> if memory for the internal data structures cannot be allocated.</div>
 
     <pre>string name() const;</pre>
-    <div class="desc"><i>Returns:</i> Platform-specific name of the function pointed by <code>frame_ptr</code>, if present and such information is available; empty string otherwise.</div>
+    <div class="desc"><i>Returns:</i> Platform-specific signature of the function pointed by <code>frame_ptr</code>, if present and such information is available; empty string otherwise.</div>
     <div class="desc"><i>Throws:</i> <code>bad_alloc</code> if memory for the internal data structures or the resulting string cannot be allocated.</div>
 
     <pre>string source_file() const;</pre>
@@ -179,13 +175,13 @@ namespace std {
 
     // 23.?.3.1, construct/copy/destroy
     basic_stacktrace() noexcept;
-    explicit basic_stacktrace(const allocator_type&amp; a) noexcept;
-    basic_stacktrace(size_type skip, size_type max_depth, const allocator_type&amp; a = allocator_type()) noexcept;
+    explicit basic_stacktrace(const allocator_type&amp; alloc) noexcept;
+    basic_stacktrace(size_type skip, size_type max_depth, const allocator_type&amp; alloc = allocator_type()) noexcept;
 
-    basic_stacktrace(const basic_stacktrace&amp; other);
-    basic_stacktrace(basic_stacktrace&amp;&amp; other) noexcept;
-    basic_stacktrace&amp; operator=(const basic_stacktrace&amp; other);
-    basic_stacktrace&amp; operator=(basic_stacktrace&amp;&amp; other) noexcept;
+    basic_stacktrace(const basic_stacktrace&amp; other) = default;
+    basic_stacktrace(basic_stacktrace&amp;&amp; other) noexcept = default;
+    basic_stacktrace&amp; operator=(const basic_stacktrace&amp; other) = default;
+    basic_stacktrace&amp; operator=(basic_stacktrace&amp;&amp; other) = default;
     ~basic_stacktrace() = default;
 
     // 23.?.3.2, observers
@@ -199,60 +195,45 @@ namespace std {
     // 23.?.3.3, comparisons
     template &lt;class Allocator2&gt;
     strong_ordering operator&lt;=&gt;(const basic_stacktrace&lt; Allocator2 &gt;&amp; rhs) noexcept;
+
+  private:
+    vector&lt;value_type, allocator_type&gt; frames; // exposition only
   };
 
 }
         </pre>
-    <p>The <code>basic_stacktrace</code> template class stores the <i>stacktrace</i> of the current thread of execution on construction and provides access to the stored <i>stacktrace</i>.</p>
+    <p>The <code>basic_stacktrace</code> template class stores the stacktrace of the current thread of execution on construction and provides access to the stored stacktrace.</p>
+    <p>The member functions of <code>basic_stacktrace</code> use an object of the Allocator class passed as a template parameter
+    to allocate memory for the internal data structures.</p>
 
     <h3>23.?.3.1 <code>basic_stacktrace</code> construct/copy/destroy [stacktrace.basic.con]</h3>
     <pre>basic_stacktrace() noexcept;
-explicit basic_stacktrace(const allocator_type&amp; a) noexcept;</pre>
-    <div class="desc"><i>Effects:</i> Stores the <i>stacktrace</i> of the current thread of execution.</div>
-    <div class="desc"><i>Postconditions:</i> <code>!*this</code> if failed to store <i>stacktrace</i> of the current thread of execution; <code>!!*this</code> otherwise.</div>
+explicit basic_stacktrace(const allocator_type&amp; alloc) noexcept;</pre>
+    <div class="desc"><i>Effects:</i> Stores the stacktrace of the current thread of execution in <code>frames</code>. <code>alloc</code> is passed to the <code>frames</code> constructor.</div>
+    <div class="desc"><i>Postconditions:</i> <code>!*this</code> if failed to store stacktrace of the current thread of execution; <code>!!*this</code> otherwise.</div>
 
-    <pre>basic_stacktrace(size_type skip, size_type max_depth, const allocator_type&amp; a = allocator_type()) noexcept;</pre>
-    <div class="desc"><i>Effects:</i> Stores subrange [f<sub>skip</sub>, f<sub>min(skip + max_depth, n)</sub>) of the <i>stacktrace</i> of the current thread of execution, where (f<sub>0</sub>, ..., f<sub>n</sub>) represents a whole <i>stacktrace</i>.</div>
-    <div class="desc"><i>Postconditions:</i> <code>!*this</code> if failed to store non-empty <i>stacktrace</i> of the current thread of execution; <code>!!*this</code> otherwise.</div>
+    <pre>basic_stacktrace(size_type skip, size_type max_depth, const allocator_type&amp; alloc = allocator_type()) noexcept;</pre>
+    <div class="desc"><i>Effects:</i> Stores subrange [f<sub>skip</sub>, f<sub>min(skip + max_depth, n)</sub>) of the stacktrace of the current thread of execution  in <code>frames</code>, where (f<sub>0</sub>, ..., f<sub>n</sub>) represents a whole stacktrace. <code>alloc</code> is passed to the <code>frames</code> constructor.</div>
+    <div class="desc"><i>Postconditions:</i> <code>!*this</code> if failed to store non-empty stacktrace of the current thread of execution; <code>!!*this</code> otherwise.</div>
 
-
-    <pre>basic_stacktrace(const basic_stacktrace&amp; other);</pre>
-    <div class="desc"><i>Effects:</i> Constructs an object of class <code>basic_stacktrace</code> from <code>other</code>.</div>
-    <div class="desc"><i>Postconditions:</i> <code>*this == other</code>.</div>
-    <div class="desc"><i>Throws:</i> <code>bad_alloc</code> if memory for the internal data structures could not be allocated.</div>
-
-    <pre>basic_stacktrace(basic_stacktrace&amp;&amp; other) noexcept;</pre>
-    <div class="desc"><i>Effects:</i> Constructs an object of class <code>basic_stacktrace</code> from <code>other</code>.</div>
-    <div class="desc"><i>Postconditions:</i> <code>other</code> is left in a valid state with an unspecified value.</div>
-
-
-    <pre>basic_stacktrace&amp; operator=(const basic_stacktrace&amp; other);</pre>
-    <div class="desc"><i>Effects:</i> Replaces the <i>stacktrace</i> stored inside <code>*this</code> with the <i>stacktrace</i> of <code>other</code>.</div>
-    <div class="desc"><i>Returns:</i> <code>*this</code>.</div>
-    <div class="desc"><i>Throws:</i> <code>bad_alloc</code> if memory for the internal data structures could not be allocated.</div>
-    
-    <pre>basic_stacktrace&amp; operator=(basic_stacktrace&amp;&amp; other) noexcept;</pre>
-    <div class="desc"><i>Effects:</i> Replaces the <i>stacktrace</i> strored inside <code>*this</code> with the <i>stacktrace</i> of <code>other</code>.</div>
-    <div class="desc"><i>Postconditions:</i> <code>other</code> is left in a valid state with an unspecified value.</div>
-    <div class="desc"><i>Returns:</i> <code>*this</code>.</div>
 
     <h3>23.?.3.2 <code>basic_stacktrace</code> observers [stacktrace.basic.obs]</h3>
     <pre>size_type size() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> Length of the stored <i>stacktrace</i>.</div>
+    <div class="desc"><i>Returns:</i> <code>frames.size()</code>.</div>
 
     <pre>const_reference operator[](size_type frame_no) const;</pre>
     <div class="desc"><i>Requires:</i> <code>frame_no &lt; size()</code>.</div>
-    <div class="desc"><i>Returns:</i> <code>*(begin() + frame_no)</code>.</div>
+    <div class="desc"><i>Returns:</i> <code>frames[frame_no]</code>.</div>
     <div class="desc"><i>Throws:</i> Nothing.</div>
 
     <pre>const_iterator begin() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> A random access iterator referring to the <code>stack_frame</code> initialized by the first function of the stored <i>stacktrace</i>.</div>
+    <div class="desc"><i>Returns:</i> <code>frames.cbegin()</code>.</div>
 
     <pre>const_iterator end() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> A random access iterator which is past the <code>stack_frame</code> referring to the last function of the stored <i>stacktrace</i>.</div>
+    <div class="desc"><i>Returns:</i> <code>frames.cend()</code>.</div>
 
     <pre>explicit operator bool() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code>true</code> if <i>stacktrace</i> was successfully stored.</div>
+    <div class="desc"><i>Returns:</i> <code>!frames.empty()</code>.</div>
 
 
     <h3>23.?.3.3 <code>basic_stacktrace</code> comparisons [stacktrace.basic.comp]</h3>
@@ -265,7 +246,7 @@ strong_ordering operator&lt;=&gt;(const basic_stacktrace&lt; Allocator2 &gt;&amp
     <h3>23.?.4 Non-member functions [stacktrace.nonmembers]</h3>
     <pre>template&lt;class Allocator&gt;
 string to_string(const basic_stacktrace&lt;Allocator&gt;&amp; st);</pre>
-    <div class="desc"><i>Returns:</i> An implementation-specific multiline string with information about each function of a <i>stacktrace</i>.</div>
+    <div class="desc"><i>Returns:</i> An implementation-specific multiline string with information about each function of a stacktrace.</div>
 
     <pre>string to_string(const stack_frame&amp; f);</pre>
     <div class="desc"><i>Returns:</i> An implementation-specific string with information about the stored in <code>f</code> function address.</div>
@@ -280,13 +261,20 @@ basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(basic_ostream&lt;charT,
     <div class="desc"><i>Effects:</i> As if by <code>os &lt;&lt; to_string(f);</code></div>
     <div class="desc"><i>Returns:</i> <code>os</code>.</div>
 
+
+    <h3>23.?.5 Hash support [stacktrace.hash]</h3>
+    <pre>template&lt;&gt; struct hash&lt;stack_frame&gt;;
+template&lt;class Allocator&gt; struct hash&lt;basic_stacktrace&lt;Allocator&gt;&gt;;</pre>
+    <div class="desc">The specialization is enabled (23.14.15).</div>
+
+
     <h2>III. Feature-testing macro</h2>
     <p>Add a row into the "Standard library feature-test macros" table [support.limits.general]:
     <table border="1"><tr><td><code>__cpp_lib_stacktrace</code></td><td>201811</td><td><code>&lt;stacktrace&gt;</code></td></tr></table>
 
 
     <h2>IV. Acknowledgements</h2>
-    <p>Many thanks to Jens Maurer and JF Bastien for pointing out many issues in the early wording.</p>
+    <p>Many thanks to Jens Maurer and JF Bastien for pointing out many issues in the early wordings.</p>
 
         <script type="text/javascript">
             function colorize_texts(texts) {
