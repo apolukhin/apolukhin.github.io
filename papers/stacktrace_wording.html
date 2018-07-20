@@ -1,7 +1,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
-    <title>Wording for the stack trace library</title>
+    <title>Wording for the stacktrace library</title>
     <meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
     <meta http-equiv="Content-Language" content="en-us">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -30,12 +30,24 @@
     <address>Alexey Gorgurov &lt;<a href="mailto:leha-bot@yandex.ru">leha-bot@yandex.ru</a>&gt;, &lt;<a href="mailto:no-vista@yandex.ru">no-vista@yandex.ru</a>&gt;</address>
     <address>Antony Polukhin, Yandex.Taxi Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2018-07-19</address>
-    <h1>Wording for the stack trace library</h1>
+    <address>Date: 2018-07-20</address>
+    <h1>Wording for the stacktrace library</h1>
 
-    <h2>I. Introduction</h2>
+    <h2>I. Introduction and Intent</h2>
     <p>This paper presents the detailed wording changes to implement <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0881r1.html">
     P0881R1 "A Proposal to add stack trace library"</a>. There are small differences in semantics to P0881R1 that shuld be revised by LEWG.</p>
+
+    <p>The intent of the P0881R1 was to provide a simple to use facility mostly for debugging purposes that  is hard to misuse. Key features that must be preserved by implementations:</p>
+    <ul>
+    <li>All the functions are lazy and do not query the pointer information if there was no explicit request.</li>
+    <li>No fixed max size for trace - all the available invokers must be stored in a <code>stacktrace</code>.</li>
+    <li>Implementations should allow to disable/enable gathering stacktraces by a link-time switch.</li>
+    <li>Stacktracing does not prevent any of the optimizations.</li>
+    <li>No info for a pointer is OK (it's not an error, do not throw!).</li>
+    <li><code>stack_frame::name()</code> should return a demangled function signature if possible.</li>
+    <li><code>to_string(stacktrace)</code> should query information from debug symbols, symbol export tables and return demangled signatures if possible.</li>
+    </ul>
+
 
     <h2>II. Wording</h2>
     <h3>23.? Stacktrace [stacktrace]</h3>
