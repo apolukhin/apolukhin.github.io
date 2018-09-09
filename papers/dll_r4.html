@@ -7,7 +7,7 @@
 
 		<style type="text/css">
 			.addition { color: green; }
-			.right { text-align:right; }
+			.right { float:right; }
 			.changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
 			.addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
 			.changed-added { background-color: #DFF0FC ;}
@@ -29,7 +29,7 @@
 		<address>&nbsp;</address>
 		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
 		<address>&nbsp;</address>
-		<address>Date: 2018-08-06</address>
+		<address>Date: 2018-08-31</address>
 		<h1>A Proposal to add Classes and Functions Required for Dynamic Library Load</h1>
 
 
@@ -37,14 +37,13 @@
 <input type="checkbox" id="show_deletions" onchange="show_hide_deleted()"> Show deleted lines.
 
 <br><br><br><br-->
-
-<p class="right">“This is just a means to get a pointer to a function.”</p>
-<p class="right"><i>― Ville Voutilainen</i></p>
-
+<div class="right">
+<p>“This is just a means to get a pointer to a function.”</p>
+<p><i>― Ville Voutilainen</i></p>
+</div>
+<br><br><br><br><br><br>
 
 		<h2>I. Introduction and Motivation</h2>
-
-
 		<p>Adding a specific features to an existing software applications at
             runtime could be useful in many cases. Such extensions, or plugins,
             are usually implemented using shared library files (.dll,
@@ -144,7 +143,7 @@
         <li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2407.html">N2407: C++ Dynamic Library Support</a></li>
         </ul>
 
-        <p>The proposal you're reading attempts to avoid issues of the proposals from above, minifying the changes to the N4687 wording. The proposal you're reading:</p>
+        <p>The proposal you're reading attempts to avoid issues of the proposals from above, minifying the changes to the C++ Standard. The proposal you're reading:</p>
         <ul>
         <li>is a pure library extension (does not modify Basic Concepts [basic] and does not add new keywords)</li>
         <li>does not add platform requirement for shared libraries support</li>
@@ -154,24 +153,24 @@
         <p>OS specific API usually accepts symbol name as a zero terminated char array. <code>string_view</code> has no zero termination
         guarantee so it requires copying of the input parameter and zero termination. <code>char*</code> and <code>string&amp;</code> is a more efficient API design.</p>
 
-		<h2>IV. Proposed wording relative to N4687</h2>
+		<h2>IV. Proposed wording relative to N4762</h2>
 
-<h3>?? Dynamic loading support library<span class="right">[dl]</span></h3>
+<h3>?? Dynamic loading support library <span class="right">[dl]</span></h3>
 <h4>??.1 General <span class="right">[dl.general]</span></h4>
+<p>
+    <i>Shared library file</i> is a file containing objects and functions available for use at program startup or at runtime.
+</p>
 <p>
     <i>Dynamic loading</i> is a runtime mechanism to load shared library file into the memory of current program at any point of <code>main</code> [basic.start.main] execution,
     retrieve the addresses of functions and objects contained in the shared library file, execute those functions or access those objects,
     unload the shared library file from memory.
 </p>
 <p>
-    <i>Shared library file</i> is a file containing objects and functions available for use at program startup or at runtime.
-</p>
-<p>
     Header &lt;experimental/dl&gt;
     defines classes and functions suitable for dynamic loading. For
     that header term <i>symbol</i> relates to a
     function, reference, class member or object that can be obtained from shared library file at runtime.
-    Term <i>symbol name</i> relates to a character identifier of a symbol, using
+    Term <i>symbol name</i> relates to a NTBS identifier of a symbol, using
     which symbol can be obtained from shared library file. <i>[ Note:</i> For symbols declared with <code>extern
     "C"</code> in code of shared library file, symbol name is the name of the
     entity. Symbol name for entities without <code>extern "C"</code> are unspecified. Typically symbol names of those entities are mangled entity names<i> — end note ]</i>.
@@ -184,8 +183,8 @@
     <li>When a call by the implementation to an operating system or other underlying API results in an error that
     prevents the function from meeting its specifications, an exception of type system_error is thrown.</li>
 
-    <li>Failure to allocate storage is reported by throwing an exception as described in the C++ standard,
-    20.5.5.12[res.on.exception.handling].</li>
+    <li>Failure to allocate storage is reported by throwing an exception as described in the C++ standard
+    [res.on.exception.handling].</li>
 
     <li>Destructors throw nothing.</li>
     </ul>
@@ -197,8 +196,7 @@
     appropriate for the specific error. Otherwise, <code>clear()</code> is called on the <code>error_code&amp;</code> argument.</li>
 
     <li>Failure to allocate storage is reported by throwing an exception
-         as described in the C++ standard, 20.5.5.12
-        [res.on.exception.handling].</li>
+         as described in the C++ standard [res.on.exception.handling].</li>
     </ul>
 
 
@@ -206,10 +204,10 @@
 <pre>namespace std {
   namespace experimental {
   inline namespace dl_v1 {
-    // class to work with shared library files
+    // ??.4, shared_library
     class shared_library;
 
-    // free functions
+    // ??.5, runtime path functions
     template&lt;class T&gt;
     filesystem::path symbol_location(const T&amp; symbol, error_code&amp; ec);
     template&lt;class T&gt;
@@ -223,11 +221,10 @@
   }
   }
 
-  // support
+  // ??.6, hash support
   template &lt;class T&gt; struct hash;
   template &lt;&gt; struct hash&lt;experimental::shared_library&gt;;
 }
-
 </pre>
 
 
@@ -262,9 +259,12 @@
 
     class shared_library {
     public:
-      using native_handle_type = <i>platform-specific</i>;
-      // shared library file load modes
+      using native_handle_type = <i>implementation-defined</i>;
+
+      // ??.4.1, dl_mode
       using dl_mode = <i>T1</i>;
+
+      // ??.4.2, dl_mode constants
       static constexpr dl_mode default_mode;
       static constexpr dl_mode rtld_lazy;
       static constexpr dl_mode rtld_now;
@@ -273,18 +273,18 @@
       static constexpr dl_mode add_decorations;
       static constexpr dl_mode search_system_directories;
 
-      // construct/copy/destruct
+      // ??.4.3, construct/copy/destruct
       constexpr shared_library() noexcept;
       shared_library(shared_library&amp;&amp; lib) noexcept;
+      shared_library&amp; operator=(shared_library&amp;&amp; lib) noexcept;
+      ~shared_library();
 
       explicit shared_library(const filesystem::path&amp; library_path);
       shared_library(const filesystem::path&amp; library_path, dl_mode mode);
       shared_library(const filesystem::path&amp; library_path, error_code&amp; ec);
       shared_library(const filesystem::path&amp; library_path, dl_mode mode, error_code&amp; ec);
-      shared_library&amp; operator=(shared_library&amp;&amp; lib) noexcept;
-      ~shared_library();
 
-      // public member functions
+      // ??.4.4, public member functions
       void reset() noexcept;
       explicit operator bool() const noexcept;
 
@@ -304,7 +304,7 @@
 
       strong_ordering operator&lt;=&gt;(const shared_library&amp; other) const noexcept;
 
-      // public static member functions
+      // ??.4.5, public static member functions
       static constexpr bool platform_supports_dl() noexcept;
       static constexpr bool platform_supports_dl_of_program() noexcept;
     };
@@ -318,7 +318,8 @@
 <h4>??.4.1 Type dl_mode <span class="right">[dl.shared_library.dl_mode]</span></h4>
 <pre>using dl_mode = <i>T1</i>;</pre>
 <p>
-    Bitmask type <code>dl_mode</code> provides modes for searching the shared library file and platform specific modes for loading the shared library file in memory of program.
+    Bitmask type <code>dl_mode</code> provides modes for searching the shared library file in the file system [fs.general]
+    and platform specific modes for loading the shared library file into the memory of program.
     <i>[ Note:</i> library users may extend available modes by
     casting the required platform specific mode to dl_mode: <i>[ Example:</i> <code>static_cast&lt;dl_mode&gt;(RTLD_NODELETE); </code><i> — end example ] — end note ]</i></p>
 
@@ -329,7 +330,7 @@
     <div class="desc"><i>Value:</i> Any value that can not be received by applying binary OR to any set of modes from <code>dl_mode</code></div>
     <div class="desc"><i>[ Example:</i></div>
 <pre>        // Attempts to open
-        //      `./my_plugins/plugin1.dl` and `./my_plugins/libplugin1.dl` on Windows
+        //      `./my_plugins/plugin1.dll` and `./my_plugins/libplugin1.dll` on Windows
         //      `./my_plugins/libplugin1.so` on Linux
         //      `./my_plugins/libplugin1.dylib` and `./my_plugins/libplugin1.so` on MacOS.
         // If that fails, loads `./my_plugins/plugin1`
@@ -358,30 +359,28 @@
     <div class="desc"><i>Value:</i> <code>rtld_lazy | rtld_local</code>.</div>
 
 <pre>search_system_directories</pre>
-    <div class="desc"><i>Value:</i> Any value that can not be received by applying binary OR to any set of modes from <code>dl_mode</code></div>
+    <div class="desc"><i>Value:</i> Any value that can not be received by applying binary OR to <code>dl_mode</code> constants from above.</div>
     <div class="desc"><i>Effects:</i> Allows loading of shared library files from system specific shared library file directories [fs.def.directory]
     along with loading shared library files from current directory.</div>
 
-<h4>??.4.3 shared_library constructors <span class="right">[dl.shared_library.constr]</span></h4>
+<h4>??.4.3 shared_library constructors <span class="right">[dl.shared_library.cons]</span></h4>
 <pre>constexpr shared_library() noexcept;</pre>
     <div class="desc"><i>Effects:</i> Creates <code>shared_library</code> that does not reference any shared library file.</div>
-    <div class="desc"><i>Ensures:</i> <code>*this</code> is <code>false</code>.</div>
+    <div class="desc"><i>Ensures:</i> <code>!*this</code>.</div>
 
 <pre>shared_library(shared_library&amp;&amp; lib) noexcept;</pre>
     <div class="desc"><i>Effects:</i> Assigns the state of <code>lib</code> to <code>*this</code> and sets <code>lib</code> to a default constructed state.</div>
     <div class="desc"><i>Remarks:</i> Does not invalidate symbols previously obtained from <code>lib</code>.</div>
-    <div class="desc"><i>Ensures:</i> <code>lib</code> is <code>false</code>, <code>*this</code> is <code>true</code>.</div>
+    <div class="desc"><i>Ensures:</i> <code>!lib</code> and <code>!!*this</code>.</div>
 
 <pre>shared_library&amp; operator=(shared_library&amp;&amp; lib) noexcept;</pre>
     <div class="desc"><i>Effects:</i> If <code>*this</code> then calls
  <code>reset()</code>. Assigns the state of <code>lib</code> to <code>*this</code> and sets <code>lib</code> 
 to a default constructed state.</div>
     <div class="desc"><i>Remarks:</i> Does not invalidate symbols previously obtained from <code>lib</code>.</div>
-    <div class="desc"><i>Ensures:</i> <code>lib</code> is <code>false</code>, <code>*this</code> is <code>true</code>.</div>
+    <div class="desc"><i>Ensures:</i> <code>!lib</code> and <code>!!*this</code>.</div>
     <div class="desc"><i>Returns:</i> <code>*this</code></div>
 
-
-<h4>??.4.4 shared_library destructor <span class="right">[dl.shared_library.destr]</span></h4>
 <pre>~shared_library();</pre>
 <div class="desc">
     <i>Effects:</i> Destroys the <code>shared_library</code> by calling <code>reset()</code>.
@@ -427,12 +426,12 @@ shared_library(const filesystem::path&amp; library_path, dl_mode mode, error_cod
 
     <div class="desc"><i>Throws:</i> As specified in [dl.errors]</div>
 
-<h4>??.4.6 shared_library members<span class="right">[dl.shared_library.member]</span></h4>
+<h4>??.4.4 shared_library members <span class="right">[dl.shared_library.member]</span></h4>
 <pre>void reset() noexcept;</pre>
     <div class="desc"><i>Effects:</i> Sets <code>*this</code> to a default constructed state. If <code>*this</code> was the last instance of <code>shared_library</code> referencing the shared library file,
-    then all the resources associated with shared library file shall be released.</div>
+    then all the resources associated with shared library file may be released. <i>[ Note:</i> Platform specific calls not always release all the resources associated with shared library file. For example, <code>dlclose</code> from POSIX "is not required to remove structures from an address space, neither is an implementation prohibited from doing so." <i>— end note ]</i></div>
     <div class="desc"><i>Remarks:</i> Symbols obtained from shared library file remain valid if there is at least one instance of <code>shared_library</code> referencing the shared library file.</div>
-    <div class="desc"><i>Ensures:</i> <code>*this</code> is <code>false</code>.</div>
+    <div class="desc"><i>Ensures:</i> <code>!*this</code>.</div>
 
 <pre>explicit operator bool() const noexcept;</pre>
     <div class="desc"><i>Returns:</i> <code>true</code> if <code>*this</code> references a shared library file, <code>false</code> otherwise.</div>
@@ -464,14 +463,14 @@ template &lt;typename SymbolT&gt;
     <i>[ Note:</i> This member allow implementations to provide access to implementation details. Actual use of these members is inherently non-portable. <i>— end note ]</i>
 </div>
 
-<pre>bool operator&lt;=&gt;(const shared_library&amp; lhs, const shared_library&amp; rhs) noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code>native_handle() &lt;=&gt; other.native_handle()</code></div>
+<pre>strong_ordering operator&lt;=&gt;(const shared_library&amp; other) const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> result of implementation specific comparison of <code>this-&gt;native_handle()</code> and <code>other.native_handle()</code></div>
 
 
-<h4>??.4.7 shared_library static members<span class="right">[dl.shared_library.static]</span></h4>
+<h4>??.4.5 shared_library static members <span class="right">[dl.shared_library.static]</span></h4>
 
 <pre>static constexpr bool platform_supports_dl() noexcept;</pre>
-    <div class="desc"><i>Returns:</i> true if platform supports loading of shared library files into the memory of program, <code>false</code> otherwise.
+    <div class="desc"><i>Returns:</i> <code>true</code> if platform supports loading of shared library files into the memory of program, <code>false</code> otherwise.
     [ Note: If this function returns <code>false</code>, then any attempt to load a shared library file will fail at runtime. — end note ]</div>
 
 
@@ -479,14 +478,8 @@ template &lt;typename SymbolT&gt;
     <div class="desc"><i>Returns:</i> <code>true</code> if according to platform capabilities <code>shared_library(program_location())</code> may succeed, <code>false</code> otherwise.</div>
 
 
-<h4>??.4.8 shared_library hash support<span class="right">[dl.shared_library.hash]</span></h4>
-<pre>template &lt;&gt; struct hash&lt;experimental::shared_library&gt;;</pre><p>
-    <div class="desc">
-        The specialization is enabled (23.14.15).
-    </div>
 
-
-<h4>??.5 Runtime path functions<span class="right">[dl.location]</span></h4>
+<h4>??.5 Runtime path functions <span class="right">[dl.location]</span></h4>
 <pre>template&lt;class T&gt;
 filesystem::path symbol_location(const T&amp; symbol, error_code&amp; ec);
 template&lt;class T&gt;
@@ -504,18 +497,25 @@ filesystem::path program_location();</pre>
     <div class="desc"><i>Returns:</i> Full path and name to the current program.</div>
     <div class="desc"><i>Throws:</i> As specified in [dl.errors]</div>
 
+<h4>??.5 shared_library hash support <span class="right">[dl.shared_library.hash]</span></h4>
+<pre>template &lt;&gt; struct hash&lt;experimental::shared_library&gt;;</pre><p>
+    <div class="desc">
+        The specialization is enabled.
+    </div>
+
+		<h3>Feature-testing macro</h3>
+    <p>Add a row into the "Standard library feature-test macros" table [support.limits.general]:</p>
+    <table border="1"><tr><td><code>__cpp_lib_dl</code></td><td>201811</td><td><code>&lt;experimental/dl&gt;</code></td></tr></table>
 
 
-		<h2>V. Feature-testing macro</h2>
-        <p>For the purposes of SG10, we recommend the feature-testing macro name __cpp_lib_shared_library.</p>
-
-
-		<h2>VI. Revision History</h2>
+		<h2>V. Revision History</h2>
 		<p>Revision 4:</p>
 		<ul>
-			<li>Default shared_library constructor is not constexpr</li>
+			<li>Default shared_library constructor is now <code>constexpr</code></li>
 			<li>Use element names from P0788R3</li>
+			<li>Do not require <code>reset()</code> to release all the resources associated with shared library file</li>
 			<li>Cleanup the wording, use spaceship operator</li>
+			<li>Rebased to N4762</li>
 		</ul>
 		<p>Revision 3:</p>
 		<ul>
@@ -555,11 +555,19 @@ filesystem::path program_location();</pre>
 		</ul>
 
 
+		<h2>VI. Acknowledgements</h2>
+		<p>Klemens Morgenstern highlighted some of the missing functionality 
+        in Boost.DLL and provided implementation of mangled symbols load,
+        that showed complexities of such approach. Renato Tegon Forti started the work on Boost.DLL and
+        provided a lot of code, help and documentation for the Boost.DLL.</p>
+        <p>Thanks to Tom Honermann for providing comments and recommendations.</p>
+        <p>Thanks to Vasily Kulikov for pointing out that dlclose does not necessarily releases the resources associated with shared library file.</p>
+
 		<h2>VII. References</h2>
 		<p>[<a name="Boost.DLL">Boost.DLL</a>] Boost DLL library.
 			Available online at <a href="https://github.com/boostorg/dll">https://github.com/boostorg/dll</a></p>
-		<p>[<a name="N4618">N4618</a>] Working Draft, Standard for Programming Language C++.
-			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/n4618.pdf">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/n4618.pdf</a></p>
+		<p>[<a name="N4762">N4762</a>] Working Draft, Standard for Programming Language C++.
+			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/n4762.pdf">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/n4762.pdf</a></p>
 
 
 		<p>[<a name="N1400">N1400</a>] Toward standardization of dynamic libraries.
@@ -577,13 +585,6 @@ filesystem::path program_location();</pre>
 		<p>[<a name="N2407">N2407</a>] C++ Dynamic Library Support.
 			Available online at <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2407.html">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2407.html</a></p>
 		<p>&nbsp;</p>
-
-		<h2>VIII. Acknowledgements</h2>
-		<p>Klemens Morgenstern highlighted some of the missing functionality 
-        in Boost.DLL and provided implementation of mangled symbols load,
-        that showed complexities of such approach. Renato Tegon Forti started the work on Boost.DLL and
-        provided a lot of code, help and documentation for the Boost.DLL.</p>
-        <p>Thanks to Tom Honermann for providing comments and recommendations.</p>
 
 
 
