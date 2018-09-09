@@ -1,7 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<html>
-<head>
-    <title>Wording for the stacktrace library</title>
+<html><head>
+    <title>A Proposal to add stack trace library</title>
     <meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
     <meta http-equiv="Content-Language" content="en-us">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -23,34 +22,121 @@
     </style>
 </head>
 <body bgcolor="#ffffff">
-    <address>Document number: D1150R0</address>
+    <address>Document number: D0881R2</address>
     <address>Project: Programming Language C++</address>
-    <address>Audience: Library Working Group, Core Working Group</address>
+    <address>Audience: Library Evolution Working Group, Library Working Group, Core Working Group</address>
     <address>&nbsp;</address>
     <address>Alexey Gorgurov &lt;<a href="mailto:leha-bot@yandex.ru">leha-bot@yandex.ru</a>&gt;, &lt;<a href="mailto:no-vista@yandex.ru">no-vista@yandex.ru</a>&gt;</address>
     <address>Antony Polukhin, Yandex.Taxi Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2018-08-06</address>
-    <h1>Wording for the stacktrace library</h1>
+    <address>Date: 2018-09-08</address>
+    <h1>A Proposal to add stack trace library</h1>
 
-    <h2>I. Introduction and Intent</h2>
-    <p>This paper presents the detailed wording changes to implement <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0881r1.html">
-    P0881R1 "A Proposal to add stack trace library"</a>. Any differences in semantics to P0881R1 are unintentional.</p>
+    <p class='changed-added'>Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0881r1.html">P0881R1</a> are marked with blue.<p>
+    <p><input type="checkbox" id="show_deletions" onchange="show_hide_deleted()"> Show deleted lines from P0881R0.</p>
 
-    <p>The intent of the P0881R1 was to provide a simple to use facility mostly for debugging purposes that  is hard to misuse. Key features that must be preserved by implementations:</p>
-    <ul>
+        <h2>I. Motivation</h2>
+	<p>In the current working draft [<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/n4741.pdf">N4741</a>] there is no way to get, store and decode the current call sequence.
+	Such call sequences are useful for debugging and post mortem debugging. They are popular in other programming languages (like Java, C#, Python).</p>
+
+	<p>Pretty often assertions can't describe the whole picture of a bug and do not provide enough information to locate the problem.
+	For example, you can see the following message on out-of-range access:</p>
+<pre>
+boost/array.hpp:123: T& boost::array&lt;T, N&gt;::operator[](boost::array&lt;T, N&gt;::size_type): Assertion '(i &lt; N)&&("out of range")' failed.
+Aborted (core dumped)</pre>
+	<p>That's not enough information in the assert message to locate the problem without debugger.</p>
+	<p>This paper proposes classes that could simplify debugging and may change the assertion message into the following:</p>
+<pre>
+Expression 'i &lt; N' is false in function 'T& boost::array&lt;T, N&gt;::operator[](boost::array&lt;T, N&gt;::size_type)': out of range.
+Backtrace:
+ 0# boost::assertion_failed_msg(char const*, char const*, char const*, char const*, long) at ../example/assert_handler.cpp:39
+ 1# boost::array&lt;int, 5ul&gt;::operator[](unsigned long) at ../../../boost/array.hpp:124
+ 2# bar(int) at ../example/assert_handler.cpp:17
+ 3# foo(int) at ../example/assert_handler.cpp:25
+ 4# bar(int) at ../example/assert_handler.cpp:17
+ 5# foo(int) at ../example/assert_handler.cpp:25
+ 6# main at ../example/assert_handler.cpp:54
+ 7# 0x00007F991FD69F45 in /lib/x86_64-linux-gnu/libc.so.6
+ 8# 0x0000000000401139
+</pre>
+
+
+	<h2 class="changed-deleted">II. Impact on the Standard</h2>
+	<p class="changed-deleted">This proposal is a pure library extension and it does not break the existing code and does not degrade performance.
+	It does not require any changes in the core language and could be implemented in the standard C++.</p>
+
+	<h2>II. Design Decisions</h2>
+	<p>The design is based on the Boost.Stacktrace library, a popular library that does not depend on any non-standard library components.</p>
+	<p><b>Note about signal safety:</b> this proposal does not attempt to provide a signal-safe solution for capturing and decoding stacktraces.
+	Such functionality currently is not implementable on some of the popular platforms. However, the paper attempts to provide extensible solution, that may be made signal safe some day
+	by providing a signal safe allocator and changing the <code>stacktrace</code> implementation details.</p>
+	<p class="changed-added"><b>Note on <code>function_info</code> name:</b> P0881R1 had a class named <code>stack_frame</code>. LWG found out that <code>stack_frame</code> is
+	a bad name because <code>stack_frame</code> is usable not only in stacktraces but it also could be constructed from function pointer (not some pointer to frame)
+	to provide information about the function.</p>
+	<p class="changed-added">Type name <code>function_info</code> reminds of the <code>type_info</code> which is not a very popular class. Unlike <code>function_info</code> the
+	<code>type_info</code> class is not copyable, not assignable, not constructible by users, not hashable and not less comparable. Nevertheless we find that
+	functionality of those types is quite common and think that <code>function_info</code> is the suitable name. Additional care was taken to not shut the door closed for
+	making the interfaces more common in the future. Here's a list of changes that <b>may</b> be done later for making those types closer:
+	</p>
+	<ul class='changed-added'>
+	<li>add <code>string type_info::pretty_name()</code></li>
+	<li>add <code>strong_ordering type_info::operator&lt;=&gt;(const type_info&amp; other) const noexcept = default;</code></li>
+	<li>add <code>string type_info::source_file()</code> and <code>size_t type_info::source_line()</code></li>
+	<li>add <code>const cahr* function_info::name()</code></li>
+	<li>enable hash specialization for <code>type_info</code></li>
+	</ul>
+	<p><b>Note on performance:</b> during Boost.Stacktrace development phase many users requested a fast way to store stack trace, without decoding the function names. This functionality is preserved in the paper.
+	All the <code>function_info</code> functions and constructors are lazy and won't decode the pointer information if there was no explicit request from class user.</p>
+	<p><b>Note on allocations:</b> initial implementations of Boost.Stacktrace were not using allocator and all the frames were placed inside a fixed size internal storage.
+	That was a mistake! Sometimes the most important information is located at the bottom of the stack. For example if you run Boost.Test, then the test name will be located low on the stack.
+	With a fixed size storage the bottom of the stack could be lost along with the information.</p>
+	<p>Current design assumes that by default users wish to see the whole stack and OK with dynamic allocations, because do not construct <code>stacktrace</code>
+	in performance critical places.
+	For those users, who wish to use <code>stacktrace</code> on a hot path or in embedded environments <code>basic_stacktrace</code> allows to provide a custom allocator that allocates
+	on the stack or in some other place, where users thinks it is appropriate.</p>
+	<p><b>Note on returning <code>std::string</code> and not having <code>noexcept</code> on <code>function_info::source_line()</code></b>:
+	Unfortunately this is a necessarity on some platforms, where getting source line requires allocating or where source
+	file name <a href="https://github.com/boostorg/stacktrace/blob/a0f948e9f505cb53baf582fccbcb3024fd255ee1/include/boost/stacktrace/detail/frame_msvc.ipp#L213-L219">returned into</a> a storage
+	<a href="http://www.qnx.com/developers/docs/6.5.0/index.jsp?topic=%2Fcom.qnx.doc.neutrino_lib_ref%2Fb%2Fbt_get_backtrace.html"> provided by user</a>.</p>
+	<p><b>Note on expected implementation</b>:
+	We assume that Standard Library implementations would allow to disable/enable gathering stack traces by a compiler switch that does not require recompiling the whole project.
+	In other words, we expect to see a compiler option like <code>-fno-stacktrace</code> or <code>libstacktrace/lib_stacktrace_noop</code> libraries with the same ABI that would
+	force the constructor of the <code>basic_stacktrace</code> to do nothing. This feature is implemented in Boost.Stacktrace and is highly requested in big projects.</p>
+
+
+    <h2 class='changed-added'>III. Significant changes to review</h2>
+    <p>LEWG:</p>
+    <ul class='changed-added'>
+    <li><code>stack_frame</code> was renamed to <code>function_info</code>. </li>
+    <li><code>native_ptr_t</code> is now an object pointer rather than a function pointer. The intent is to require some kind of <code>const void*</code> that is <b>not</b> callable but could store function pointers.</li>
+    <li>Added hash support.</li>
+    <li>LWG requested <code>rbegin</code> like functions for <code>basic_stacktrace</code>, so now <code>basic_stacktrace</code> satisfies the requirements
+    of an allocator-aware container, of a sequence container and reversible container except that only operations defined for const-qualified sequence containers are
+    supported and that the semantics of comparison functions and default constructor are different from those required for a container.</li>
+    <li>Added <code>template&lt;class MemberFunc&gt; explicit function_info(MemberFunc addr) noexcept;</code>. Does LEWG wish to see this function?</li>
+    <li>How about moving <code>function_info</code> into a separate header <code>&lt;function_info&gt;</code>?</li>
+    </ul>
+    <p>Points of special interest for CWG:</p>
+    <ul class='changed-added'>
+    <li><code>native_ptr_t</code> description</li>
+    <li><i>stacktrace</i> definition in [stacktrace] and member functions in [function_info.query]. Wording should not prevent any optimizations.</li>
+    </ul>
+
+    <h2 class='changed-added'>III. Wording Intent</h2>
+    <p>Key features that should be preserved by implementations:</p>
+    <ul class='changed-added'>
     <li>All the functions are lazy and do not query the pointer information if there was no explicit request.</li>
     <li>No fixed max size for trace - all the available invokers must be stored in a <code>stacktrace</code>.</li>
     <li>Implementations should allow to disable/enable gathering stacktraces by a link-time switch.</li>
     <li>Stacktracing does not prevent any of the optimizations.</li>
     <li>No info for a pointer is OK (it's not an error, do not throw!).</li>
-    <li><code>stack_frame::name()</code> should return a demangled function signature if possible.</li>
+    <li><code>function_info::pretty_name()</code> should return a demangled function signature if possible.</li>
     <li><code>to_string(stacktrace)</code> should query information from debug symbols, symbol export tables and return demangled signatures if possible.</li>
     </ul>
 
 
-    <h2>II. Wording</h2>
-    <h3>23.? Stacktrace [stacktrace]</h3>
+    <h2 class='changed-added'>IV. Wording</h2>
+    <h3>23.? Stacktrace <span class="right">[stacktrace]</span></h3>
     <p>Define <code>INVOKER(x)</code> as a function that returns the function that invoked function <code>x</code>; <code>NTH_INVOKER<sub>n</sub>(x)</code> as a function <code>NTH_INVOKER<sub>n-1</sub>(INVOKER(x))</code> for <code>n &gt; 0</code> and <code>NTH_INVOKER<sub>0</sub>(x)</code> as <code>INVOKER(x)</code>.
     A sequence of functions (f<sub>0</sub>, ..., f<sub>m</sub>) called <i>stacktrace</i>,
     where:</p>
@@ -64,98 +150,143 @@
     <p>This subclause describes components that C++ programs may use to store the stacktrace of the current thread of execution,
     query information about the stored stacktrace or particular function at runtime.</p>
 
-    <h3>23.?.1 Header &lt;stacktrace&gt; synopsis [stacktrace.syn]</h3>
+    <h3>23.?.1 Header &lt;stacktrace&gt; synopsis <span class="right">[stacktrace.syn]</span></h3>
     <pre>
 namespace std {
-  // 23.?.2, class stack_frame
-  class stack_frame;
+  // 23.?.2, class function_info
+  class function_info;
 
   // 23.?.3, class basic_stacktrace
   template&lt;class Allocator&gt;
   class basic_stacktrace;
 
   // basic_stacktrace typedef names
-  using stacktrace = basic_stacktrace&lt;allocator&lt;stack_frame&gt;&gt;;
+  using stacktrace = basic_stacktrace&lt;allocator&lt;function_info&gt;&gt;;
 
   // 23.?.4, non-member functions
+  void swap(function_info&amp; a, function_info&amp; b) noexcept;
+
+  template&lt;class Allocator&gt;
+  void swap(basic_stacktrace&lt;Allocator&gt;&amp; a, basic_stacktrace&lt;Allocator&gt;&amp; b);
+
   template&lt;class Allocator&gt;
   string to_string(const basic_stacktrace&lt;Allocator&gt;&amp; st);
 
-  string to_string(const stack_frame&amp; f);
+  string to_string(const function_info&amp; f);
 
   template&lt;class charT, class traits, class Allocator&gt;
   basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(basic_ostream&lt;charT, traits&gt;&amp; os, const basic_stacktrace&lt;Allocator&gt;&amp; st);
 
   template&lt;class charT, class traits&gt;
-  basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(basic_ostream&lt;charT, traits&gt;&amp; os, const stack_frame&amp; f);
+  basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(basic_ostream&lt;charT, traits&gt;&amp; os, const function_info&amp; f);
 
   // 23.?.5, hash support
   template&lt;class T&gt; struct hash;
-  template&lt;&gt; struct hash&lt;stack_frame&gt;;
+  template&lt;&gt; struct hash&lt;function_info&gt;;
   template&lt;class Allocator&gt; struct hash&lt;basic_stacktrace&lt;Allocator&gt;&gt;;
 }
         </pre>
 
 
-    <h3>23.?.2 Class stack_frame [stacktrace.frame]</h3>
+    <h3>23.?.2 Class function_info <span class="right">[function_info]</span></h3>
     <pre>
 namespace std {
-  class stack_frame {
+  class function_info {
   public:
     // member typedefs
-    using native_frame_ptr_t = void(*)();
+    using native_ptr_t = <i>implementation-defined</i>;
 
     // 23.?.2.1, construct/copy/assign/destroy
-    constexpr stack_frame() noexcept;
-    template&lt;class T&gt; explicit stack_frame(T addr) noexcept;
-    constexpr stack_frame(const stack_frame&amp; other) noexcept = default;
-    constexpr stack_frame&amp; operator=(const stack_frame&amp; other) noexcept = default;
-    ~stack_frame() = default;
+    constexpr function_info() noexcept;
+    constexpr explicit function_info(native_ptr_t addr) noexcept;
+    template&lt;class Func&gt; explicit function_info(Func* addr) noexcept;
+    template&lt;class MemberFunc&gt; explicit function_info(MemberFunc addr) noexcept;
+
+    constexpr function_info(const function_info&amp; other) noexcept = default;
+    constexpr function_info&amp; operator=(const function_info&amp; other) noexcept = default;
+    ~function_info() = default;
 
     // 23.?.2.2, observers
-    constexpr native_frame_ptr_t address() const noexcept;
+    constexpr native_ptr_t address() const noexcept;
     constexpr explicit operator bool() const noexcept;
 
-    constexpr strong_ordering operator&lt;=&gt;(const stack_frame&amp; rhs) const noexcept = default;
-
     // 23.?.2.3, query
-    string name() const;
+    string pretty_name() const;
     string source_file() const;
     size_t source_line() const;
 
+    // 23.?.2.4, comparison
+    constexpr strong_ordering operator&lt;=&gt;(const function_info&amp; other) const noexcept = default;
+
+    // 23.?.2.5, modifiers
+    void swap(function_info&amp; other) noexcept;
+
   private:
-    native_frame_ptr_t frame_ptr; // exposition only
+    native_ptr_t ptr_; // exposition only
   };
 }
         </pre>
-    <p>An object of class <code>stack_frame</code> stores an address of any function type or an address of any member function type or it has no
-    value. <code>stack_frame</code> provides operations for querying information not deducible from function type.</p>
+    <p>An object of class <code>function_info</code> stores an address of any function type or an address of any member function type or it has no
+    value. <code>function_info</code> provides operations for querying information not deducible from function type.</p>
+    <p><code>native_ptr_t</code> is an implementation-defined object pointer type that designates a function or member function.
+    Pointer arithmetic on <code>native_ptr_t</code> is ill-formed.</p>
 
 
-    <h3>23.?.2.1 <code>stack_frame</code> construct/copy/assign/destroy [stacktrace.frame.con]</h3>
-    <pre>constexpr stack_frame() noexcept;</pre>
-    <div class="desc"><i>Ensures:</i> <code>frame_ptr == nullptr</code>.</div>
+    <h3>23.?.2.1 <code>function_info</code> construct/copy/assign/destroy <span class="right">[function_info.cons]</span></h3>
+    <pre>constexpr function_info() noexcept;</pre>
+    <div class="desc"><i>Ensures:</i> <code>ptr_ == nullptr</code>.</div>
 
-    <pre>template&lt;class T&gt; explicit stack_frame(T addr) noexcept;</pre>
-    <div class="desc"><i>Constraints:</i> <code>T</code> is a function pointer or a member function pointer.</div>
-    <div class="desc"><i>Effects:</i> Stores address of a function pointed by <code>addr</code> in <code>frame_ptr</code> if <code>T</code> is a function pointer.
-
-    Otherwise stores the address of a member function pointed by <code>addr</code> in <code>frame_ptr</code> in an implementation-defined manner.
-    </div>
+    <pre>constexpr explicit function_info(native_ptr_t addr) noexcept;</pre>
+    <div class="desc"><i>Ensures:</i> <code>ptr_ == addr</code>.</div>
 
 
-    <h3>23.?.2.2 <code>stack_frame</code> observers [stacktrace.frame.obs]</h3>
-    <pre>constexpr native_frame_ptr_t address() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code>frame_ptr</code>.</div>
+    <pre>template&lt;class Func&gt; explicit function_info(Func* addr) noexcept;</pre>
+    <div class="desc"><i>Constraints:</i> <code>Func*</code> is a function pointer.</div>
+    <div class="desc"><i>Effects:</i> Stores address of a function pointed by <code>addr</code> in <code>ptr_</code> in an implementation-defined manner.</div>
+
+    <pre>template&lt;class MemberFunc&gt; explicit function_info(MemberFunc addr) noexcept;</pre>
+    <div class="desc"><i>Constraints:</i> <code>MemberFunc</code> is a member function pointer.</div>
+    <div class="desc"><i>Effects:</i> Let <code>T</code> be the <code>MemberFunc</code> class type. Stores the address of the member function
+    pointed by <code>addr</code> for the object of type <code>T</code> in <code>ptr_</code> in an implementation-defined manner or <code>nullptr</code>
+    if implementation limitations prevent such conversion.</div>
+    <div class="desc"><i>[Note:</i> For virtual functions it stores the actual function pointer from vtable of the <code>T</code> into the <code>ptr_</code>. <i>- end note]</i></div>
+    <div class="desc"><i>[Example:</i>
+<pre>
+    struct base {
+        void no_virt();
+        virtual void virt() = 0;
+    };
+    struct derived: base {
+        void no_virt();
+        void virt() override;
+    };
+
+    function_info(&amp;base::no_virt).source_line();    // returns information for base::no_virt if possible
+    function_info(&amp;base::virt).source_line();       // returns information for base::virt if possible
+    function_info(&amp;derived::no_virt).source_line(); // returns information for derived::no_virt if possible
+
+    using base_ptr_t = void(base::*)();
+    base_ptr_t base_ptr = &amp;derived::virt;
+
+    // returns information for base::virt if possible
+    function_info(base_ptr).source_line();
+</pre>
+    <i>- end example]</i></div>
+
+    <h3>23.?.2.2 <code>function_info</code> observers <span class="right">[function_info.obs]</span></h3>
+    <pre>constexpr native_ptr_t address() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>ptr_</code>.</div>
 
     <pre>constexpr explicit operator bool() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code>frame_ptr != nullptr</code>.</div>
+    <div class="desc"><i>Returns:</i> <code>ptr_ != nullptr</code>.</div>
 
 
-    <h3>23.?.2.3 <code>stack_frame</code> query [stacktrace.frame.query]</h3>
+    <h3>23.?.2.3 <code>function_info</code> query <span class="right">[function_info.query]</span></h3>
+    <p><i>[Note:</i> All the <code>function_info</code> query functions treat errors other than memory allocation errors (like errors during filesystem operations) as "no information available"
+    and do not throw in that case. <i>- end note]</i></p>
 
-    <pre>string name() const;</pre>
-    <div class="desc"><i>Returns:</i> Platform-specific signature of the function pointed by <code>frame_ptr</code> or function with functionality close to <code>frame_ptr</code>, if present and such information is available; empty string otherwise.</div>
+    <pre>string pretty_name() const;</pre>
+    <div class="desc"><i>Returns:</i> Platform-specific signature of the function pointed by <code>ptr_</code> or function with functionality close to <code>ptr_</code>, if present and such information is available; empty string otherwise.</div>
     <div class="desc"><i>Throws:</i> <code>bad_alloc</code> if memory for the internal data structures or the resulting string cannot be allocated.</div>
 
     <pre>string source_file() const;</pre>
@@ -166,19 +297,29 @@ namespace std {
     <div class="desc"><i>Returns:</i> The presumed line number (within the source file) [cpp.predefined] with the beginning of the definition of the wrapped function, if present and such information is available; 0 otherwise.</div>
     <div class="desc"><i>Throws:</i> <code>bad_alloc</code> if memory for the internal data structures cannot be allocated.</div>
 
+    <h3>23.?.2.4 <code>function_info</code> comparison <span class="right">[function_info.comp]</span></h3>
+    <pre>constexpr strong_ordering operator&lt;=&gt;(const function_info&amp; other) const noexcept = default;</pre>
+    <div class="desc"><i>Returns:</i> result of implementation specific comparison of <code>this-&gt;ptr_</code> and <code>other.ptr_</code>.</div>
 
+    <h3>23.?.2.4 <code>function_info</code> modifiers <span class="right">[function_info.mod]</span></h3>
+    <pre>void swap(function_info&amp; other) noexcept;</pre>
+    <div class="desc"><i>Effects:</i> Exchanges the contents of <code>*this</code> and <code>other</code>.</div>
 
-
-    <h3>23.?.3 Class template <code>basic_stacktrace</code> [stacktrace.basic.template]</h3>
+    <h3>23.?.3 Class template <code>basic_stacktrace</code> <span class="right">[stacktrace.basic.template]</span></h3>
     <pre>
 namespace std {
   template&lt;class Allocator&gt;
   class basic_stacktrace {
   public:
-    using value_type = stack_frame;
+    using value_type = function_info;
     using const_reference = const value_type&amp;;
-    using size_type = <i>implementation-defined</i>;
+    using reference = value_type&amp;;
     using const_iterator = <i>implementation-defined</i>;
+    using iterator = const_iterator;
+    using reverse_iterator = std::reverse_iterator&lt;iterator&gt;;
+    using const_reverse_iterator = std::reverse_iterator&lt;const_iterator&gt;;
+    using difference_type = typename iterator_traits&lt;iterator&gt;::difference_type;
+    using size_type = typename allocator_traits&lt;Allocator&gt;::size_type;
     using allocator_type = Allocator;
 
     // 23.?.3.1, construct/copy/destroy
@@ -193,16 +334,32 @@ namespace std {
     ~basic_stacktrace() = default;
 
     // 23.?.3.2, observers
-    size_type size() const noexcept;
-    const_reference operator[](size_type ) const;
+    allocator_type get_allocator() const;
+
     const_iterator begin() const noexcept;
     const_iterator end() const noexcept;
+    const_reverse_iterator rbegin() const noexcept;
+    const_reverse_iterator rend() const noexcept;
+
+    const_iterator cbegin() const noexcept;
+    const_iterator cend() const noexcept;
+    const_reverse_iterator crbegin() const noexcept;
+    const_reverse_iterator crend() const noexcept;
 
     explicit operator bool() const noexcept;
+    [[nodiscard]] bool empty() const noexcept;
+    size_type size() const noexcept;
+    size_type max_size() const noexcept;
+
+    const_reference operator[](size_type ) const;
+    const_reference at(size_type ) const;
 
     // 23.?.3.3, comparisons
     template &lt;class Allocator2&gt;
     strong_ordering operator&lt;=&gt;(const basic_stacktrace&lt; Allocator2 &gt;&amp; rhs) const noexcept;
+
+    // 23.?.3.4, modifiers
+    void swap(basic_stacktrace&amp; other);
 
   private:
     vector&lt;value_type, allocator_type&gt; frames; // exposition only
@@ -211,13 +368,19 @@ namespace std {
 }
         </pre>
     <p>The <code>basic_stacktrace</code> template class stores the stacktrace of the current thread of execution on construction and provides access to the stored stacktrace.</p>
-    <p>The member functions of <code>basic_stacktrace</code> use an object of the Allocator class passed as a template parameter
-    to allocate memory for the internal data structures.</p>
 
-    <h3>23.?.3.1 <code>basic_stacktrace</code> construct/copy/destroy [stacktrace.basic.con]</h3>
+    <p>The class template <code>basic_stacktrace</code> satisfies the requirements of an allocator-aware container, of a sequence
+    container and reversible container (21.2.1, 21.2.3) except that only operations defined for const-qualified sequence containers are
+    supported and that the semantics of comparison functions and default constructor are different from those required for a container.</p>
+
+    <h3>23.?.3.1 <code>basic_stacktrace</code> construct/copy/destroy <span class="right">[stacktrace.basic.cons]</span></h3>
     <pre>basic_stacktrace() noexcept;
 explicit basic_stacktrace(const allocator_type&amp; alloc) noexcept;</pre>
     <div class="desc"><i>Effects:</i> Stores the stacktrace of the current thread of execution in <code>frames</code>. <code>alloc</code> is passed to the <code>frames</code> constructor.</div>
+    <div class="desc"><i>[Note:</i> If <code>!!*this</code> then <code>frames.front()</code> is the <code>function_info</code> for the current function or for the the result of
+    applying <code>NTH_INVOKER<sub>n1</sub>(x)</code> to the current function with implementation-defined <code>n1</code>; <code>frames.back()</code> is the <code>function_info</code> for
+    the  <code>main</code> function or is the <code>function_info</code> for the result of applying
+    <code>NTH_INVOKER<sub>nm</sub>(x)</code> to the <code>main</code> function with implementation-defined <code>nm</code><i> - end note]</i></div>
     <div class="desc"><i>Ensures:</i> <code>!*this</code> if failed to store stacktrace of the current thread of execution; <code>!!*this</code> otherwise.</div>
 
     <pre>basic_stacktrace(size_type skip, size_type max_depth, const allocator_type&amp; alloc = allocator_type()) noexcept;</pre>
@@ -225,38 +388,73 @@ explicit basic_stacktrace(const allocator_type&amp; alloc) noexcept;</pre>
     <div class="desc"><i>Ensures:</i> <code>!*this</code> if failed to store non-empty stacktrace of the current thread of execution; <code>!!*this</code> otherwise.</div>
 
 
-    <h3>23.?.3.2 <code>basic_stacktrace</code> observers [stacktrace.basic.obs]</h3>
+    <h3>23.?.3.2 <code>basic_stacktrace</code> observers <span class="right">[stacktrace.basic.obs]</span></h3>
+
+    <pre>allocator_type get_allocator() const;</pre>
+    <div class="desc"><i>Returns:</i> <code>frames.get_allocator()</code>.</div>
+
+    <pre>const_iterator begin() const noexcept;
+const_iterator cbegin() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>frames.cbegin()</code>.</div>
+
+    <pre>const_iterator end() const noexcept;
+const_iterator cend() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>frames.cend()</code>.</div>
+
+    <pre>const_iterator rbegin() const noexcept;
+const_iterator crbegin() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>frames.crbegin()</code>.</div>
+
+    <pre>const_iterator rend() const noexcept;
+const_iterator crend() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>frames.crend()</code>.</div>
+
+    <pre>explicit operator bool() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>!frames.empty()</code>.</div>
+
+    <pre>[[nodiscard]] bool empty() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>frames.empty()</code>.</div>
+
     <pre>size_type size() const noexcept;</pre>
     <div class="desc"><i>Returns:</i> <code>frames.size()</code>.</div>
+
+    <pre>size_type max_size() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>frames.max_size()</code>.</div>
 
     <pre>const_reference operator[](size_type frame_no) const;</pre>
     <div class="desc"><i>Expects:</i> <code>frame_no &lt; size()</code>.</div>
     <div class="desc"><i>Returns:</i> <code>frames[frame_no]</code>.</div>
     <div class="desc"><i>Throws:</i> Nothing.</div>
 
-    <pre>const_iterator begin() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code>frames.cbegin()</code>.</div>
-
-    <pre>const_iterator end() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code>frames.cend()</code>.</div>
-
-    <pre>explicit operator bool() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code>!frames.empty()</code>.</div>
+    <pre>const_reference at(size_type frame_no) const;</pre>
+    <div class="desc"><i>Throws:</i> <code>out_of_range</code> if <code>frame_no &gt;= size()</code>.</div>
+    <div class="desc"><i>Returns:</i> <code>frames[frame_no]</code>.</div>
 
 
-    <h3>23.?.3.3 <code>basic_stacktrace</code> comparisons [stacktrace.basic.comp]</h3>
+    <h3>23.?.3.3 <code>basic_stacktrace</code> comparisons <span class="right">[stacktrace.basic.comp]</span></h3>
     <pre>template &lt;class Allocator2&gt;
 strong_ordering operator&lt;=&gt;(const basic_stacktrace&lt; Allocator2 &gt;&amp; rhs) const noexcept;</pre>
     <div class="desc"><i>Returns:</i> <code>this-&gt;size() &lt;=&gt; rhs.size()</code> if <code>this-&gt;size() != rhs.size()</code>.
     <code>lexicographical_compare_3way(this-&gt;begin(), this-&gt;end(), rhs.begin(), rhs.end())</code> otherwise.</div>
 
+    <h3>23.?.3.4 <code>basic_stacktrace</code> modifiers <span class="right">[stacktrace.basic.mod]</span></h3>
+    <pre>void swap(basic_stacktrace&amp; other);</pre>
+    <div class="desc"><i>Effects:</i> Exchanges the contents of <code>*this</code> and <code>other</code>.</div>
 
-    <h3>23.?.4 Non-member functions [stacktrace.nonmembers]</h3>
+
+    <h3>23.?.4 Non-member functions <span class="right">[stacktrace.nonmembers]</span></h3>
+    <pre>void swap(function_info&amp; a, function_info&amp; b) noexcept;</pre>
+    <div class="desc"><i>Effects:</i> Equivalent to <code>a.swap(b)</code>.</div>
+    
+    <pre>template&lt;class Allocator&gt;
+void swap(basic_stacktrace&lt;Allocator&gt;&amp; a, basic_stacktrace&lt;Allocator&gt;&amp; b);</pre>
+    <div class="desc"><i>Effects:</i> Equivalent to <code>a.swap(b)</code>.</div>
+
     <pre>template&lt;class Allocator&gt;
 string to_string(const basic_stacktrace&lt;Allocator&gt;&amp; st);</pre>
     <div class="desc"><i>Returns:</i> An implementation-specific multiline string with information about each function of a stacktrace.</div>
 
-    <pre>string to_string(const stack_frame&amp; f);</pre>
+    <pre>string to_string(const function_info&amp; f);</pre>
     <div class="desc"><i>Returns:</i> An implementation-specific string with information about the stored in <code>f</code> function address.</div>
 
     <pre>template&lt;class charT, class traits, class Allocator&gt;
@@ -265,24 +463,195 @@ basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(basic_ostream&lt;charT,
     <div class="desc"><i>Returns:</i> <code>os</code>.</div>
 
   <pre>template&lt;class charT, class traits&gt;
-basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(basic_ostream&lt;charT, traits&gt;&amp; os, const stack_frame&amp; f);</pre>
+basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(basic_ostream&lt;charT, traits&gt;&amp; os, const function_info&amp; f);</pre>
     <div class="desc"><i>Effects:</i> As if by <code>os &lt;&lt; to_string(f);</code></div>
     <div class="desc"><i>Returns:</i> <code>os</code>.</div>
 
 
-    <h3>23.?.5 Hash support [stacktrace.hash]</h3>
-    <pre>template&lt;&gt; struct hash&lt;stack_frame&gt;;
+    <h3>23.?.5 Hash support <span class="right">[stacktrace.hash]</span></h3>
+    <pre>template&lt;&gt; struct hash&lt;function_info&gt;;
 template&lt;class Allocator&gt; struct hash&lt;basic_stacktrace&lt;Allocator&gt;&gt;;</pre>
     <div class="desc">The specialization is enabled (23.14.15).</div>
 
 
-    <h2>III. Feature-testing macro</h2>
-    <p>Add a row into the "Standard library feature-test macros" table [support.limits.general]:
+    <h3>Feature-testing macro</h3>
+    <p>Add a row into the "Standard library feature-test macros" table [support.limits.general]:</p>
     <table border="1"><tr><td><code>__cpp_lib_stacktrace</code></td><td>201811</td><td><code>&lt;stacktrace&gt;</code></td></tr></table>
 
 
-    <h2>IV. Acknowledgements</h2>
-    <p>Many thanks to Jens Maurer and JF Bastien for pointing out many issues in the early wordings.</p>
+
+<!-- ------------------------------------------------------------------------------------------------------------------------- -->
+<div class="changed-deleted">
+    <h2>IV. Proposed Interface</h2>
+	<h3>Header &lt;stacktrace&gt; synopsis</h3>
+	<pre>
+namespace std {
+
+  class stack_frame;
+
+  template&lt;typename Allocator&gt;
+  class basic_stacktrace;
+
+  // free functions
+
+  // This is the alias to use unless you'd like to provide a specific allocator to basic_stacktrace.
+  using stacktrace = basic_stacktrace&lt;allocator&lt;stack_frame&gt;&gt;;
+
+  // Outputs stacktrace in a human readable format to output stream.
+  template&lt;typename CharT, typename TraitsT, typename Allocator&gt;
+  basic_ostream&lt; CharT, TraitsT &gt; &amp; operator&lt;&lt;(basic_ostream&lt;CharT, TraitsT&gt;&amp; os, const basic_stacktrace&lt;Allocator&gt;&amp; bt);
+
+  // Outputs stacktrace in a human readable format to string.
+  template&lt;typename Allocator&gt;
+  string to_string(const basic_stacktrace&lt;Allocator&gt;&amp; f);
+
+  // Outputs frame in a human readable format to string.
+  string to_string(const stack_frame&amp; f);
+
+  // Outputs frame in a human readable format to output stream.
+  template&lt;typename CharT, typename TraitsT&gt;
+  basic_ostream&lt; CharT, TraitsT &gt;&amp; operator&lt;&lt;(basic_ostream&lt;CharT, TraitsT&gt;&amp; os, const stack_frame&amp; f);
+}
+		</pre>
+
+
+	<h3>Class stack_frame</h3>
+	<p>The stack_frame class stores a pointer to function and allows querying information about that function.</p>
+	<pre>
+namespace std {
+  class stack_frame {
+  public:
+    using native_frame_ptr_t = <i>unspecified</i>;
+
+    // construct/copy/destruct
+    constexpr stack_frame() noexcept;
+    constexpr stack_frame(const stack_frame&amp;) noexcept = default;
+    constexpr stack_frame&amp; operator=(const stack_frame&amp;) noexcept = default;
+
+    constexpr explicit stack_frame(native_frame_ptr_t f) noexcept;
+    template&lt;typename T&gt; explicit stack_frame(T* address) noexcept;
+
+    constexpr native_frame_ptr_t address() const noexcept;
+    constexpr explicit operator bool() const noexcept;
+
+    constexpr strong_ordering operator &lt;=&gt;(const stack_frame&amp; rhs) = default;
+
+    // functions that query information about stored address
+    string name() const;
+    string source_file() const;
+    size_t source_line() const;
+
+  private:
+    native_frame_ptr_t data; // exposition only
+  };
+}
+		</pre>
+
+
+	<h3><code>stack_frame</code> constructors</h3>
+	<pre>stack_frame() noexcept;</pre>
+	<div class="desc">Constructs stack_frame that references nullptr address. Calls to <code>source_file()</code> and <code>source_line()</code> will return empty string. Calls to <code>source_line()</code> will return 0.</div>
+
+	<pre>explicit stack_frame(native_frame_ptr_t addr) noexcept;
+template&lt;typename T&gt; explicit stack_frame(T * addr) noexcept;</pre>
+	<div class="desc">Constructs stack_frame that references addr and could later generate information about that address using platform specific features.</div>
+
+
+	<h3><code>stack_frame</code> member functions</h3>
+	<pre>std::string name() const;</pre>
+	<div class="desc">Returns empty string or platform specific name of the function that the stored address is pointing to. Throws std::bad_alloc if not enough memory to construct resulting string.</div>
+
+	<pre>constexpr native_frame_ptr_t address() const noexcept;</pre>
+	<div class="desc">Returns address stored by this.</div>
+
+	<pre>std::string source_file() const;</pre>
+	<div class="desc">Returns empty string or path to the source file, where the function of the frame is defined. Returns empty string if this->source_line() == 0. Throws std::bad_alloc if not enough memory to construct resulting string.</div>
+
+	<pre>std::string source_line() const;</pre>
+	<div class="desc">Returns 0 or code line in the source file, where the function of the stored address is defined. Throws std::bad_alloc if not enough memory to construct resulting string.</div>
+
+	<pre>explicit operator bool() const noexcept;</pre>
+	<div class="desc">Returns true if this stores and address other than NULL.</div>
+
+
+	<h3>Class template &lt;basic_stacktrace&gt;</h3>
+	<p>The basic_stacktrace template class stores current call sequence on construction and provides functions for querying information about the call sequence.</p>
+	<pre>
+namespace std {
+  template&lt;typename Allocator&gt;
+  class basic_stacktrace {
+  public:
+    using value_type = stack_frame;
+    using const_reference = const value_type &amp;;
+    using size_type = <i>implementation-defined</i>;
+    using const_iterator = <i>implementation-defined</i>;
+    using allocator_type = Allocator;
+
+    // functions that capture current call sequence
+    basic_stacktrace() noexcept;
+    explicit basic_stacktrace(const allocator_type&amp; a) noexcept;
+    basic_stacktrace(size_type skip, size_type max_depth, const allocator_type&amp; a = allocator_type()) noexcept;
+
+    // construct/copy/destruct
+    basic_stacktrace(const basic_stacktrace &);
+    basic_stacktrace(basic_stacktrace &&) noexcept;
+    basic_stacktrace & operator=(const basic_stacktrace &);
+    basic_stacktrace & operator=(basic_stacktrace &&) noexcept;
+    ~basic_stacktrace();
+
+    // public member functions
+    size_type size() const noexcept;
+    const_reference operator[](size_type ) const noexcept;
+    const_iterator begin() const noexcept;
+    const_iterator end() const noexcept;
+
+    explicit operator bool() const noexcept;
+
+    template &lt;typename Allocator2&gt;
+    strong_ordering operator &lt;=&gt;(const basic_stacktrace&lt; Allocator2 &gt;&amp; rhs) noexcept = default;
+
+  private:
+    vector&lt;value_type&gt;    stack_frames; // exposition only
+  };
+
+}
+		</pre>
+
+	<h3><code>basic_stacktrace</code> constructors</h3>
+	<pre>basic_stacktrace() noexcept;
+explicit basic_stacktrace(const allocator_type & a) noexcept;</pre>
+
+	<div class="desc">Stores the current call sequence inside *this without querying information about each call.</div>
+	<div class="desc">Any exception raised during this operation is
+	silently ignored. In case of exception <code>(bool)*this</code> is <code>false</code></div>
+
+<pre>basic_stacktrace(size_type skip, size_type max_depth, const allocator_type&amp; a = allocator_type()) noexcept;</pre>
+	<div class="desc">Stores [skip; skip + max_depth) of the current function call sequence inside *this without querying information about each call.</div>
+	<div class="desc">Any exception raised during this operation is
+	silently ignored. In case of exception <code>(bool)*this</code> is <code>false</code></div>
+
+	<h3><code>basic_stacktrace</code> member functions</h3>
+	<pre>const_reference operator[](size_type frame_no) const noexcept;</pre>
+	<div class="desc">Returns frame that references the actual frame info, stored inside *this.</div>
+	<div class="desc">Parameters: <code>frame_no</code> - zero-based index of frame to return. 0 is the function index where stacktrace was constructed and index close to this->size() contains function main().</div>
+
+	<pre>explicit operator bool() const noexcept;</pre>
+	<div class="desc">Returns true if call sequence was successfully stored.</div>
+
+
+	<h2>V. Feature-testing macro</h2>
+    <p>For the purposes of SG10 we recommend the feature-testing macro name <code>__cpp_lib_stacktrace</code>.</p>
+</div>
+<!-- ------------------------------------------------------------------------------------------------------------------------- -->
+
+
+    <h2>V. Acknowledgements</h2>
+    <p>Many thanks to Jens Maurer, JF Bastien and Marshall Clow for pointing out many issues in the early wordings.</p>
+    <p>Many many thanks to all the poeple who participated in the LWG meeting on 20th of August and reviewed early version of the wording.</p>
+
+
+
+
 
         <script type="text/javascript">
             function colorize_texts(texts) {
