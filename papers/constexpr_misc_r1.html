@@ -1,0 +1,448 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+		<title>Misc constexpr bits</title>
+		<meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+		<meta http-equiv="Content-Language" content="en-us">
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+		<style type="text/css">
+			.addition { color: green; text-decoration: underline; }
+			.deletion {  text-decoration: line-through; background-color: #FCC; }
+			.changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+			.addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+			.changed-added { background-color: #CFF0FC ;}
+			.notes { background-color: #80D080 ;}
+			body {max-width: 1024px; margin-left: 25px;}
+		</style>
+</head>
+	<body bgcolor="#ffffff">
+		<address>Document number: D1032R1</address>
+		<address>Project: Programming Language C++</address>
+		<address>Audience: Library Evolution Working Group</address>
+		<address>&nbsp;</address>
+		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+		<address>&nbsp;</address>
+		<address>Date: 2018-08-31</address>
+		<h1>Misc constexpr bits</h1>
+
+		<h2>I. Introduction and Motivation</h2>
+		<p>Members of WG21 and people all around the world were noticing missing <code>constexpr</code> in different places of the Standard Library.</p>
+		<p>This paper attempts to address all the trivial cases in one go.</p>
+
+		<p>Adding the <code>constexpr</code> is required for progress of constexpr containers, reflection and metaclasses. It also simplifies metaprogramming.</p>
+
+		<h2>II. Impact on the Standard</h2>
+		<p>This proposal is a pure library extension. It proposes changes to
+			existing headers such that the changes do not break existing code
+			and do not degrade performance. It does not require any changes in the core and it could be implemented in standard C++.
+		</p>
+
+
+		<h2>III. Proposed wording relative to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/n4741.pdf">N4741</a></h2>
+		<p>All the additions to the Standard are marked with <span class="addition">underlined green</span>.</p>
+		<p class="notes">Green lines are notes for the <b>editor</b> that must not be treated as part of the wording.</p>
+
+		<h3>1. Modifications to "Class template pair" [pairs.pair]</h3>
+		<pre>
+
+namespace std {
+    template&lt;class T1, class T2&gt;
+    struct pair {
+        using first_type = T1;
+        using second_type = T2;
+        T1 first;
+        T2 second;
+
+        pair(const pair&amp;) = default;
+        pair(pair&amp;&amp;) = default;
+
+        EXPLICIT constexpr pair();
+        EXPLICIT constexpr pair(const T1&amp; x, const T2&amp; y);
+
+        template&lt;class U1, class U2&gt; EXPLICIT constexpr pair(U1&amp;&amp; x, U2&amp;&amp; y);
+        template&lt;class U1, class U2&gt; EXPLICIT constexpr pair(const pair&lt;U1, U2&gt;&amp; p);
+        template&lt;class U1, class U2&gt; EXPLICIT constexpr pair(pair&lt;U1, U2&gt;&amp;&amp; p);
+        
+        template&lt;class... Args1, class... Args2&gt;
+        <span class="addition">constexpr</span> pair(piecewise_construct_t, tuple&lt;Args1...> first_args, tuple&lt;Args2...> second_args);
+
+        <span class="addition">constexpr</span> pair&amp; operator=(const pair&amp; p);
+
+        template&lt;class U1, class U2&gt; <span class="addition">constexpr</span> pair&amp; operator=(const pair&lt;U1, U2&gt;&amp; p);
+        <span class="addition">constexpr</span> pair&amp; operator=(pair&amp;&amp; p) noexcept(see below );
+
+        template&lt;class U1, class U2&gt; <span class="addition">constexpr</span> pair&amp; operator=(pair&lt;U1, U2&gt;&amp;&amp; p);
+        <span class="addition">constexpr</span> void swap(pair&amp; p) noexcept(see below );
+    };
+
+    template&lt;class T1, class T2&gt;
+    pair(T1, T2) -> pair&lt;T1, T2&gt;;
+}
+</pre>
+
+	<p class="notes">All the functions marked with  <code>constexpr</code> in previous paragraph of this document
+	must be accordingly marked with <code>constexpr</code> in detailed description of <code>pair</code> functions.</p>
+
+		<h3>2. Modifications to "Specialized algorithms" [pairs.spec]</h3>
+<pre>
+template&lt;class T1, class T2&gt; <span class="addition">constexpr</span> void swap(pair&lt;T1, T2&gt;&amp; x, pair&lt;T1, T2&gt;&amp; y) noexcept(noexcept(x.swap(y)));
+    Effects: As if by x.swap(y).
+    Remarks: This function shall not participate in overload resolution unless is_swappable_v&lt;T1&gt; is
+    true and is_swappable_v&lt;T2&gt; is true.
+</pre>
+
+
+		<h3>3. Modifications to "Header &lt;tuple&gt; synopsis" [tuple.syn]</h3>
+<pre>
+// 23.5.3.10, specialized algorithms
+template&lt;class... Types>
+<span class="addition">constexpr</span> void swap(tuple&lt;Types...&gt;&amp; x, tuple&lt;Types...&gt;&amp; y) noexcept(see below );
+</pre>
+
+		<h3>4. Modifications to "Class template tuple" [tuple.tuple]</h3>
+<pre>
+namespace std {
+    template&lt;class... Types>
+    class tuple {
+    public:
+
+        // 23.5.3.1, tuple construction
+        EXPLICIT constexpr tuple();
+        EXPLICIT constexpr tuple(const Types&amp;...);
+
+        template&lt;class... UTypes&gt;
+        EXPLICIT constexpr tuple(UTypes&amp;&amp;...);
+
+        tuple(const tuple&amp;) = default;
+        tuple(tuple&amp;&amp;) = default;
+
+        template&lt;class... UTypes&gt;
+        EXPLICIT constexpr tuple(const tuple&lt;UTypes...&gt;&amp;);
+
+        template&lt;class... UTypes&gt;
+        EXPLICIT constexpr tuple(tuple&lt;UTypes...&gt;&amp;&amp;);
+
+        template&lt;class U1, class U2&gt;
+        EXPLICIT constexpr tuple(const pair&lt;U1, U2&gt;&amp;);
+
+        template&lt;class U1, class U2&gt;
+        EXPLICIT constexpr tuple(pair&lt;U1, U2&gt;&amp;&amp;);
+
+        // allocator-extended constructors
+        template&lt;class Alloc&gt;
+        <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a);
+        template&lt;class Alloc&gt;
+        EXPLICIT <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, const Types&amp;...);
+        template&lt;class Alloc, class... UTypes&gt;
+        EXPLICIT <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, UTypes&amp;&amp;...);
+
+        template&lt;class Alloc&gt;
+        <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, const tuple&amp;);
+        template&lt;class Alloc&gt;
+        <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, tuple&amp;&amp;);
+        template&lt;class Alloc, class... UTypes&gt;
+        EXPLICIT <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, const tuple&lt;UTypes...&gt;&amp;);
+        template&lt;class Alloc, class... UTypes&gt;
+        EXPLICIT <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, tuple&lt;UTypes...&gt;&amp;&amp;);
+        template&lt;class Alloc, class U1, class U2&gt;
+        EXPLICIT <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, const pair&lt;U1, U2&gt;&amp;);
+        template&lt;class Alloc, class U1, class U2&gt;
+        EXPLICIT <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, pair&lt;U1, U2&gt;&amp;&amp;);
+
+        // 23.5.3.2, tuple assignment
+        <span class="addition">constexpr</span> tuple&amp; operator=(const tuple&amp;);
+        <span class="addition">constexpr</span> tuple&amp; operator=(tuple&amp;&amp;) noexcept(see below );
+        template&lt;class... UTypes&gt;
+        <span class="addition">constexpr</span> tuple&amp; operator=(const tuple&lt;UTypes...&gt;&amp;);
+        template&lt;class... UTypes&gt;
+        <span class="addition">constexpr</span> tuple&amp; operator=(tuple&lt;UTypes...&gt;&amp;&amp;);
+        template&lt;class U1, class U2&gt;
+        <span class="addition">constexpr</span> tuple&amp; operator=(const pair&lt;U1, U2&gt;&amp;);
+        template&lt;class U1, class U2&gt;
+        <span class="addition">constexpr</span> tuple&amp; operator=(pair&lt;U1, U2&gt;&amp;&amp;);
+
+        // 23.5.3.3, tuple swap
+        <span class="addition">constexpr</span> void swap(tuple&amp;) noexcept(see below );
+    };
+</pre>
+
+	<p class="notes">All the functions marked with  <code>constexpr</code> in previous paragraph of this document
+	must be accordingly marked with <code>constexpr</code> in [tuple.cnstr], [tuple.assign], [tuple.swap].</p>
+
+		<h3>5. Modifications to "Header &lt;array&gt; synopsis" [array.syn]</h3>
+<pre>
+#include &lt;initializer_list&gt;
+
+namespace std {
+    // 26.3.7, class template array
+    template&lt;class T, size_t N&gt; struct array;
+
+    ...
+
+    template&lt;class T, size_t N&gt;
+      <span class="addition">constexpr</span> void swap(array&lt;T, N&gt;&amp; x, array&lt;T,N&gt;&amp; y) noexcept(noexcept(x.swap(y)));
+
+    ...
+}
+</pre>
+
+<h3>6. Modifications to "Class template array overview" [array.overview]</h3>
+<pre>
+    template&lt;class T, size_t N>
+    struct array {
+
+        ...
+
+        <span class="addition">constexpr</span> void fill(const T&amp; u);
+        <span class="addition">constexpr</span> void swap(array&amp;) noexcept(is_nothrow_swappable_v&lt;T&gt;);
+
+        ...
+    };
+</pre>
+
+<h3>7. Modifications to "array member functions" [array.members]</h3>
+<pre>
+<span class="addition">constexpr</span> void fill(const T&amp; u);
+    Effects: As if by fill_n(begin(), N, u).
+
+<span class="addition">constexpr</span> void swap(array&amp; y) noexcept(is_nothrow_swappable_v&lt;T&gt;);
+    Effects: Equivalent to swap_ranges(begin(), end(), y.begin()).
+    [ Note: Unlike the swap function for other containers, array::swap takes linear time, may exit via an
+    exception, and does not cause iterators to become associated with the other container. — end note ]
+</pre>
+
+<h3>8. Modifications to "array specialized algorithms" [array.special]</h3>
+<pre>
+template&lt;class T, size_t N&gt;
+<span class="addition">constexpr</span> void swap(array&lt;T, N&gt;&amp; x, array&lt;T, N&gt;&amp; y) noexcept(noexcept(x.swap(y)));
+    Remarks: This function shall not participate in overload resolution unless N == 0 or is_swappable_v&lt;T&gt;
+    is true.
+    Effects: As if by x.swap(y).
+    Complexity: Linear in N.
+</pre>
+
+
+<h3>9. Modifications to "General container requirements" [container.requirements.general]</h3>
+<pre>
+    Table 85 lists operations that are provided for some types of containers but not others. Those containers for
+    which the listed operations are provided shall implement the semantics described in Table 85 unless otherwise
+    stated. <span class="addition">If iterators passed to <code>lexicographical_compare()</code>
+    satisfy the constexpr iterator requirement then the operations described in Table 85 are constexpr.</span>
+</pre>
+
+<h3>10. Modifications to all the char_traits specializations [char.traits.specializations.*]</h3>
+<pre>
+    static <span class="addition">constexpr</span> char_type* move(char_type* s1, const char_type* s2, size_t n);
+    static <span class="addition">constexpr</span> char_type* copy(char_type* s1, const char_type* s2, size_t n);
+    static <span class="addition">constexpr</span> char_type* assign(char_type* s, size_t n, char_type a);
+
+</pre>
+
+	<p class="notes">All the functions marked with <code>constexpr</code> in previous paragraph of this document
+	must be accordingly marked with <code>constexpr</code> in [char.traits.specializations.*].</p>
+
+<h3>11. Modifications to "Class template basic_string_view" [string.view.template]</h3>
+<pre>
+    // 24.4.2.6, string operations
+    <span class="addition">constexpr</span> size_type copy(charT* s, size_type n, size_type pos = 0) const;
+</pre>
+
+<h3>12. Modifications to "String operations" [string.view.ops]</h3>
+<pre>
+<span class="addition">constexpr</span> size_type copy(charT* s, size_type n, size_type pos = 0) const;
+    Let rlen be the smaller of n and size() - pos.
+    Throws: out_of_range if pos &gt; size().
+    Requires: [s, s + rlen) is a valid range.
+    Effects: Equivalent to traits::copy(s, data() + pos, rlen).
+    Returns: rlen.
+    Complexity: O(rlen).
+</pre>
+
+<h3>13. Modifications to "Class template default_searcher" [func.search.default]</h3>
+<pre>
+template&lt;class ForwardIterator1, class BinaryPredicate = equal_to&lt;&gt;&gt;
+class default_searcher {
+public:
+    <span class="addition">constexpr</span> default_searcher(ForwardIterator1 pat_first, ForwardIterator1 pat_last, BinaryPredicate pred = BinaryPredicate());
+
+    template&lt;class ForwardIterator2&gt;
+    <span class="addition">constexpr</span> pair&lt;ForwardIterator2, ForwardIterator2&gt;
+    operator()(ForwardIterator2 first, ForwardIterator2 last) const;
+private:
+    ForwardIterator1 pat_first_;
+    ForwardIterator1 pat_last_;
+    BinaryPredicate pred_;
+};
+
+<span class="addition">constexpr</span> default_searcher(ForwardIterator pat_first, ForwardIterator pat_last, BinaryPredicate pred = BinaryPredicate());
+    Effects: Constructs a default_searcher object, initializing pat_first_ with pat_first, pat_last_
+    with pat_last, and pred_ with pred.
+    Throws: Any exception thrown by the copy constructor of BinaryPredicate or ForwardIterator1.
+
+template&lt;class ForwardIterator2&gt;
+<span class="addition">constexpr</span> pair&lt;ForwardIterator2, ForwardIterator2&gt;
+operator()(ForwardIterator2 first, ForwardIterator2 last) const;
+    Effects: Returns a pair of iterators i and j such that
+    (3.1) — i == search(first, last, pat_first_, pat_last_, pred_), and
+    (3.2) — if i == last, then j == last, otherwise j == next(i, distance(pat_first_, pat_last_)).
+</pre>
+
+
+<h3>14. Modifications to "Header &lt;iterator&gt; synopsis" [iterator.synopsis]</h3>
+<pre>
+    template&lt;class Container&gt; class back_insert_iterator;
+    template&lt;class Container&gt;
+    <span class="addition">constexpr</span> back_insert_iterator&lt;Container&gt; back_inserter(Container&amp; x);
+
+    template&lt;class Container&gt; class front_insert_iterator;
+    template&lt;class Container&gt;
+    <span class="addition">constexpr</span> front_insert_iterator&lt;Container&gt; front_inserter(Container&amp; x);
+
+    template&lt;class Container&gt; class insert_iterator;
+    template&lt;class Container&gt;
+    <span class="addition">constexpr</span> insert_iterator&lt;Container&gt; inserter(Container&amp; x, typename Container::iterator i);
+</pre>
+
+
+<h3>15. Modifications to "Class template back_insert_iterator" [back.insert.iterator]</h3>
+<pre>
+namespace std {
+    template&lt;class Container>
+    class back_insert_iterator {
+    protected:
+        Container* container;
+    public:
+        using iterator_category = output_iterator_tag;
+        using value_type = void;
+        using difference_type = void;
+        using pointer = void;
+        using reference = void;
+        using container_type = Container;
+
+
+        explicit <span class="addition">constexpr</span> back_insert_iterator(Container&amp; x);
+        <span class="addition">constexpr</span> back_insert_iterator&amp; operator=(const typename Container::value_type&amp; value);
+        <span class="addition">constexpr</span> back_insert_iterator&amp; operator=(typename Container::value_type&amp;&amp; value);
+
+        <span class="addition">constexpr</span> back_insert_iterator&amp; operator*();
+        <span class="addition">constexpr</span> back_insert_iterator&amp; operator++();
+        <span class="addition">constexpr</span> back_insert_iterator operator++(int);
+    };
+
+    template&lt;class Container>
+    <span class="addition">constexpr</span> back_insert_iterator&lt;Container&gt; back_inserter(Container&amp; x);
+}
+</pre>
+
+	<p class="notes">All the functions marked with <code>constexpr</code> in previous paragraph of this document
+	must be accordingly marked with <code>constexpr</code> in [back.insert.iter.*] and [back.inserter].</p>
+
+<h3>16. Modifications to "Class template front_insert_iterator" [front.insert.iterator]</h3>
+<pre>
+namespace std {
+    template&lt;class Container&gt;
+    class front_insert_iterator {
+    protected:
+        Container* container;
+    public:
+        using iterator_category = output_iterator_tag;
+        using value_type = void;
+        using difference_type = void;
+        using pointer = void;
+        using reference = void;
+        using container_type = Container;
+
+        explicit <span class="addition">constexpr</span> front_insert_iterator(Container&amp; x);
+        <span class="addition">constexpr</span> front_insert_iterator&amp; operator=(const typename Container::value_type&amp; value);
+        <span class="addition">constexpr</span> front_insert_iterator&amp; operator=(typename Container::value_type&amp;&amp; value);
+
+        <span class="addition">constexpr</span> front_insert_iterator&amp; operator*();
+        <span class="addition">constexpr</span> front_insert_iterator&amp; operator++();
+        <span class="addition">constexpr</span> front_insert_iterator operator++(int);
+    };
+
+    template&lt;class Container&gt;
+    <span class="addition">constexpr</span> front_insert_iterator&lt;Container&gt; front_inserter(Container&amp; x);
+}
+</pre>
+	<p class="notes">All the functions marked with <code>constexpr</code> in previous paragraph of this document
+	must be accordingly marked with <code>constexpr</code> in [front.insert.iter.*] and [front.inserter].</p>
+
+
+
+
+<h3>17. Modifications to "Class template insert_iterator" [insert.iterator]</h3>
+<pre>
+namespace std {
+    template&lt;class Container&gt;
+    class insert_iterator {
+    protected:
+        Container* container;
+        typename Container::iterator iter;
+    public:
+        using iterator_category = output_iterator_tag;
+        using value_type = void;
+        using difference_type = void;
+        using pointer = void;
+        using reference = void;
+        using container_type = Container;
+
+        explicit <span class="addition">constexpr</span> insert_iterator(Container&amp; x, typename Container::iterator i);
+        <span class="addition">constexpr</span> insert_iterator&amp; operator=(const typename Container::value_type&amp; value);
+        <span class="addition">constexpr</span> insert_iterator&amp; operator=(typename Container::value_type&amp;&amp; value);
+
+        <span class="addition">constexpr</span> insert_iterator&amp; operator*();
+        <span class="addition">constexpr</span> insert_iterator&amp; operator++();
+        <span class="addition">constexpr</span> insert_iterator&amp; operator++(int);
+    };
+
+    template&lt;class Container&gt;
+    <span class="addition">constexpr</span> insert_iterator&lt;Container&gt; inserter(Container&amp; x, typename Container::iterator i);
+}
+</pre>
+	<p class="notes">All the functions marked with <code>constexpr</code> in previous paragraph of this document
+	must be accordingly marked with <code>constexpr</code> in [insert.iter.*] and [inserter].</p>
+
+
+
+
+
+		<h3>18. Feature-testing macro</h3>
+    <p>Add a row into the "Standard library feature-test macros" table [support.limits.general]:
+    <table border="1"><tr><td><code>__cpp_lib_constexpr_misc</code></td><td>201811</td><td><code>&lt;array&gt; &lt;functional&gt; &lt;iterator&gt; &lt;string_view&gt; &lt;tuple&gt; &lt;utility&gt;</code></td></tr></table>
+
+
+		<h2>IV. Revision History</h2>
+		<p>Revision 1:</p>
+		<ul>
+			<li>
+				Removed additionas that conflict with <a href="https://wg21.link/P1023">P1023</a>.
+			</li>
+			<li>
+				Updated the "Feature-testing macro" section.
+			</li>
+		</ul>
+
+		<p>Revision 0:</p>
+		<ul>
+			<li>
+				Initial proposal.
+			</li>
+		</ul>
+
+		<h2>V. Acknowledgements</h2>
+		<p>Many thanks to people who pointed me on some of the missing bits: Alisdair Meredith, Ben Deane, Casey Carter, Jason Turner, Louis Dionne, Marshall Clow.</p>
+
+
+		<script type="text/javascript">
+            function show_hide_deleted() {
+                var to_change = document.getElementsByClassName('changed-deleted');
+                for (var i = 0; i < to_change.length; ++i) {
+                    to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
+                }
+            }
+            show_hide_deleted()
+		</script>
+
+
+</body></html>
