@@ -29,7 +29,7 @@
     <address>Alexey Gorgurov &lt;<a href="mailto:leha-bot@yandex.ru">leha-bot@yandex.ru</a>&gt;, &lt;<a href="mailto:no-vista@yandex.ru">no-vista@yandex.ru</a>&gt;</address>
     <address>Antony Polukhin, Yandex.Taxi Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2018-09-08</address>
+    <address>Date: 2018-09-18</address>
     <h1>A Proposal to add stack trace library</h1>
 
     <p class='changed-added'>Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0881r1.html">P0881R1</a> are marked with blue.<p>
@@ -122,7 +122,7 @@ Backtrace:
     <li><i>stacktrace</i> definition in [stacktrace] and member functions in [function_info.query]. Wording should not prevent any optimizations.</li>
     </ul>
 
-    <h2 class='changed-added'>III. Wording Intent</h2>
+    <h2 class='changed-added'>IV. Wording Intent</h2>
     <p>Key features that should be preserved by implementations:</p>
     <ul class='changed-added'>
     <li>All the functions are lazy and do not query the pointer information if there was no explicit request.</li>
@@ -135,7 +135,7 @@ Backtrace:
     </ul>
 
 
-    <h2 class='changed-added'>IV. Wording</h2>
+    <h2 class='changed-added'>V. Wording</h2>
     <h3>23.? Stacktrace <span class="right">[stacktrace]</span></h3>
     <p>Define <code>INVOKER(x)</code> as a function that returns the function that invoked function <code>x</code>; <code>NTH_INVOKER<sub>n</sub>(x)</code> as a function <code>NTH_INVOKER<sub>n-1</sub>(INVOKER(x))</code> for <code>n &gt; 0</code> and <code>NTH_INVOKER<sub>0</sub>(x)</code> as <code>INVOKER(x)</code>.
     A sequence of functions (f<sub>0</sub>, ..., f<sub>m</sub>) called <i>stacktrace</i>,
@@ -645,9 +645,9 @@ explicit basic_stacktrace(const allocator_type & a) noexcept;</pre>
 <!-- ------------------------------------------------------------------------------------------------------------------------- -->
 
 
-    <h2>V. Acknowledgements</h2>
+    <h2>VI. Acknowledgements</h2>
     <p>Many thanks to Jens Maurer, JF Bastien and Marshall Clow for pointing out many issues in the early wordings.</p>
-    <p>Many many thanks to all the poeple who participated in the LWG meeting on 20th of August and reviewed early version of the wording.</p>
+    <p>Many many thanks to all the people who participated in the LWG meeting on 20th of August and reviewed early version of the wording.</p>
 
 
 
