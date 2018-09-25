@@ -1,0 +1,145 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+    <title>variant direct comparisons with held types</title>
+    <meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+    <meta http-equiv="Content-Language" content="en-us">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <style type="text/css">
+        .addition { color: green; }
+        .right { float:right; }
+        .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+        .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+        .changed-added { background-color: #CFF0FC ;}
+        .notes { background-color: #80D080 ;}
+        pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
+        .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; }
+        body {max-width: 1024px; margin-left: 25px;}
+        .cppkeyword { color: blue; }
+        .cppcomment { color: green; }
+        .cppcomment > .cppkeyword{ color: green; }
+        .cpptext { color: #2E8B57; }
+    </style>
+</head>
+<body bgcolor="#ffffff">
+    <address>Document number: D????R0</address>
+    <address>Project: Programming Language C++</address>
+    <address>Audience: Library Evolution Working Group</address>
+    <address>&nbsp;</address>
+    <address>Oleg Fatkhiev &lt;<a href="mailto:tender-bum@yandex-team.ru">tender-bum@yandex-team.ru</a>&gt;</address>, &lt;<a href="mailto:brickmen75@gmail.com">brickmen75@gmail.com</a>&gt;</address>
+    <address>Antony Polukhin, Yandex.Taxi Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+    <address>&nbsp;</address>
+    <address>Date: 2018-09-24</address>
+    <h1>Variant direct comparisons</h1>
+
+        <h2>I. Motivation</h2>
+	<p>In the current working draft [<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/n4741.pdf">N4741</a>] <code>variant</code> could be compared only with <code>variant</code>
+	of the same type. There no way to compare <code>variant</code> with arbitrary types:</p>
+<pre>
+#include &lt;array&gt;
+#include &lt;variant&gt;
+
+int main() {
+    using arr_t = std::array&lt;int, 10&gt;;
+    using var_t = std::variant&lt;int, arr_t&gt;;
+
+    var_t v;
+    arr_t a = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    return v == a; // Ill formed.
+}
+</pre>
+
+	<p>This paper attempts to solve that without adding ambiguous comparisons:</p>
+<pre>
+#include &lt;array&gt;
+#include &lt;variant&gt;
+
+int main() {
+    using arr_t = std::array&lt;int, 10&gt;;
+    using var_t = std::variant&lt;int, arr_t&gt;;
+
+    var_t v;
+    arr_t a = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    v == a;                               // OK
+
+    std::variant&lt;int, double&gt; v2(1.0)
+    //  Does the user wish to know that variant holds some alternative that is less than 0, or that variant holds an `int` that is less than 0?
+    v2 &lt; 0;  // Ill formed.
+}
+</pre>
+	<p>In other words, we propose to add comparisons that have single interpretation. To achieve that we allow comparisons only for
+	cases when only a single alternative is comparable with the non-variant type and when comparing <code>valueless_by_exception()</code> mimic the behavior of two variant comparisons.</p>
+
+	<h2>II. Impact on the Standard</h2>
+	<p>This proposal is a pure library extension and it does not break the existing code and does not degrade performance.
+	It does not require any changes in the core language and could be implemented in the standard C++.</p>
+
+
+
+
+    <h2>III. Wording</h2>
+    <h3>Add the following to the [variant.syn]</h3>
+<pre>
+...
+
+template&lt;class... Types&gt;
+  constexpr bool operator&lt;=(const variant&lt;Types...&gt;&, const variant&lt;Types...&gt;&amp;);
+template&lt;class... Types&gt;
+  constexpr bool operator&gt;=(const variant&lt;Types...&gt;&amp;, const variant&lt;Types...&gt;&amp;);
+
+<span class="changed-added">
+template&lt;class... Types, class T&gt;
+  constexpr auto operator&lt;=&gt;(const variant&lt;Types...&gt;&amp;, const T&amp;);
+template&lt;class T, class... Types&gt;
+  constexpr auto operator&lt;=&gt;(const T&amp;, const variant&lt;Types...&gt;&amp;);
+</span>
+</pre>
+
+    <h3>Add the following to the end of [variant.relops]</h3>
+<div class="changed-added">
+<pre>
+template&lt;class... Types, class T&gt;
+  constexpr auto operator&lt;=&gt;(const variant&lt;Types...&gt;&amp; v, const T&amp; t);</pre>
+<div class="desc"><i>Constraints:</i> <code>get&lt;i&gt;(v) &lt;=&gt; t</code> is well-formed expression for only one <i>i</i>.</div>
+<div class="desc"><i>Returns:</i> <code>i &lt;=&gt; variant_npos</code> if <code>v.valueless_by_exception()</code>; otherwise
+    <code>v.index() &lt;=&gt; i</code> if the result of that expressions is not equal to <code>0</code>, otherwise <code>get&lt;i&gt;(v) &lt;=&gt; t</code> with <i>i</i> being the
+    index of the type for which the expression <code>get&lt;i&gt;(v) &lt;=&gt; t</code> is well-formed.</div>
+
+
+<pre>template&lt;class T, class... Types&gt;
+  constexpr auto operator&lt;=&gt;(const T&amp; t, const variant&lt;Types...&gt;&amp; v);</pre>
+<div class="desc"><i>Constraints:</i> <code>t &lt;=&gt; get&lt;i&gt;(v)</code> is well-formed expression for only one <i>i</i>.</div>
+<div class="desc"><i>Returns:</i> <code>variant_npos &lt;=&gt; i</code> if <code>v.valueless_by_exception()</code>; otherwise
+    <code>i &lt;=&gt; v.index()</code> if the result of that expressions is not equal to <code>0</code>, otherwise <code>t &lt;=&gt; get&lt;i&gt;(v)</code> with <i>i</i> being the
+    index of the type for which the expression <code>t &lt;=&gt; get&lt;i&gt;(v)</code> is well-formed.</div>
+
+</div>
+
+    <h3>Add a row into the "Standard library feature-test macros" table [support.limits.general]:</h3>
+    <table class="changed-added" border="1"><tr><td><code>__cpp_lib_variant_direct_cmp</code></td><td>201811</td><td><code>&lt;variant&gt;</code></td></tr></table>
+
+
+
+        <script type="text/javascript">
+            function colorize_texts(texts) {
+                for (var i = 0; i < texts.length; ++i) {
+                    var text = texts[i].innerHTML;
+                    text = text.replace(/namespace|enum|void|constexpr|extern|noexcept|bool|template|class |struct|auto|const |typename|explicit|public|private|#include|inline|typedef|static_assert|static_cast|static/g,"<span class='cppkeyword'>$&<\/span>");
+                    text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+                    texts[i].innerHTML = text;
+                }
+            }
+
+            colorize_texts(document.getElementsByTagName("pre"));
+            colorize_texts(document.getElementsByTagName("code"));
+
+            function show_hide_deleted() {
+                var to_change = document.getElementsByClassName('changed-deleted');
+                for (var i = 0; i < to_change.length; ++i) {
+                    to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
+                }
+            }
+            show_hide_deleted()
+        </script>
+</body></html>
+
