@@ -64,9 +64,10 @@ int main() {
     arr_t a = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     v == a;                               // OK
 
-    std::variant&lt;int, double&gt; v2(1.0)
-    //  Does the user wish to know that variant holds some alternative that is less than 0, or that variant holds an `int` that is less than 0?
-    v2 &lt; 0;  // Ill formed.
+    std::variant&lt;int, double&gt; v2(1.0);
+    // Does the user wish to know that variant holds some alternative that is less than 0.0, or that variant holds an `double` that is less than 0.0
+    // Some people expect `true` as the variant holds an integer, not a double. Other expect `false`, because 1.0 is grater than 0.
+    v2 &lt; 0.0;  // Ill formed.
 }
 </pre>
 	<p>In other words, we propose to add comparisons that have single interpretation. To achieve that we allow comparisons only for
@@ -102,7 +103,7 @@ template&lt;class T, class... Types&gt;
 <pre>
 template&lt;class... Types, class T&gt;
   constexpr auto operator&lt;=&gt;(const variant&lt;Types...&gt;&amp; v, const T&amp; t);</pre>
-<div class="desc"><i>Constraints:</i> <code>get&lt;i&gt;(v) &lt;=&gt; t</code> is well-formed expression for only one <i>i</i>; <code>T</code> is not a specialization of <code>variant</code>.</div>
+<div class="desc"><i>Constraints:</i> <code>get&lt;i&gt;(v) &lt;=&gt; t</code> is well-formed expression for only one <i>i</i>; <code>T</code> and <code>Types...</code> are not a specialization of <code>variant</code>.</div>
 <div class="desc"><i>Returns:</i> <code>i &lt;=&gt; variant_npos</code> if <code>v.valueless_by_exception()</code>; otherwise
     <code>v.index() &lt;=&gt; i</code> if the result of that expressions is not equal to <code>0</code>, otherwise <code>get&lt;i&gt;(v) &lt;=&gt; t</code> with <i>i</i> being the
     index of the type for which the expression <code>get&lt;i&gt;(v) &lt;=&gt; t</code> is well-formed.</div>
@@ -110,7 +111,7 @@ template&lt;class... Types, class T&gt;
 
 <pre>template&lt;class T, class... Types&gt;
   constexpr auto operator&lt;=&gt;(const T&amp; t, const variant&lt;Types...&gt;&amp; v);</pre>
-<div class="desc"><i>Constraints:</i> <code>t &lt;=&gt; get&lt;i&gt;(v)</code> is well-formed expression for only one <i>i</i>; <code>T</code> is not a specialization of <code>variant</code>.</div>
+<div class="desc"><i>Constraints:</i> <code>t &lt;=&gt; get&lt;i&gt;(v)</code> is well-formed expression for only one <i>i</i>; <code>T</code> and <code>Types...</code> are not a specialization of <code>variant</code>.</div>
 <div class="desc"><i>Returns:</i> <code>variant_npos &lt;=&gt; i</code> if <code>v.valueless_by_exception()</code>; otherwise
     <code>i &lt;=&gt; v.index()</code> if the result of that expressions is not equal to <code>0</code>, otherwise <code>t &lt;=&gt; get&lt;i&gt;(v)</code> with <i>i</i> being the
     index of the type for which the expression <code>t &lt;=&gt; get&lt;i&gt;(v)</code> is well-formed.</div>
