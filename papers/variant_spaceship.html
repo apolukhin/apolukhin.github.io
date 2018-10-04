@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html><head>
     <title>variant direct comparisons with held types</title>
@@ -24,19 +22,19 @@
     </style>
 </head>
 <body bgcolor="#ffffff">
-    <address>Document number: D1201R0</address>
+    <address>Document number: P1201R0</address>
     <address>Project: Programming Language C++</address>
     <address>Audience: Library Evolution Working Group</address>
     <address>&nbsp;</address>
     <address>Oleg Fatkhiev &lt;<a href="mailto:tender-bum@yandex-team.ru">tender-bum@yandex-team.ru</a>&gt;, &lt;<a href="mailto:brickmen75@gmail.com">brickmen75@gmail.com</a>&gt;</address>
     <address>Antony Polukhin, Yandex.Taxi Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2018-09-25</address>
+    <address>Date: 2018-10-02</address>
     <h1>Variant direct comparisons</h1>
 
         <h2>I. Motivation</h2>
-	<p>In the current working draft [<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/n4741.pdf">N4741</a>] <code>variant</code> could be compared only with <code>variant</code>
-	of the same type. There no way to compare <code>variant</code> with arbitrary types:</p>
+	<p>In the current working draft [<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/n4762.pdf">N4762</a>] <code>variant</code> could be compared only with <code>variant</code>
+	of the same type. There's no operator to compare <code>variant</code> with arbitrary types:</p>
 <pre>
 #include &lt;array&gt;
 #include &lt;variant&gt;
@@ -65,13 +63,17 @@ int main() {
     v == a;                               // OK
 
     std::variant&lt;int, double&gt; v2(1.0);
-    // Does the user wish to know that variant holds some alternative that is less than 0.0, or that variant holds an `double` that is less than 0.0
-    // Some people expect `true` as the variant holds an integer, not a double. Other expect `false`, because 1.0 is grater than 0.
+    // Does the user wish to know that variant holds some alternative that is less than 0.0, or that variant holds an `double` that is less than 0.0?
+    // Some people expect `true` as the variant holds an integer, not a double. Other expect `false`, because 1.0 is greater than 0.
     v2 &lt; 0.0;  // Ill formed.
+
+    std::variant&lt;std::variant&lt;int&gt;&gt; v3(1);
+    // Does the user wish to know that variant holds an integer deep within, or is that some typo?
+    v3 == 0;  // Ill formed.
 }
 </pre>
-	<p>In other words, we propose to add comparisons that have single interpretation. To achieve that we allow comparisons only for
-	cases when only a single alternative is comparable with the non-variant type and when comparing <code>valueless_by_exception()</code> mimic the behavior of two variant comparisons.</p>
+	<p>In other words, we propose to add comparisons that have single interpretation. To achieve that we allow comparisons for
+	cases when only a single alternative is comparable with the non-variant type and mimic the behavior of two variant comparisons if variant is <code>valueless_by_exception()</code> .</p>
 
 	<h2>II. Impact on the Standard</h2>
 	<p>This proposal is a pure library extension and it does not break the existing code and does not degrade performance.

@@ -16,13 +16,13 @@
 		</style>
 </head>
 	<body bgcolor="#ffffff">
-		<address>Document number: D1032R1</address>
+		<address>Document number: P1032R1</address>
 		<address>Project: Programming Language C++</address>
-		<address>Audience: Library Evolution Working Group</address>
+		<address>Audience: Library Working Group</address>
 		<address>&nbsp;</address>
-		<address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+		<address>Antony Polukhin, Yandex.Taxi Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
 		<address>&nbsp;</address>
-		<address>Date: 2018-08-31</address>
+		<address>Date: 2018-10-01</address>
 		<h1>Misc constexpr bits</h1>
 
 		<h2>I. Introduction and Motivation</h2>
@@ -38,7 +38,7 @@
 		</p>
 
 
-		<h2>III. Proposed wording relative to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/n4741.pdf">N4741</a></h2>
+		<h2>III. Proposed wording relative to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/n4762.pdf">N4762</a></h2>
 		<p>All the additions to the Standard are marked with <span class="addition">underlined green</span>.</p>
 		<p class="notes">Green lines are notes for the <b>editor</b> that must not be treated as part of the wording.</p>
 
@@ -56,12 +56,12 @@ namespace std {
         pair(const pair&amp;) = default;
         pair(pair&amp;&amp;) = default;
 
-        EXPLICIT constexpr pair();
-        EXPLICIT constexpr pair(const T1&amp; x, const T2&amp; y);
+        explicit(<i>see below</i>) constexpr pair();
+        explicit(<i>see below</i>) constexpr pair(const T1&amp; x, const T2&amp; y);
 
-        template&lt;class U1, class U2&gt; EXPLICIT constexpr pair(U1&amp;&amp; x, U2&amp;&amp; y);
-        template&lt;class U1, class U2&gt; EXPLICIT constexpr pair(const pair&lt;U1, U2&gt;&amp; p);
-        template&lt;class U1, class U2&gt; EXPLICIT constexpr pair(pair&lt;U1, U2&gt;&amp;&amp; p);
+        template&lt;class U1, class U2&gt; explicit(<i>see below</i>) constexpr pair(U1&amp;&amp; x, U2&amp;&amp; y);
+        template&lt;class U1, class U2&gt; explicit(<i>see below</i>) constexpr pair(const pair&lt;U1, U2&gt;&amp; p);
+        template&lt;class U1, class U2&gt; explicit(<i>see below</i>) constexpr pair(pair&lt;U1, U2&gt;&amp;&amp; p);
         
         template&lt;class... Args1, class... Args2&gt;
         <span class="addition">constexpr</span> pair(piecewise_construct_t, tuple&lt;Args1...> first_args, tuple&lt;Args2...> second_args);
@@ -94,7 +94,7 @@ template&lt;class T1, class T2&gt; <span class="addition">constexpr</span> void 
 
 		<h3>3. Modifications to "Header &lt;tuple&gt; synopsis" [tuple.syn]</h3>
 <pre>
-// 23.5.3.10, specialized algorithms
+// 19.5.3.10, specialized algorithms
 template&lt;class... Types>
 <span class="addition">constexpr</span> void swap(tuple&lt;Types...&gt;&amp; x, tuple&lt;Types...&gt;&amp; y) noexcept(see below );
 </pre>
@@ -106,50 +106,50 @@ namespace std {
     class tuple {
     public:
 
-        // 23.5.3.1, tuple construction
-        EXPLICIT constexpr tuple();
-        EXPLICIT constexpr tuple(const Types&amp;...);
+        // 19.5.3.1, tuple construction
+        explicit(<i>see below</i>) constexpr tuple();
+        explicit(<i>see below</i>) constexpr tuple(const Types&amp;...);
 
         template&lt;class... UTypes&gt;
-        EXPLICIT constexpr tuple(UTypes&amp;&amp;...);
+        explicit(<i>see below</i>) constexpr tuple(UTypes&amp;&amp;...);
 
         tuple(const tuple&amp;) = default;
         tuple(tuple&amp;&amp;) = default;
 
         template&lt;class... UTypes&gt;
-        EXPLICIT constexpr tuple(const tuple&lt;UTypes...&gt;&amp;);
+        explicit(<i>see below</i>) constexpr tuple(const tuple&lt;UTypes...&gt;&amp;);
 
         template&lt;class... UTypes&gt;
-        EXPLICIT constexpr tuple(tuple&lt;UTypes...&gt;&amp;&amp;);
+        explicit(<i>see below</i>) constexpr tuple(tuple&lt;UTypes...&gt;&amp;&amp;);
 
         template&lt;class U1, class U2&gt;
-        EXPLICIT constexpr tuple(const pair&lt;U1, U2&gt;&amp;);
+        explicit(<i>see below</i>) constexpr tuple(const pair&lt;U1, U2&gt;&amp;);
 
         template&lt;class U1, class U2&gt;
-        EXPLICIT constexpr tuple(pair&lt;U1, U2&gt;&amp;&amp;);
+        explicit(<i>see below</i>) constexpr tuple(pair&lt;U1, U2&gt;&amp;&amp;);
 
         // allocator-extended constructors
         template&lt;class Alloc&gt;
         <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a);
         template&lt;class Alloc&gt;
-        EXPLICIT <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, const Types&amp;...);
+        explicit(<i>see below</i>) <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, const Types&amp;...);
         template&lt;class Alloc, class... UTypes&gt;
-        EXPLICIT <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, UTypes&amp;&amp;...);
+        explicit(<i>see below</i>) <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, UTypes&amp;&amp;...);
 
         template&lt;class Alloc&gt;
         <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, const tuple&amp;);
         template&lt;class Alloc&gt;
         <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, tuple&amp;&amp;);
         template&lt;class Alloc, class... UTypes&gt;
-        EXPLICIT <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, const tuple&lt;UTypes...&gt;&amp;);
+        explicit(<i>see below</i>) <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, const tuple&lt;UTypes...&gt;&amp;);
         template&lt;class Alloc, class... UTypes&gt;
-        EXPLICIT <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, tuple&lt;UTypes...&gt;&amp;&amp;);
+        explicit(<i>see below</i>) <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, tuple&lt;UTypes...&gt;&amp;&amp;);
         template&lt;class Alloc, class U1, class U2&gt;
-        EXPLICIT <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, const pair&lt;U1, U2&gt;&amp;);
+        explicit(<i>see below</i>) <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, const pair&lt;U1, U2&gt;&amp;);
         template&lt;class Alloc, class U1, class U2&gt;
-        EXPLICIT <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, pair&lt;U1, U2&gt;&amp;&amp;);
+        explicit(<i>see below</i>) <span class="addition">constexpr</span> tuple(allocator_arg_t, const Alloc&amp; a, pair&lt;U1, U2&gt;&amp;&amp;);
 
-        // 23.5.3.2, tuple assignment
+        // 19.5.3.2, tuple assignment
         <span class="addition">constexpr</span> tuple&amp; operator=(const tuple&amp;);
         <span class="addition">constexpr</span> tuple&amp; operator=(tuple&amp;&amp;) noexcept(see below );
         template&lt;class... UTypes&gt;
@@ -161,7 +161,7 @@ namespace std {
         template&lt;class U1, class U2&gt;
         <span class="addition">constexpr</span> tuple&amp; operator=(pair&lt;U1, U2&gt;&amp;&amp;);
 
-        // 23.5.3.3, tuple swap
+        // 19.5.3.3, tuple swap
         <span class="addition">constexpr</span> void swap(tuple&amp;) noexcept(see below );
     };
 </pre>
@@ -174,7 +174,7 @@ namespace std {
 #include &lt;initializer_list&gt;
 
 namespace std {
-    // 26.3.7, class template array
+    // 21.3.7, class template array
     template&lt;class T, size_t N&gt; struct array;
 
     ...
@@ -222,12 +222,12 @@ template&lt;class T, size_t N&gt;
 </pre>
 
 
-<h3>9. Modifications to "General container requirements" [container.requirements.general]</h3>
+<h3>9. Modifications to "General container requirements" ("Optional container operations") [container.requirements.general]</h3>
 <pre>
-    Table 85 lists operations that are provided for some types of containers but not others. Those containers for
-    which the listed operations are provided shall implement the semantics described in Table 85 unless otherwise
+    Table 66 lists operations that are provided for some types of containers but not others. Those containers for
+    which the listed operations are provided shall implement the semantics described in Table 66 unless otherwise
     stated. <span class="addition">If iterators passed to <code>lexicographical_compare()</code>
-    satisfy the constexpr iterator requirement then the operations described in Table 85 are constexpr.</span>
+    satisfy the constexpr iterator requirement then the operations described in Table 66 are constexpr.</span>
 </pre>
 
 <h3>10. Modifications to all the char_traits specializations [char.traits.specializations.*]</h3>
@@ -243,7 +243,7 @@ template&lt;class T, size_t N&gt;
 
 <h3>11. Modifications to "Class template basic_string_view" [string.view.template]</h3>
 <pre>
-    // 24.4.2.6, string operations
+    // 20.4.2.6, string operations
     <span class="addition">constexpr</span> size_type copy(charT* s, size_type n, size_type pos = 0) const;
 </pre>
 
@@ -409,7 +409,7 @@ namespace std {
 
 		<h3>18. Feature-testing macro</h3>
     <p>Add a row into the "Standard library feature-test macros" table [support.limits.general]:
-    <table border="1"><tr><td><code>__cpp_lib_constexpr_misc</code></td><td>201811</td><td><code>&lt;array&gt; &lt;functional&gt; &lt;iterator&gt; &lt;string_view&gt; &lt;tuple&gt; &lt;utility&gt;</code></td></tr></table>
+    <table border="1" class="addition"><tr><td><code>__cpp_lib_constexpr_misc</code></td><td>201811</td><td><code>&lt;array&gt; &lt;functional&gt; &lt;iterator&gt; &lt;string_view&gt; &lt;tuple&gt; &lt;utility&gt;</code></td></tr></table>
 
 
 		<h2>IV. Revision History</h2>
@@ -418,6 +418,8 @@ namespace std {
 			<li>
 				Removed additionas that conflict with <a href="https://wg21.link/P1023">P1023</a>.
 			</li>
+			<li>
+				Rebased on N4762.
 			<li>
 				Updated the "Feature-testing macro" section.
 			</li>
