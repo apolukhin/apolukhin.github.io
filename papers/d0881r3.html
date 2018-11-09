@@ -138,10 +138,10 @@ struct promise_type {
     }
 };
 </pre></td>  </tr>
-  
-  
-  
-  
+
+
+
+
 <tr>
     <td><pre>
 class stacktrace {
@@ -225,6 +225,18 @@ basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;
     <li class="changed-deleted">Added <code>template&lt;class MemberFunc&gt; explicit function_info(MemberFunc addr) noexcept;</code>. Does LEWG wish to see this function?</li>
     <li class="changed-deleted">How about moving <code>function_info</code> into a separate header <code>&lt;function_info&gt;</code>?</li>
     </ul>
+
+<div class="changed-added">
+    <p>SG16:</p>
+    <ul>
+    <li><code>stack_frame::source_file()</code> and encodings.</li>
+    </ul>
+    <p><b>SG16</b> discussed a number of options including the possibility of <code>source_file()</code> returning <code>std::filesystem::path</code>. SG16 converged on the 
+    following recommendation: "Align behavior with source_location; remove wording regarding 
+conversion; string contents are implementation defined.
+   ". No objection to unanimous consent.</p>
+</div>
+
     <p class="changed-added">CWG question to LEWG:</p>
     <ul>
     <li class="changed-added"><code>stack_frame::address()</code> function should return instruction pointer, or stack address (that may have contained the instruction pointer), or both? </li>
