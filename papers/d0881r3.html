@@ -23,12 +23,12 @@
 <body bgcolor="#ffffff">
     <address>Document number: D0881R3</address>
     <address>Project: Programming Language C++</address>
-    <address>Audience: Library Evolution Working Group, Library Working Group, Core Working Group</address>
+    <address>Audience: Library Working Group, Core Working Group</address>
     <address>&nbsp;</address>
     <address>Alexey Gorgurov &lt;<a href="mailto:leha-bot@yandex.ru">leha-bot@yandex.ru</a>&gt;, &lt;<a href="mailto:no-vista@yandex.ru">no-vista@yandex.ru</a>&gt;</address>
     <address>Antony Polukhin, Yandex.Taxi Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2018-11-09</address>
+    <address>Date: 2018-11-10</address>
     <h1>A Proposal to add stacktrace library</h1>
 
     <p class="changed-added">Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0881r2.html">P0881R2</a> are marked with blue.</p><p>
@@ -206,8 +206,7 @@ basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;
 
 
 </table>
-<p class="changed-added"><b>LEWG</b> decided to leave it a separate type:</p>
-<p class="changed-added"><code>Prefer stacktrace as a type rather than `vector`.</code> SF:0, F:3, N:5, A:0, SA:0 </p>
+<p class="changed-added"><b>LEWG</b> decided to leave it a separate type: "Prefer stacktrace as a type rather than `vector`." SF:0, F:3, N:5, A:0, SA:0 </p>
 
     <h2>III. Significant changes to review</h2>
     <p>LEWG:</p>
@@ -241,6 +240,7 @@ conversion; string contents are implementation defined.
     <ul>
     <li class="changed-added"><code>stack_frame::address()</code> function should return instruction pointer, or stack address (that may have contained the instruction pointer), or both? </li>
     </ul>
+    <p class="changed-added"><b>LEWG</b> in favour of instruction pointer: "<code>stack_frame::address()</code> should return (something like) the instruction pointer (only)." SF:4, F:7, N:0, A:0, SA:0.</p>
 
     <p>Points of special interest for CWG:</p>
     <ul>
