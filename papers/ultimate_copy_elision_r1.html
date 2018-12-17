@@ -1,0 +1,1190 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+    <title>Ultimate copy elision</title>
+    <meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+    <meta http-equiv="Content-Language" content="en-us">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <style type="text/css">
+        .addition { color: green; }
+        .right { float:right }
+        .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+        .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+        .changed-added { background-color: #CFF0FC ;}
+        .notes { background-color: gold ;}
+        pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
+        .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; font-family:monospace }
+        body {max-width: 1024px; margin-left: 25px;}
+        .lmargin50{margin-left: 50px;}
+        .width_third{width: 33%;}
+        .cppkeyword { color: blue; }
+        .asmcostly { color: red; }
+        .cppcomment { color: green; }
+        .cppcomment > .cppkeyword{ color: green; }
+        .cpptext { color: #2E8B57; }
+        .cppaddition { background-color: #CFC; }
+        .cppdeletion {  text-decoration: line-through; background-color: #FCC; }
+        .stdquote { background-color: #ECECEC; font-family: Consolas,monospace; }
+    </style>
+    </head>
+    <body bgcolor="#ffffff">
+    <address>Document number: D0889R1</address>
+    <address>Project: Programming Language C++</address>
+    <address>Audience: Evolution Working group, Core Working group</address>
+    <address>&nbsp;</address>
+    <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+    <address>&nbsp;</address>
+    <address>Date: 2018-12-17</address>
+    <h1>Ultimate copy elision</h1>
+
+<div class="changed-added">
+<p align="right">“...take no action on CWG #6 issue until an interested party<br> produces a paper with analysis and a proposal.”</p>
+<p align="right"><i>― CWG #6</i></p>
+</div>
+    <p class='changed-added'>Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0889r0.html">P0889R0</a> are marked with blue.<p>
+    <p><input type="checkbox" id="show_deletions" onchange="show_hide_deleted()"> Show deleted lines from P0889R0.</p>
+
+    <h2>I. Quick Introduction</h2>
+    <p>[class.copy.elision]
+    in the current working draft [<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/n4713.pdf">N4713</a>] provides a whitelist of cases
+    when copy elision is permitted. Those rules are good! However they
+    do not take into account that modern compilers could inline functions and do other optimizations.</p>
+    <p>This paper motivates and proposes to relax the [class.copy.elision] rules in order to allow compilers to produce much better code  <span class="changed-added">by mixing copy elision, inlining and other optimizations. It also addresses <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_active.html#6">CWG #6</a>, <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_active.html#1049">CWG #1049</a>, and <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_defects.html#1579">CWG #1579</a>. It also gives a non-guaranteed solution for <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_active.html#2327">CWG #2327</a>.</span></p>
+
+    <h2>II. The pitfall</h2>
+    <h4>A. Teaching practice</h4>
+    <p>For decades, almost all teaching materials were telling people to decompose their programs into functions for maintainability and code re-usability.
+    That good advice leads to code with numerous functions. Compiler developers noted that and started inlining functions more aggressively.</p>
+    <p>Currently inlining is one of the major optimizations [<a href="https://youtu.be/FnGCDLhaxKU?t=26m20s">Understanding Compiler Optimization, 26m20s by Chandler Carruth</a>]
+    and compilers inline a lot.</p>
+
+    <h4>B. Copy elision rules</h4>
+    <p>Current rules for copy elision mostly assume that a function from source code remains a function in a binary. This works perfectly
+    fine in a world without inlining, aliasing reasoning, and link time optimization. But if the function is inlined, then the compiler "sees"
+    the whole function body along with function parameters. This unleashes a whole new world of possible optimizations (See section III for examples),
+    but existing copy elision rules prevent those optimizations.</p>
+
+    <p>Our current rules are suboptimal for modern compilers: they prevent optimizations.</p>
+
+    <h4>C. std::move/rvalues is not a panacea</h4>
+    <p>We have <code>std::array</code>, <code>std::basic_string</code>, <code>std::function</code>, <code>std::variant</code>, <code>std::optional</code>
+    and other classes that may store a lot of data on the stack.
+    "Moving" instances of those classes may result in copying a lot of bytes.</p>
+    <p>Copy elision could be more profitable.</p>
+
+    <h4>D. std::move/rvalues rules may be obscure</h4>
+    <p>What is the optimal way to return something from a function? For named object we must just return. For a subobject we must return it with <code>std::move</code>.
+    For a function parameter we must return it by <code>std::move</code>. If we return a reference to a local object, we have to <code>std::move</code> it.
+    We must also return elements from structured binding via <code>std::move</code>, but only if the element is not a reference to an value returned by reference before decomposition... 
+    Do we have to apply <code>std::move</code> for a member function call on a local variable when the function call returns reference?..</p>
+    <p>Beginners and even some advanced programmers do not always know about those obscure rules and already assume that the compiler will do the job for them.</p>
+
+    <h4>E. In sum</h4>
+    <p>We have for decades been teaching people to write functions. WG21 was improving the C++ language by providing features for advanced programmers to optimize the functions,
+    leaving behind the abilities of modern compilers to do that job sometimes better and sometimes out-of-the-box.</p>
+
+<div class="changed-added">
+    <h2>III. History of the problem</h2>
+    <p>First copy elision rules were proposed in 1995 in <a href="www.open-std.org/jtc1/sc22/wg21/docs/papers/1995/N0641.pdf">N0641 "Copy optimization"</a>. Those rules were quite close to what was proposed in the early versions of this paper. Here they are:</p>
+    <p class="desc stdquote">
+Whenever a class object is copied and the implementation can prove that either the original or the
+copy will never again be used, an implementation is permitted to treat the original and the copy
+as two different ways of referring to the same object and not generate a copy at all. In that case,
+the object is destroyed at the later of the times when the original and the copy would have been
+destroyed without the optimization.
+    </p>
+    <p>N0641 "Copy optimization" was adopted into the C++ WD in <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/1995/N0661.asc">N0661 "WG21  Meeting No. 12"</a>. 
+    Two years later issues were found and described in <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/1997/N1079.asc">N1079 "Core WG List of new issues"</a>:</p>
+    <div class="desc stdquote">
+    <p>
+I think the problem can be summarized by saying that objects
+can bind resources, and even if an object is not used, the
+resource it binds might be.  The kind of thing that might
+happen is:</p>
+<pre class="lmargin50">
+  Thing x = /* some value */;
+  SubThing y = x.extract_portion();
+  Thing z = x;
+  z.clobber_portion();
+  // now try to fetch the value of y
+</pre>
+<p> If x is never used again, the compiler is entitled to alias z and x.  However, if y actually refers to part of the storage
+that x used, clobbering z (which is an alias to x) might also clobber y.</p>
+</div>
+
+<p>After that issue was discussed multiple times, including <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/1997/N1108.htm">N1108 "WG21 Meeting No. 19"</a>.
+In that paper two cases where Core especially whanted to allow copy elisions were higlighted:</p>
+<ul class="desc stdquote">
+    <li>elision of copy of temporary values,</li>
+    <li>elision of copy of return value.</li>
+</ul>
+<p class="desc stdquote">Core would conduct further work to look at other optimizations.</p>
+<p>Finally, in <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/1999/n1182.pdf">N1182 "Proposed Resolutions for Core Language Issues 6, 14, 20, 40, and 89"</a> appeared the copy elision rules close to the ones we have now. Since then we have an open issue <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_active.html#6">CWG #6</a> as a reminder that C++ could do better than now.</p>
+</div>
+
+    <h2 class="changed-added">IV. Analysis</h2>
+<div class="changed-added">
+
+
+
+    <h3>Part I</h3>
+<p>As was noted in <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/1997/N1079.asc">N1079</a> object could "bind" it's resources to other objects:
+<pre class="lmargin50">
+char* some;
+
+struct binds_resource {
+    binds_resource() = default;
+    binds_resource(const binds_resource&amp; other) = default;
+
+    void bind() {
+        some = data.data();
+    }
+
+    string data = "A";
+};
+
+
+void test() {
+    binds_resource original{};
+    original.bind();
+
+    shared_state copy{original};
+    copy.data = "B";
+    assert(some != copy.data);
+}
+</pre>
+
+<p>If in the above example we enable to elide <code>copy</code> and use <code>original</code> instead, then the assertion will <b>fail</b>.</p>
+
+<p>Let's concentrate on a simpler case, when the original object is not accessed between construction and copying and when the original object is not accessed after copying and destruction. For such a simple case we still may get into trouble, if the original object "binds" it's resources in constructor:</p>
+
+<pre class="lmargin50">
+char* some;
+
+struct binds_resource {
+    binds_resource()
+        : data{"A"}
+    {
+        bind();
+    }
+
+    binds_resource(const binds_resource&amp; other) = default;
+
+    void bind() {
+        some = data.data();
+    }
+
+    string data = "A";
+};
+
+
+void test() {
+    binds_resource original{};
+    shared_state copy{original};
+    copy.data = "B";
+    assert(some != copy.data);
+}
+</pre>
+
+<p>Such binding could also happen via constructor output parameters:</p>
+
+<pre class="lmargin50">
+struct binds_resource {
+    binds_resource(char** out)
+        : data{"A"}
+    {
+        *out = data.data();
+    }
+
+    binds_resource(const binds_resource&amp; other) = default;
+    string data = "A";
+};
+
+
+void test() {
+    char* some;
+    binds_resource original{&amp;some};
+
+    shared_state copy{original};
+    copy.data = "B";
+    assert(some != copy.data);
+}
+</pre>
+
+
+<p>More problems. We may get into troubles with eliding copies of resources that are used by different threads:</p>
+
+<pre class="lmargin50">
+mutex m;
+
+void takes_by_copy(std::string v) noexcept {
+    m.unlock();
+    v += "Oops."; // must work with copy!
+}
+
+void test() {
+    m.lock();
+
+    std::string original{"some string that is too big for SSO"};
+
+    std::thread t{
+        [&amp;original]() {
+            m.lock();
+            // under the lock
+            // ...
+        }
+    };
+
+    takes_by_copy(original);
+
+    t.join();
+}
+</pre>
+
+<p>Note that the scope of the Source should remain the same or extend after the elision:</p>
+
+<pre class="lmargin50">
+struct locked_mutex {
+    mutex m{};
+    lock_guard&lt;mutex&gt; lock{m};
+};
+
+void test() {
+    shared_ptr&lt;locked_mutex&gt; original = std::make_shared&lt;mutex&gt;();
+
+    // acessing resource that should be protected by lock
+
+    shared_state copy{original};
+}
+</pre>
+
+<p>Finally, we may get into troubles with eliding copies between different threads of execution:</p>
+
+<pre class="lmargin50">
+void test() {
+    some_shared_spin_guard original{spinlock};
+
+    std::thread{
+        [](const auto&amp; lock) { /* under the lock */ },
+        original
+    }.detach();
+
+    // original should be destroyed here and should release the lock here!
+}
+</pre>
+
+<p><b>Conclusion:</b> carefully investigating all the above cases we could enable the copy elisions for the case when:</p>
+<ul>
+    <li>Source is not accessed between construction and copy</li>
+    <li>and Source is not accessed between copy and destruction</li>
+    <li>and Source and Target belong to the same thread of execution</li>
+    <li>and Source and Target have automatic storage duration</li>
+    <li>and Source construction does not access any global variables and does not return values through output parameters</li>
+    <li>and scope of Source after the elision extends to the scope of the target</li>
+</ul>
+
+<p><b>Benefits:</b> With above rules we get copy elisions in the following popular cases:</p>
+
+    <h4>Case 1. CWG #6</h4>
+<pre class="lmargin50">
+void takes_by_copy(std::string v) noexcept { /* ... */ }
+
+void example() {
+    string v{"some string that is too big for SSO"};
+    takes_by_copy(v);
+}
+</pre>
+
+
+    <h4>Case 2. CWG #6</h4>
+    <pre class="lmargin50">
+void takes_by_creference(const std::string&amp; v) noexcept {
+    std::string copy{v};
+    /* ... */
+}
+
+void example() {
+    return takes_by_creference("some string that is too big for SSO");
+}
+</pre>
+
+
+    <h4>Case 3. CWG #1049</h4>
+
+<pre class="lmargin50">
+struct B {
+   string a;
+   B(const string&amp; a): a(a) { }
+};
+
+int main() {
+   B("some string that is too big for SSO");
+}
+</pre>
+</div>
+
+<div class="changed-added">
+<h3>Part II: Source leaves scope</h3>
+
+
+<p>Now let's concentrate on another case: when the source object is destroyed right after the copy/move construction:</p>
+
+<pre>
+char* some;
+
+struct binds_resource {
+    binds_resource()
+        : data{"A"}
+    {
+        bind();
+    }
+
+    binds_resource(const binds_resource&amp; other) = default;
+
+    void bind() {
+        some = data.data();
+    }
+
+    string data = "A";
+};
+
+void test() {
+    auto generate = []() {
+        binds_resource source{};
+        return source; // NRVO is possible
+    };
+
+    auto copy = generate();
+
+    copy.data = "B";
+    assert(some != copy.data); // UB
+}
+</pre>
+
+<p>Existing rules already relay on the fact that the object that leaves scope should not be referenced outside the scope. Let's change example to have no UB:</p>
+
+<pre>
+shared_ptr&lt;int&gt; some;
+
+struct shares_state {
+    shares_state()
+        : data{make_shared&lt;int&gt;(42)}
+    {
+        bind();
+    }
+
+    shares_state(const shares_state&amp; other) {
+        data = make_shared&lt;int&gt;(*other.data);
+    }
+
+    void bind() {
+        some = data;
+    }
+
+    shared_ptr data;
+};
+
+void test() {
+    auto generate = []() {
+        shares_state source{};
+        return source; // NRVO is possible
+    };
+
+    auto copy = generate();
+
+    *copy.data = 0;
+    assert(*some != *copy.data); // Implementation defined
+}
+</pre>
+
+<p>In other words: <b>we don't have to check for "binding" if the scope of Source ends right after the copy/move construction</b>.</p>
+<p><b>Conclusion:</b> we can relax the rule in "Part I" for the cases when the scope of Source ends immediately the copy/move construction:</p>
+<ul>
+    <li>Source is not accessed between copy and destruction</li>
+    <li>and Source and Target have automatic storage duration</li>
+    <li>and Source and Target belong to the same thread of execution</li>
+    <li>and scope of Source after the elision extends to the scope of the target</li>
+
+    <li>and either
+        <ul>
+            <li>scope of Source ends after the copy/move construction of Target</li>
+            <li> or Source is not accessed between construction and copy, and Source construction does not access any global variables and does not return values through output parameters</li>
+        </ul>
+    </li>
+</ul>
+
+
+<p><b>Benefits:</b> With above rules we get copy elisions in the following popular cases:</p>
+    <h4>Case 1. Returning a function parameter</h4>
+<pre class="lmargin50">
+string callee(string v) {
+    // any code
+    return v;  // copy could be elided
+}
+
+auto example() {
+    auto v = callee("some string that is too big for SSO");
+    return v.size();
+}</pre>
+
+    <h4>Case 2. Returning a reference to a local</h4>
+<pre class="lmargin50">
+string callee() {
+    string v{"some string that is too big for SSO"};
+    const auto&amp; ref = v;
+    return ref;  // copy could be elided
+}
+
+auto example() {
+    auto v = callee();
+    return v.size();
+}</pre>
+
+<h4>Case 3. Move by mistake</h4>
+<pre class="lmargin50">
+string callee() {
+    string v{"some string that is too big for SSO"};
+    return std::move(v);  // copy could be elided
+}
+
+auto example() {
+    auto v = callee();
+    return v.size();
+}</pre>
+</div>
+
+<div class="changed-added">
+
+<h3>Part III: Simple destructors and constructors</h3>
+<p>It may be hard to implement the above copy elision logic without taking additional care of compiler specifics. Some compilers at certain stages of optimization may inline constructors/destructors and just call the constructors/destructors of the members. So in the assembly (and probably in the IR) code like:</p>
+
+<pre class="lmargin50">
+void test1() {
+    std::pair&lt;A, A&gt; pair;
+    (void)pair;
+}</pre>
+
+may look like:
+<pre class="lmargin50">
+test1():
+  push rbp
+  sub rsp, 16
+  mov rdi, rsp
+  call A::A()
+  lea rdi, [rsp+8]
+  call A::A()
+  lea rdi, [rsp+8]
+  call A::~A()
+  mov rdi, rsp
+  call A::~A()
+  add rsp, 16
+  pop rbp
+  ret
+</pre>
+
+<p>With such representations it could be hard to distinguish `pair` objects from `A` objects. To minimize the changes required to implement the elision rules this paper proposes to allow eliding subobjects, while the elision rules from "Part I" and "Part II" are not violated.</p>
+
+<p>Note that the proposed changes may change the destruction order of nested objects:</p>
+<pre class="lmargin50">
+string callee() {
+    pair&lt;string, string&gt; v = foo();
+    return v.second;
+}
+
+auto test() {
+    auto v = callee();
+    return v.size();
+}
+
+
+auto pseudocode_with_proposed_changes() {
+    pair&lt;string, string&gt; v = foo();
+    v.first.~string();
+    return v.size();
+    // do not call destructor of `v`, just destroy `v.second`
+}
+</pre>
+
+<p>Let's invent an example where such optimization could break some code:</p>
+
+<pre class="lmargin50">
+struct local_vector {
+    pmr::monotonic_buffer_resource mr;
+    pmr::vector&lt;int&gt; data{&amp;mr};
+};
+
+auto callee() {
+    local_vector lv;
+    lv.data.resize(1000, 42);
+
+    return lv.data; // copying
+}
+
+auto test() {
+    auto v = callee(); // `mr` is destroyed, but during copying default memory resource is used
+    /*...*/
+}</pre>
+
+<p>With the proposed copy elision rules the above example becomes broken: there'll be no copying so the old memory resource will be used, that is destroyed.</p>
+<p>Note that the example is already shaky. Minor changes result in broken code:</p>
+
+<pre class="lmargin50">
+auto callee0() {
+    monotonic_buffer_resource mr;
+    pmr::vector&lt;int&gt; v(&amp;mr);
+    v.resize(1000, 42);
+    return v;
+}
+
+auto test0() {
+    auto v = callee(); // Already broken
+}
+</pre>
+
+<p>In this paper we'd like to suggest enabling copy elision for the above rules and make an emergency hatch for disabling copy/move elisions for cases like above.</p>
+
+
+<!--p>Let's invent an example where such optimization could break some code:</p>
+
+<pre class="lmargin50">
+struct lock_on_scope_exit {
+    explicit lock_on_scope_exit(mutex&amp; m)
+        : m_(&amp;m)
+    {}
+
+    lock_on_scope_exit(lock_on_scope_exit&amp;&amp; l)
+        : m_(l.m_)
+    {
+        l.m_ = nullptr;
+    }
+
+    ~lock_on_scope_exit() {
+        if (m) m_.lock();
+    }
+private:
+    mutex* m_;
+};
+
+mutex m1, m2;
+
+auto callee() {
+    pair&lt;lock_on_scope_exit, lock_on_scope_exit&gt; v{m1, m2};
+    // do something
+    return std::move(v.second);
+}
+
+auto test() {
+    auto v = callee();
+    /*...*/
+}
+</pre-->
+
+<p><b>Conclusion:</b> relax the rule in "Part II" by allowing copy elision for subobjects and make an "emergency hatch" for cases when copies are required. See "VII. Proposed wording" for the wording.</p>
+<p><b>Benefits:</b> With above rules we get copy elisions in the following popular cases:</p>
+    <h4>Case 1. Returning a subobject</h4>
+
+<pre class="lmargin50">
+static string callee() {
+    pair&lt;string, string&gt; v;
+    return v.second;
+}
+</pre>
+
+    <h4>Case 2. Returning an element from a structured binding</h4>
+<pre class="lmargin50">
+static string callee() {
+    auto [f, s] = pair{};
+    return s;
+}
+</pre>
+
+    <h4>Case 3. CWG #1579</h4>
+<pre class="lmargin50">
+  optional&lt;T&gt; foo() {
+    T t;
+    ...
+    // inlining the constructor of `optional` may result in internal storage of optional being
+    // initialized by constructing T from `t`, which scope ends.
+    return t; 
+  }
+</pre>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="changed-deleted">
+    <h2>III. Examples of possible optimizations</h2>
+    <p>All the examples in this section use the following classes and assume that <code>callee</code> is inlined by the optimizer:</p>
+<pre class="lmargin50">
+struct detect_copy {
+    detect_copy() noexcept = default;
+    detect_copy(const detect_copy&amp;) noexcept;
+    ~detect_copy();
+    int modify() noexcept;
+};
+
+struct pair {
+    detect_copy first, second;
+};
+</pre>
+
+    <h4>A. Returning a function parameter</h4>
+
+<pre class="lmargin50">
+string callee(string v) {
+    // any code
+    return v;
+}
+
+auto example() {
+    auto v = callee("some string that is too big for SSO");
+    return v.size();
+}</pre>
+
+<p>[class.copy.elision] forbids copy elision if a function parameter is returned. However, modern compilers do inline the <code>callee</code>. This results in a copy constructor call immediately followed by a call to the destructor: <a href="https://godbolt.org/g/nYovU3">https://godbolt.org/g/nYovU3</a>.</p>
+
+<p>Code could be optimized by the compiler to the following, avoiding calls to the copy constructor and destructor:</p>
+<pre class="lmargin50">
+int caller() {
+    detect_copy v;
+    return v.modify();
+}</pre>
+
+    <h4>B. Returning a reference to a local</h4>
+
+<pre class="lmargin50">
+static detect_copy callee() {
+    detect_copy v;
+    auto& ref = v;
+    return ref;
+}
+
+int caller() {
+    return callee().modify();
+}</pre>
+
+    <p>[class.copy.elision] forbids copy elision if a reference is returned. However, modern compilers do understand that <code>ref</code> is just a reference to <code>v</code>.
+    This can be seen from the assembly, where no separate variable/register is used for a <code>ref</code>: <a href="https://godbolt.org/g/YMAAN4">https://godbolt.org/g/YMAAN4</a>. Note the call to the copy constructor immediately followed by a call to the destructor.</p>
+
+<p>It means that the code could be optimized by the compiler to avoid calls to the copy constructor and destructor:</p>
+<pre class="lmargin50">
+int caller() {
+    detect_copy v;
+    return v.modify();
+}</pre>
+
+
+    <h4>C. Returning a subobject</h4>
+
+<pre class="lmargin50">
+static detect_copy callee() {
+    pair v;
+    return v.second;
+}
+
+int caller() {
+    return callee().modify();
+}</pre>
+
+<p>[class.copy.elision] forbids copy elision if a subobject is returned. However modern compilers do understand that <code>pair</code> could be
+    treated as two <code>detect_copy</code> variables because <code>pair</code> has a default destructor.
+    The copy constructor call is immediately followed by a call to the destructor for the same register: <a href="https://godbolt.org/g/kyPR7R">https://godbolt.org/g/kyPR7R</a>.</p>
+
+<p>Code could be optimized by the compiler to avoid calls to the copy constructor and destructor:</p>
+<pre class="lmargin50">
+int caller() {
+    detect_copy first;
+    { detect_copy second; }
+    return first.modify();
+}</pre>
+
+
+
+    <h4>D. Returning a union element</h4>
+<pre class="lmargin50">
+union optional {
+    bool fake;
+    detect_copy data;
+
+    optional()
+        : data{}
+    {}
+
+    ~optional(){
+        data.~detect_copy();
+    }
+};
+
+static detect_copy callee() {
+    optional v;
+    return v.data;
+}
+
+int caller() {
+    return callee().modify();
+}</pre>
+
+<p>[class.copy.elision] forbids copy elision if a union element is returned. However modern compilers have knowledge of the active union member, because they do check that in constexpr calls.
+    In the above example, the copy constructor call is immediately followed by a call to the destructor for the same memory: <a href="https://godbolt.org/g/Udb7vN">https://godbolt.org/g/Udb7vN</a>.</p>
+
+<p>Code could be optimized by the compiler to avoid calls to the copy constructor and destructor:</p>
+<pre class="lmargin50">
+int caller() {
+    detect_copy v;
+    return v.modify();
+}</pre>
+
+
+
+    <h4>E. Returning an element from a structured binding</h4>
+<pre class="lmargin50">
+static detect_copy callee() {
+    auto [f, s] = pair{};
+    return s;
+}
+
+int caller() {
+    return callee().modify();
+}</pre>
+
+<p>[class.copy.elision] forbids copy elision if a reference to the subobject is returned. However, modern compilers do understand that <code>s</code> is just a reference to <code>pair{}.second</code>.
+    This can be seen from the assembly, where no separate variable/register is used for a <code>s</code>: <a href="https://godbolt.org/g/quV9Cp">https://godbolt.org/g/quV9Cp</a>. Note the call to the copy constructor immediately followed by a call to the destructor for the same memory.</p>
+
+<p>Code could be optimized by the compiler to avoid calls to the copy constructor and destructor:</p>
+<pre class="lmargin50">
+int caller() {
+    detect_copy first;
+    { detect_copy second; }
+    return first.modify();
+}</pre>
+
+
+    <h4>F. Returning a local variable that is <code>std::move</code>d in <code>return</code></h4>
+<pre class="lmargin50">
+static detect_copy callee() {
+    detect_copy v;
+    return static_cast&lt;detect_copy&amp;&amp;&gt;(v);
+}
+
+int caller() {
+    auto v = callee();
+    return v.modify();
+}
+</pre>
+    <p>[class.copy.elision] forbids copy elision if an rvalue reference is returned. However modern compilers do understand that actually <code>v</code> is returned.
+    This can be seen from the assembly, where the compiler operates with just an address of <code>v</code> and does not use separate variables/registers for a reference: <a href="https://godbolt.org/g/bPQ8Ja">https://godbolt.org/g/bPQ8Ja</a>. Note the call to the copy constructor immediately followed by a call to the destructor.</p>
+
+<p>It means that the code could be optimized by the compiler to avoid calls to the copy constructor and destructor:</p>
+<pre class="lmargin50">
+int caller() {
+    detect_copy v;
+    return v.modify();
+}</pre>
+
+
+
+    <h4>H. Returning a reference to a subobject of a local object</h4>
+<pre class="lmargin50">
+class stringstream {
+    detect_copy internal;
+
+public:
+    detect_copy&amp; str() { return internal; }
+};
+
+static detect_copy callee() {
+    stringstream ss;
+
+    return ss.str();
+}
+
+int caller() {
+    return callee().modify();
+}</pre>
+    <p>[class.copy.elision] forbids copy elision in that case. Thou the compilers succeeded in understanding and inlining the <code>stringstream::str()</code> function: <a href="https://godbolt.org/g/MjEocB">https://godbolt.org/g/MjEocB</a>. Note the call to the copy constructor immediately followed by a call to the destructor.</p>
+
+<p>Code could be optimized by the compiler to avoid calls to the copy constructor and destructor:</p>
+<pre class="lmargin50">
+int caller() {
+    return detect_copy{}.modify();
+}</pre>
+
+    <h4>I. Storing a parameter in a class</h4>
+<pre class="lmargin50">
+struct B {
+   detect_copy a;
+   B(const detect_copy&amp; a): a(a) { }
+};
+
+int main() {
+   (B(detect_copy()));
+}
+</pre>
+    <p>[class.copy.elision] forbids copy elision in that case. This issue was reported in <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_active.html#1049">CWG #1049</a>.</p>
+    <p>In the disassembly, we see a call to the copy constructor is immediately followed by a call to the destructor: <a href="https://godbolt.org/g/zFWJNc">https://godbolt.org/g/zFWJNc</a>.</p>
+
+
+
+    <h2>IV. General idea</h2>
+    <p>All the examples from above were producing code that after inlining (and some other optimizations) contains copy/move constructor call followed by a call to destructor.
+    Something close to the following could be found in disassembly:
+</div>
+
+
+<div class="changed-added">
+    <h2>V. Implementability example.</h2>
+    <p>Let's take a look at some pseodocode representing the C++ program after the inlining optimization:</p>
+    <pre class="lmargin50">
+struct A {
+    A() __attribute__ ((pure)); // "pure" is detected by the compiler
+    A(const A&);
+    A(A&&) = default __attribute__ ((pure)); // "pure" is detected by the compiler
+    ~A();
+
+    int some_function();
+private:
+    // members
+};
+
+int caller() {
+    A a;
+    a.some_function();
+    A b{a};             // scope of `a` ends immediately, eliding `b` and using `a` with extended scope
+    [[end of scope `a`]]
+
+    A c{b}; // `a` is accessed between this line, no copy elision allowed
+    A d{c}; // `c` is not accessed after copy construction and it's copy constructor is a "pure" function. OK to elide
+    return d.some_function()
+}
+    
+    </pre>
+</div>
+
+    <h2>VI. Addressing common concerns</h2>
+    <hr>
+    <p><b>Concern:</b> Eliding copy/move constructors could break user code</p>
+    <p><b>Response:</b> <span class="changed-added">For the rules from "Part I" nothing should get broken. For the remaining cases...</span> Yes, but only if the following generally-accepted constraint for a copy constructor is not satisfied: "After the definition <code>T u = v;</code>, <code>u</code> is equal to <code>v</code>".</p>
+    <p>Although the constraint seems very restrictive at first, that constraint is satisfied by every sane copy constructor. Moreover the C++ Language and Standard Library heavily rely on it:</p>
+    <ul>
+        <li>
+            The Ranges TS forces the requirement that objects after copy/assignment/move are equal
+            (N4651: "After the definition T u = v;, u is equal to v" in Concept CopyConstructible. The same rules can be found in Concept Assignable and Concept Swappable).
+        </li>
+        <li>
+            The standard library implicitly requires objects after copy/assignment/move to be equal in [container.requirements.general].
+        </li>
+        <li>
+            Algorithms do not work well if that constraint is not satisfied, as some of the complexities in [alg*] are described as "At most .* swaps" or "Approximately .* swaps".
+            Moreover, algorithms sometimes do not specify the order of copying/swapping so if the requirement is not satisfied the results could be different on different platforms.
+        </li>
+        <li>
+            [class.copy.elision] implicitly relies on that constraint.
+        </li>
+        <li>
+            WG21 implicitly relied on that constraint in "P0135R1: Wording for guaranteed copy elision through simplified value categories".
+        </li>
+    </ul>
+    <p>In other words, WG21 has been relying on that constraint for a long time and classes that violate that constraint are already unportable.</p>
+    <hr>
+
+    <p><b>Concern:</b> The examples do not look like a real world code. Nobody writes such bad code</p>
+    <p><b>Response:</b> Examples are simplified just to show that the optimization is possible.</p>
+    <p>Real code would have functions located in different headers, more code will be in the function body.
+    We searched the Yandex code base for <code>return.*first;</code> and <code>return.*second;</code> and found thousands of matches. Note that we searched only for a single optimization
+    case for only a <code>std::pair</code>. Tuples, aggregates and more complex data types are also affected.</p>
+    <hr>
+
+    <p><b>Concern:</b> Advanced optimizations could affect compilation time</p>
+    <p>That depends. Making a high level optimization could be faster than doing a lot of low level optimizations. For example removing the copy constructor and destructor could be faster
+    than inlining both and optimizing all the internals.</p>
+    <p>Anyway, to implement or not to implement a particular optimization is up to the compiler developers. This proposal just attempts to untie their hands and allow more optimizations.</p>
+    <hr>
+
+    <p><b>Concern:</b> It is impossible to implement some of the optimizations right now.</p>
+    <p><b>Response:</b> This proposal does not require any of the optimizations from examples. The proposal simply attempts to relax copy elision rules to allow those optimizations someday.</p>
+    <hr>
+
+    <p><b>Concern:</b> We want an emergency hatch to disable copy elision for particular places.</p>
+    <p><b>Response:</b> Our usual practice to disable optimizations for a variable is to make it <code>volatile</code>. This feature must be kept.</p>
+    <hr>
+
+    <p><b>Concern:</b> The optimizations are not guaranteed, so users still have to write <code>std::move</code></p>
+    <p><b>Response:</b> That's true. Proposals for automatically applying <code>std::move</code> may be a good idea. Such proposals would be more restrictive than the copy elision rules because we have
+    no control over all the compiler inlining and reasoning logic. We can not guarantee that all the compilers would be able to inline some function or would be able to understand that 
+    the reference references a local object.</p>
+
+    <p>Moving in both directions would produce better results:</p>
+    <ul>
+        <li>simplifying copy elision rules will remove border cases when <code>std::move</code> hurts performance</li>
+        <li>implicit casting to rvalues will simplify the code and allow writing less <code>std::move</code>s</li>
+        <li>implicit casting to rvalues and more generic copy elision rules will produce faster programs out-of-the-box. Users will have to worry less for performance.
+        This will simplify the language usage and teaching materials (See "D. std::move/rvalues rules may be obscure").</li>
+    </ul>
+    <hr>
+
+    <p><b>Concern:</b> How this would change the guidelines? How users shall write their code to get the benefits of this optimization?</p>
+    <p><b>Response:</b> This optimization won't change the guidelines in the nearest future. Treat this optimization as one of the compiler optimizations that you could not directly control, like inlining, jump threading, loop fusion, or common subexpression elimination.</p>
+    <p>Some guidelines may change after major compilers adopt the optimization. In that case, there could be found a common pattern that triggers it and that pattern could be taught. Probably the existing
+    guidelines some day would evolve into "If you've got a function bigger than 15 lines of code, you may use <code>std::move</code> for returning objects that are not constructed at the
+    beginning of the function. Otherwise just return the value."</p>
+    <hr>
+
+    <p><b>Concern:</b> Extracting a subobject from an object is scary. I can no longer assume that the object I construct as a subobject is in any way part of myself, nor can it assume that any sibling subobjects will always be around.</p>
+    <p><b>Response:</b> The proposed wording makes sure that the subobject is not used between copy/move construction and destruction. An object that is constructed as a subobject is a part of the object
+    as long as you use it as a subobject. As soon as you copy/move and destroy it, you can not use it any more by existing C++ rules. That's the place were the optimization steps in,
+    removing the copy/move+destruction and reusing the subobject.</p>
+    <hr>
+
+
+    <p><b>Concern:</b> The problem is not that big because compilers could inline the constructors and destructors and then optimize the resulting code</p>
+    <p><b>Response:</b> Yes they do that. But the resulting code is still suboptimal, because even for <code>std::string</code> compilers could not optimize away all the dead stores.
+    Consider the following example:</p>
+    <pre class="lmargin50">
+#include &lt;utility&gt;
+#include &lt;string&gt;
+
+std::pair&lt;std::string, std::string&gt; produce();
+
+static std::string first_non_empty_move() {
+    auto v = produce();
+    if (!v.first.empty()) {
+        return <span class="notes">std::move(</span>v.first<span class="notes">)</span>;
+    }
+    return <span class="notes">std::move(</span>v.second<span class="notes">)</span>;
+}
+
+int example_1_move() {
+    return first_non_empty_move().size();
+}
+</pre>
+    <p>Note that <code>std::move</code> is used and everything must be optimal. But it's not, because with this paper's proposed copy elision rules, the resulting code could still be much shorter and with fewer conditional jumps:</p>
+
+
+
+<table border="1" rules="cols" style="width: 100%">
+<tr><th style="width: 33%">Without copy elision</th><th style="width: 33%">With copy elision</th></tr>
+<tr><th><a href="https://godbolt.org/g/3xZvtw">https://godbolt.org/g/3xZvtw</a></th><th><a href="https://godbolt.org/g/RiTmPE">https://godbolt.org/g/RiTmPE</a></th></tr>
+<tr>
+    <td valign="top" style="border-right: solid 1px #000;"><pre>
+example_1_move():
+    push    rbp
+    push    rbx
+    sub     rsp, 104
+    lea     rdi, [rsp+32]
+    mov     rbx, rsp
+    call    produce[abi:cxx11]()
+    mov     rax, QWORD PTR [rsp+40]
+    test    rax, rax
+    je      .L2
+    lea     rdx, [rbx+16]
+    lea     rcx, [rsp+48]
+    mov     QWORD PTR [rsp], rdx
+    mov     rdx, QWORD PTR [rsp+32]
+    cmp     rdx, rcx
+    je      .L13
+    mov     QWORD PTR [rsp], rdx
+    mov     rdx, QWORD PTR [rsp+48]
+    mov     QWORD PTR [rsp+16], rdx
+.L4:
+    mov     QWORD PTR [rsp+8], rax
+    lea     rax, [rsp+48]
+    mov     rdi, QWORD PTR [rsp+64]
+    mov     QWORD PTR [rsp+40], 0
+    mov     BYTE PTR [rsp+48], 0
+    mov     QWORD PTR [rsp+32], rax
+    lea     rax, [rsp+80]
+    cmp     rdi, rax
+    je      .L6
+    call    operator delete(void*)
+    jmp     .L6
+.L2:
+    lea     rax, [rbx+16]
+    lea     rdx, [rsp+80]
+    mov     QWORD PTR [rsp], rax
+    mov     rax, QWORD PTR [rsp+64]
+    cmp     rax, rdx
+    je      .L14
+    mov     QWORD PTR [rsp], rax
+    mov     rax, QWORD PTR [rsp+80]
+    mov     QWORD PTR [rsp+16], rax
+.L8:
+    mov     rax, QWORD PTR [rsp+72]
+    mov     QWORD PTR [rsp+8], rax
+.L6:
+    mov     rdi, QWORD PTR [rsp+32]
+    lea     rax, [rsp+48]
+    cmp     rdi, rax
+    je      .L9
+    call    operator delete(void*)
+.L9:
+    mov     rdi, QWORD PTR [rsp]
+    add     rbx, 16
+    mov     rbp, QWORD PTR [rsp+8]
+    cmp     rdi, rbx
+    je      .L1
+    call    operator delete(void*)
+.L1:
+    add     rsp, 104
+    mov     eax, ebp
+    pop     rbx
+    pop     rbp
+    ret
+.L14:
+    movdqa  xmm0, XMMWORD PTR [rsp+80]
+    movaps  XMMWORD PTR [rsp+16], xmm0
+    jmp     .L8
+.L13:
+    movdqa  xmm0, XMMWORD PTR [rsp+48]
+    movaps  XMMWORD PTR [rsp+16], xmm0
+    jmp     .L4
+    </pre></td>
+    <td valign="top" style="border-right: solid 1px #000;"><pre>
+    example_1_optimized():
+    push    rbx
+    sub     rsp, 64
+    mov     rdi, rsp
+    call    produce[abi:cxx11]()
+    mov     rax, QWORD PTR [rsp+8]
+    test    rax, rax
+    mov     ebx, eax
+    jne     .L3
+    mov     ebx, DWORD PTR [rsp+40]
+.L3:
+    mov     rdi, QWORD PTR [rsp+32]
+    lea     rax, [rsp+48]
+    cmp     rdi, rax
+    je      .L4
+    call    operator delete(void*)
+.L4:
+    mov     rdi, QWORD PTR [rsp]
+    lea     rdx, [rsp+16]
+    cmp     rdi, rdx
+    je      .L1
+    call    operator delete(void*)
+.L1:
+    add     rsp, 64
+    mov     eax, ebx
+    pop     rbx
+    ret
+    </pre></td>
+</tr>
+</table>
+
+    <p>Inlining the constructors and destructors and optimization of the resulting code fails in many cases:</p>
+    <ul>
+        <li>It is much harder to analyze the resulting code because it's bigger, touches more memory and registers.</li>
+        <li>Constructors and destructors may be located in a separate translation unit, making that inlinement possible only during link time optimization.</li>
+        <li>Constrcutor or destructor could be too big for inlinement and in that case no optimization is possible.</li>
+    </ul>
+
+
+    <h2>VII. Proposed wording: Ultimate solution for relaxing [class.copy.elision]</h2>
+    <p>Adjust the [class.copy.elision] paragraph 1 to allow copy elision of all objects and subobjects:</p>
+    <div class="lmargin50 stdquote">
+    <p>This elision of copy/move operations, called copy elision, is permitted
+    in the following circumstances (which may be combined to eliminate multiple copies):
+    </p>
+    <p>&ndash; in a return statement in a function with a class return type, when the expression is the name of
+    a non-volatile automatic object (other than a function parameter or a variable introduced by the
+    exception-declaration of a handler (18.3)) with the same type (ignoring cv-qualification) as the function
+    return type, the copy/move operation can be omitted by constructing the automatic object directly
+    into the function call’s return object</p>
+
+    <p>&ndash; in a throw-expression (8.17), when the operand is the name of a non-volatile automatic object (other than
+    a function or catch-clause parameter) whose scope does not extend beyond the end of the innermost
+    enclosing try-block (if there is one), the copy/move operation from the operand to the exception
+    object (18.1) can be omitted by constructing the automatic object directly into the exception object</p>
+
+    <p>&ndash; when the exception-declaration of an exception handler (Clause 18) declares an object of the same
+    type (except for cv-qualification) as the exception object (18.1), the copy operation can be omitted by
+    treating the exception-declaration as an alias for the exception object if the meaning of the program will
+    be unchanged except for the execution of constructors and destructors for the object declared by the
+    exception-declaration. [ Note: There cannot be a move from the exception object because it is always
+    an lvalue. — end note ]</p>
+
+    <p><span class="cppdeletion">Copy elision is</span><span class="cppaddition">Above copy elisions are</span> required where an expression is evaluated in a context requiring a constant expression (8.6)
+and in constant initialization (6.8.3.2). [ Note: Copy elision might not be performed if the same expression is
+evaluated in another context. — end note ]</p>
+<div class="cppaddition">
+    <p>Additionally, copy elision is allowed for any object with automatic storage duration and it's non-volatile nested objects if<span class="changed-deleted">
+    source is not accessed between a copy/move construction of it and its destruction.</span><span class="changed-added">:</span></p>
+<ul class="changed-added">
+    <li>source is not accessed between copy/move and destruction,</li>
+    <li>and target has automatic storage duration,</li>
+    <li>and target belongs to the source's thread of execution,</li>
+    <li>and target's copy constructor accepts source by non-volatile reference,</li>
+    <li>and either
+        <ul>
+            <li>scope of source ends after the copy/move construction of target,</li>
+            <li>or source is not accessed between construction and copy, and source construction does not access any global variables and does not return values through output parameters.</li>
+        </ul>
+    </li>
+</ul>
+    <p class="changed-added">For the above cases scope of source after the elision extends to the scope of the target.<p>
+    </div>
+    </div>
+
+    <h2>VIII. Other ways of relaxing [class.copy.elision]</h2>
+    <p>We could deal with each of the elision cases from the Section III of this paper separately. Such an approach is used in our companion P0878 paper.
+    But note that such an approach is not generic, consumes considerable time, and scales badly because it attempts to allow a specific optimization without a
+    way to inspect the abilities of all the compilers. This increases a risk of spending a lot of time on a case that would not be implementable in the nearest
+    future or spending a lot of time on a case that is not profitable for that particular compiler.</p>
+    <p>It seems better to allow compiler developers to choose optimizations, as they are the ones who know the weak and strong parts of the underlying optimizer.</p>
+
+
+<h2>IX. Acknowledgements</h2>
+    <p>Many thanks to Walter E. Brown for fixing numerous issues in draft versions of this paper.</p>
+    <p>Many thanks to Marc Glisse for providing a reference to CWG #1049.</p>
+    <p>Many thanks to Nicol Bolas for raising many concerns.</p>
+
+    <script type="text/javascript">
+        function colorize_texts(texts) {
+        for (var i = 0; i < texts.length; ++i) {
+            var text = texts[i].innerHTML;
+            text = text.replace(/namespace|sizeof|long|enum|void|constexpr|extern|noexcept|bool|template|class |struct|auto|const|typename|explicit|public|private|operator|#include|inline| char|typedef|static_assert|int|return|union|static_cast|static/g,"<span class='cppkeyword'>$&<\/span>");
+            text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+            //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
+            texts[i].innerHTML = text;
+        }
+        }
+
+        colorize_texts(document.getElementsByTagName("pre"));
+        colorize_texts(document.getElementsByTagName("code"));
+
+
+
+        function colorize_asm(texts) {
+        for (var i = 0; i < texts.length; ++i) {
+            var text = texts[i].innerHTML;
+            text = text.replace(/operator new|std::__throw_length_error|std::__throw_logic_error|lock|operator delete|div/g,"<span class='asmcostly'>$&<\/span>");
+            text = text.replace(/jmp|ja|je|mov[a-z]* |call|lea|cmp|rep|push|sub|add|ret|xor|pop|test|jne|js/g,"<span class='cppkeyword'>$&<\/span>");
+            text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+            //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
+            texts[i].innerHTML = text;
+        }
+        }
+
+        colorize_asm(document.getElementsByTagName("td"));
+
+        function show_hide_deleted() {
+        var to_change = document.getElementsByClassName('changed-deleted');
+        for (var i = 0; i < to_change.length; ++i) {
+            to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
+        }
+        }
+        show_hide_deleted()
+    </script>
+</body></html>
+
+
