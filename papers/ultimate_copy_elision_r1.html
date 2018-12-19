@@ -34,14 +34,14 @@
     <address>&nbsp;</address>
     <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2018-12-17</address>
+    <address>Date: 2018-12-19</address>
     <h1>Ultimate copy elision</h1>
 
 <div class="changed-added">
 <p align="right">“...take no action on CWG #6 issue until an interested party<br> produces a paper with analysis and a proposal.”</p>
 <p align="right"><i>― CWG #6</i></p>
 </div>
-    <p class='changed-added'>Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0889r0.html">P0889R0</a> are marked with blue.<p>
+    <p class='changed-added'>Significant changes since <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0889r0.html">P0889R0</a> are marked with blue.<p>
     <p><input type="checkbox" id="show_deletions" onchange="show_hide_deleted()"> Show deleted lines from P0889R0.</p>
 
     <h2>I. Quick Introduction</h2>
@@ -112,8 +112,8 @@ happen is:</p>
 that x used, clobbering z (which is an alias to x) might also clobber y.</p>
 </div>
 
-<p>After that issue was discussed multiple times, including <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/1997/N1108.htm">N1108 "WG21 Meeting No. 19"</a>.
-In that paper two cases where Core especially whanted to allow copy elisions were higlighted:</p>
+<p>That issue was discussed multiple times, including <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/1997/N1108.htm">N1108 "WG21 Meeting No. 19"</a>.
+In that paper two cases where Core especially wanted to allow copy elisions were highlighted:</p>
 <ul class="desc stdquote">
     <li>elision of copy of temporary values,</li>
     <li>elision of copy of return value.</li>
@@ -128,7 +128,7 @@ In that paper two cases where Core especially whanted to allow copy elisions wer
 
 
     <h3>Part I</h3>
-<p>As was noted in <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/1997/N1079.asc">N1079</a> object could "bind" it's resources to other objects:
+<p>As was noted in <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/1997/N1079.asc">N1079</a> object could "bind" its resources to other objects:
 <pre class="lmargin50">
 char* some;
 
@@ -156,7 +156,7 @@ void test() {
 
 <p>If in the above example we enable to elide <code>copy</code> and use <code>original</code> instead, then the assertion will <b>fail</b>.</p>
 
-<p>Let's concentrate on a simpler case, when the original object is not accessed between construction and copying and when the original object is not accessed after copying and destruction. For such a simple case we still may get into trouble, if the original object "binds" it's resources in constructor:</p>
+<p>Let's concentrate on a simpler case, when the original object is not accessed between construction and copying and when the original object is not accessed after copying and destruction. For such a simple case we still may get into trouble, if the original object "binds" its resources in constructor:</p>
 
 <pre class="lmargin50">
 char* some;
@@ -361,7 +361,7 @@ void test() {
 }
 </pre>
 
-<p>Existing rules already relay on the fact that the object that leaves scope should not be referenced outside the scope. Let's change example to have no UB:</p>
+<p>Existing rules already rely on the fact that the object that leaves scope should not be referenced outside the scope. Let's change example to have no UB:</p>
 
 <pre>
 shared_ptr&lt;int&gt; some;
@@ -398,7 +398,7 @@ void test() {
 </pre>
 
 <p>In other words: <b>we don't have to check for "binding" if the scope of Source ends right after the copy/move construction</b>.</p>
-<p><b>Conclusion:</b> we can relax the rule in "Part I" for the cases when the scope of Source ends immediately the copy/move construction:</p>
+<p><b>Conclusion:</b> we can relax the rule in "Part I" for the cases when the scope of Source ends immediately after the copy/move construction:</p>
 <ul>
     <li>Source is not accessed between copy and destruction</li>
     <li>and Source and Target have automatic storage duration</li>
@@ -860,11 +860,11 @@ private:
 int caller() {
     A a;
     a.some_function();
-    A b{a};             // scope of `a` ends immediately, eliding `b` and using `a` with extended scope
+    A b{a};             // scope of `a` ends immediately after the copy constructor call, eliding `b` and using `a` with extended scope
     [[end of scope `a`]]
 
     A c{b}; // `a` is accessed between this line, no copy elision allowed
-    A d{c}; // `c` is not accessed after copy construction and it's copy constructor is a "pure" function. OK to elide
+    A d{c}; // `c` is not accessed after copy construction and its copy constructor is a "pure" function. OK to elide
     return d.some_function()
 }
     
@@ -873,13 +873,13 @@ int caller() {
 
     <h2>VI. Addressing common concerns</h2>
     <hr>
-    <p><b>Concern:</b> Eliding copy/move constructors could break user code</p>
+    <p><b>Concern 1:</b> Eliding copy/move constructors could break user code</p>
     <p><b>Response:</b> <span class="changed-added">For the rules from "Part I" nothing should get broken. For the remaining cases...</span> Yes, but only if the following generally-accepted constraint for a copy constructor is not satisfied: "After the definition <code>T u = v;</code>, <code>u</code> is equal to <code>v</code>".</p>
     <p>Although the constraint seems very restrictive at first, that constraint is satisfied by every sane copy constructor. Moreover the C++ Language and Standard Library heavily rely on it:</p>
     <ul>
         <li>
-            The Ranges TS forces the requirement that objects after copy/assignment/move are equal
-            (N4651: "After the definition T u = v;, u is equal to v" in Concept CopyConstructible. The same rules can be found in Concept Assignable and Concept Swappable).
+            The Ranges TS requires that objects after copy/assignment/move are equal
+            (N4651: "After the definition T u = v;, u is equal to v" in concept CopyConstructible. The same rules can be found in concept Assignable and concept Swappable).
         </li>
         <li>
             The standard library implicitly requires objects after copy/assignment/move to be equal in [container.requirements.general].
@@ -898,28 +898,28 @@ int caller() {
     <p>In other words, WG21 has been relying on that constraint for a long time and classes that violate that constraint are already unportable.</p>
     <hr>
 
-    <p><b>Concern:</b> The examples do not look like a real world code. Nobody writes such bad code</p>
+    <p><b>Concern 2:</b> The examples do not look like a real world code. Nobody writes such bad code</p>
     <p><b>Response:</b> Examples are simplified just to show that the optimization is possible.</p>
     <p>Real code would have functions located in different headers, more code will be in the function body.
     We searched the Yandex code base for <code>return.*first;</code> and <code>return.*second;</code> and found thousands of matches. Note that we searched only for a single optimization
     case for only a <code>std::pair</code>. Tuples, aggregates and more complex data types are also affected.</p>
     <hr>
 
-    <p><b>Concern:</b> Advanced optimizations could affect compilation time</p>
+    <p><b>Concern 3:</b> Advanced optimizations could affect compilation time</p>
     <p>That depends. Making a high level optimization could be faster than doing a lot of low level optimizations. For example removing the copy constructor and destructor could be faster
     than inlining both and optimizing all the internals.</p>
     <p>Anyway, to implement or not to implement a particular optimization is up to the compiler developers. This proposal just attempts to untie their hands and allow more optimizations.</p>
     <hr>
 
-    <p><b>Concern:</b> It is impossible to implement some of the optimizations right now.</p>
+    <p><b>Concern 4:</b> It is impossible to implement some of the optimizations right now.</p>
     <p><b>Response:</b> This proposal does not require any of the optimizations from examples. The proposal simply attempts to relax copy elision rules to allow those optimizations someday.</p>
     <hr>
 
-    <p><b>Concern:</b> We want an emergency hatch to disable copy elision for particular places.</p>
+    <p><b>Concern 5:</b> We want an emergency hatch to disable copy elision for particular places.</p>
     <p><b>Response:</b> Our usual practice to disable optimizations for a variable is to make it <code>volatile</code>. This feature must be kept.</p>
     <hr>
 
-    <p><b>Concern:</b> The optimizations are not guaranteed, so users still have to write <code>std::move</code></p>
+    <p><b>Concern 6:</b> The optimizations are not guaranteed, so users still have to write <code>std::move</code></p>
     <p><b>Response:</b> That's true. Proposals for automatically applying <code>std::move</code> may be a good idea. Such proposals would be more restrictive than the copy elision rules because we have
     no control over all the compiler inlining and reasoning logic. We can not guarantee that all the compilers would be able to inline some function or would be able to understand that 
     the reference references a local object.</p>
@@ -927,28 +927,28 @@ int caller() {
     <p>Moving in both directions would produce better results:</p>
     <ul>
         <li>simplifying copy elision rules will remove border cases when <code>std::move</code> hurts performance</li>
-        <li>implicit casting to rvalues will simplify the code and allow writing less <code>std::move</code>s</li>
+        <li>implicit casting to rvalues will simplify the code and allow writing fewer <code>std::move</code>s</li>
         <li>implicit casting to rvalues and more generic copy elision rules will produce faster programs out-of-the-box. Users will have to worry less for performance.
         This will simplify the language usage and teaching materials (See "D. std::move/rvalues rules may be obscure").</li>
     </ul>
     <hr>
 
-    <p><b>Concern:</b> How this would change the guidelines? How users shall write their code to get the benefits of this optimization?</p>
+    <p><b>Concern 7:</b> How this would change the guidelines? How shall users write their code to get the benefits of this optimization?</p>
     <p><b>Response:</b> This optimization won't change the guidelines in the nearest future. Treat this optimization as one of the compiler optimizations that you could not directly control, like inlining, jump threading, loop fusion, or common subexpression elimination.</p>
     <p>Some guidelines may change after major compilers adopt the optimization. In that case, there could be found a common pattern that triggers it and that pattern could be taught. Probably the existing
     guidelines some day would evolve into "If you've got a function bigger than 15 lines of code, you may use <code>std::move</code> for returning objects that are not constructed at the
     beginning of the function. Otherwise just return the value."</p>
     <hr>
 
-    <p><b>Concern:</b> Extracting a subobject from an object is scary. I can no longer assume that the object I construct as a subobject is in any way part of myself, nor can it assume that any sibling subobjects will always be around.</p>
+    <p><b>Concern 8:</b> Extracting a subobject from an object is scary. I can no longer assume that the object I construct as a subobject is in any way part of myself, nor can it assume that any sibling subobjects will always be around.</p>
     <p><b>Response:</b> The proposed wording makes sure that the subobject is not used between copy/move construction and destruction. An object that is constructed as a subobject is a part of the object
-    as long as you use it as a subobject. As soon as you copy/move and destroy it, you can not use it any more by existing C++ rules. That's the place were the optimization steps in,
+    as long as you use it as a subobject. As soon as you copy/move and destroy it, you can not use it any more by existing C++ rules. That's the place where the optimization steps in,
     removing the copy/move+destruction and reusing the subobject.</p>
     <hr>
 
 
-    <p><b>Concern:</b> The problem is not that big because compilers could inline the constructors and destructors and then optimize the resulting code</p>
-    <p><b>Response:</b> Yes they do that. But the resulting code is still suboptimal, because even for <code>std::string</code> compilers could not optimize away all the dead stores.
+    <p><b>Concern 9:</b> The problem is not that big because compilers could inline the constructors and destructors and then optimize the resulting code</p>
+    <p><b>Response:</b> Yes, they do that. But the resulting code is still suboptimal, because even for <code>std::string</code> compilers could not optimize away all the dead stores.
     Consider the following example:</p>
     <pre class="lmargin50">
 #include &lt;utility&gt;
@@ -1117,7 +1117,7 @@ example_1_move():
 and in constant initialization (6.8.3.2). [ Note: Copy elision might not be performed if the same expression is
 evaluated in another context. — end note ]</p>
 <div class="cppaddition">
-    <p>Additionally, copy elision is allowed for any object with automatic storage duration and it's non-volatile nested objects if<span class="changed-deleted">
+    <p>Additionally, copy elision is allowed for any object with automatic storage duration and its non-volatile nested objects if<span class="changed-deleted">
     source is not accessed between a copy/move construction of it and its destruction.</span><span class="changed-added">:</span></p>
 <ul class="changed-added">
     <li>source is not accessed between copy/move and destruction,</li>
