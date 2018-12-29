@@ -28,10 +28,10 @@
     <address>Alexey Gorgurov &lt;<a href="mailto:leha-bot@yandex.ru">leha-bot@yandex.ru</a>&gt;, &lt;<a href="mailto:no-vista@yandex.ru">no-vista@yandex.ru</a>&gt;</address>
     <address>Antony Polukhin, Yandex.Taxi Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2018-11-10</address>
+    <address>Date: 2018-12-28</address>
     <h1>A Proposal to add stacktrace library</h1>
 
-    <p class="changed-added">Significant changes to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0881r2.html">P0881R2</a> are marked with blue.</p><p>
+    <p class="changed-added">Significant changes since <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0881r2.html">P0881R2</a> are marked with blue.</p><p>
     </p><p><input type="checkbox" id="show_deletions_d" onchange="show_hide_deleted_d()"> Show deleted lines from P0881R2.</p>
 
         <h2>I. Motivation</h2>
@@ -294,6 +294,13 @@ namespace std {
   // 23.?.3, class stack_frame
   class stack_frame;
 
+  constexpr bool operator==(const stack_frame&amp; x, const stack_frame&amp; y) noexcept;
+  constexpr bool operator!=(const stack_frame&amp; x, const stack_frame&amp; y) noexcept;
+  constexpr bool operator&lt; (const stack_frame&amp; x, const stack_frame&amp; y) noexcept;
+  constexpr bool operator&gt; (const stack_frame&amp; x, const stack_frame&amp; y) noexcept;
+  constexpr bool operator&lt;=(const stack_frame&amp; x, const stack_frame&amp; y) noexcept;
+  constexpr bool operator&gt;=(const stack_frame&amp; x, const stack_frame&amp; y) noexcept;
+
   // 23.?.4, class basic_stacktrace
   template&lt;class Allocator&gt;
   class basic_stacktrace;
@@ -348,8 +355,7 @@ namespace std {
     // 23.?.3.2, observers
     constexpr <span class="changed-deleted">native_ptr_t</span><span class="changed-added">const void*</span> address() const noexcept;
     constexpr explicit operator bool() const noexcept;
-    constexpr strong_ordering operator&lt;=&gt;(const stack_frame&amp; other) const noexcept;
-
+    <span class="changed-deleted">constexpr strong_ordering operator&lt;=&gt;(const stack_frame&amp; other) const noexcept;</span>
     // 23.?.3.3, query
     string <span class="changed-deleted">pretty_name</span><span class="changed-added">description</span>() const;
     string source_file() const;
@@ -420,8 +426,8 @@ namespace std {
     <pre>constexpr explicit operator bool() const noexcept;</pre>
     <div class="desc"><i>Returns:</i> <code><span class="changed-deleted">ptr_</span><span class="changed-added">address()</span> != nullptr</code>.</div>
 
-    <pre>constexpr strong_ordering operator&lt;=&gt;(const stack_frame&amp; other) const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <span class="changed-deleted">result of implementation specific comparison of <code>this-&gt;ptr_</code> and <code>other.ptr_</code></span><span class="changed-added"><code>this-&gt;address() &lt;=&gt; other.address()</code>.</span>.</div>
+    <pre class="changed-deleted">constexpr strong_ordering operator&lt;=&gt;(const stack_frame&amp; other) const noexcept;</pre>
+    <div class="changed-deleted desc"><i>Returns:</i> <span class="changed-deleted">result of implementation specific comparison of <code>this-&gt;ptr_</code> and <code>other.ptr_</code></span><span class="changed-added"><code>this-&gt;address() &lt;=&gt; other.address()</code>.</span>.</div>
 
 
     <h3>23.?.3.3 Query <span class="right">[stack_frame.query]</span></h3>
@@ -444,6 +450,25 @@ namespace std {
     <h3>23.?.3.4 Modifiers <span class="right">[stack_frame.mod]</span></h3>
     <pre>void swap(stack_frame&amp; other) noexcept;</pre>
     <div class="desc"><i>Effects:</i> Exchanges the contents of <code>*this</code> and <code>other</code>.</div>
+
+    <h3>23.?.3.5 Comparison <span class="right">[stack_frame.cmp]</span></h3>
+    <pre>constexpr bool operator==(const stack_frame&amp; x, const stack_frame&amp; y) noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>x.address() == y.address()</code>.</div>
+
+    <pre>constexpr bool operator!=(const stack_frame&amp; x, const stack_frame&amp; y) noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>x.address() != y.address()</code>.</div>
+
+    <pre>constexpr bool operator&lt; (const stack_frame&amp; x, const stack_frame&amp; y) noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>less&lt;&gt;{}(x.address(), y.address())</code>.</div>
+
+    <pre>constexpr bool operator&gt; (const stack_frame&amp; x, const stack_frame&amp; y) noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>greater&lt;&gt;{}(x.address(), y.address())</code>.</div>
+
+    <pre>constexpr bool operator&lt;=(const stack_frame&amp; x, const stack_frame&amp; y) noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>less_equal&lt;&gt;{}(x.address(), y.address())</code>.</div>
+
+    <pre>constexpr bool operator&gt;=(const stack_frame&amp; x, const stack_frame&amp; y) noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>greater_equal&lt;&gt;{}(x.address(), y.address())</code>.</div>
 
     <h3>23.?.4 Class template <code>basic_stacktrace</code> <span class="right">[stacktrace.basic.template]</span></h3>
     <pre>
@@ -603,10 +628,10 @@ void swap(basic_stacktrace&lt;Allocator&gt;&amp; a, basic_stacktrace&lt;Allocato
 
     <pre>template&lt;class Allocator&gt;
 string to_string(const basic_stacktrace&lt;Allocator&gt;&amp; st);</pre>
-    <div class="desc"><i>Returns:</i> An multiline string with a description of a stacktrace.</div>
+    <div class="desc"><i>Returns:</i> A multiline string with a description of a stacktrace.</div>
 
     <pre>string to_string(const stack_frame&amp; f);</pre>
-    <div class="desc"><i>Returns:</i> An string with a description of <code>f</code>.</div>
+    <div class="desc"><i>Returns:</i> A string with a description of <code>f</code>.</div>
     <div class="desc changed-added"><i>[Note:</i> The description should provide information about contained evaluation, including information from <code>source_file()</code> and <code>source_line()</code>.<i> - end note]</i></div>
 
     <pre>template&lt;class charT, class traits, class Allocator&gt;
