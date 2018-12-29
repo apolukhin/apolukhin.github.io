@@ -34,7 +34,7 @@
     <address>&nbsp;</address>
     <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2018-12-19</address>
+    <address>Date: 2018-12-26</address>
     <h1>Concerns about 'constexpr' feature macros</h1>
 
 <!--div class="changed-added">
@@ -46,18 +46,18 @@
 
     <h2>I. Quick Introduction</h2>
     <p>In <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1032r1.html">P1032R1 "Misc constexpr bits"</a> a feature testing macro <code>__cpp_lib_constexpr_misc</code> was proposed.</p>
-    <p>That's not the best name for the macro. Its name is not very informative. <code>__cpp_lib_constexpr_misc</code> also does not suite the needs of future constexprifications.</p>
+    <p>That's not the best name for the macro. The name is not very informative. <code>__cpp_lib_constexpr_misc</code> also does not suite the needs of future constexprifications.</p>
 
     <p>This paper discuss different approaches for constexpr feature testing macro.</p>
 
     <h2>II. Approaches</h2>
     <h4>A. Single constexpr feature testing macro</h4>
     <p>Make a <code>__cpp_lib_constexpr</code> macro and increment its version on each new constexpr addition to the library.</p>
-    <p><b>Pros:</b></p>
+    <p>Pros:</p>
     <ul>
         <li>Simple to use and to remember</li>
     </ul>
-    <p><b>Cons:</b></p>
+    <p>Cons:</p>
     <ul>
         <li>Not vendor friendly - if there's a constexpr addition <i>A</i> followed by a constexpr addition <i>B</i> and <i>A</i> is hard to implement, then the vendor can not say that <i>B</i> is supported, even if it is implemented</li>
     </ul>
@@ -65,28 +65,35 @@
 
     <h4>B. Fuse constexpr feature testing into the feature testing macro of a component</h4>
     <p>Update the value of feature testing macro of a particular component. For example, update <code>_­_­cpp_­lib_­string_­view</code> with value <code>201811L</code> because <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1032r1.html">P1032R1 "Misc constexpr bits"</a> touched the <code>string_view</code>.</p>
-    <p><b>Pros:</b></p>
+    <p>Pros:</p>
     <ul>
         <li>Better granularity, more vendor friendly</li>
         <li>Simple to find</li>
     </ul>
-    <p><b>Cons:</b></p>
+    <p>Cons:</p>
     <ul>
         <li>Not many Standard library classes have their own feture testing macro. So with this approach each constexpr addition adds a bunch of feature testing macro to the [support.limits.general].</li>
     </ul>
 
     <h4>C. Have a feature testing macro per paper/proposal</h4>
     <p>This approach was taken by the <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1032r1.html">P1032R1</a> with its <code>__cpp_lib_constexpr_misc</code> macro.</p>
-    <p><b>Pros:</b></p>
+    <p>Pros:</p>
     <ul>
         <li>Simple to detect that the particular paper is implemented by vendor</li>
     </ul>
-    <p><b>Cons:</b></p>
+    <p>Cons:</p>
     <ul>
         <li>Not vendor friendly - paper could be very big and the implementor may wish to implement part of it right now, leaving the remaining parts for the next release.</li>
     </ul>
 
-<h2>III. Acknowledgements</h2>
+<h2>III. Conclusions</h2>
+  <p>Each approach has its own advantages and disadvantages. I'd like recommend the following generic approach:</p>
+  <ul>
+      <li>Each new constexpr paper should have either a new feature testing macro or should update the existing one.</li>
+      <li>Introduce a <code>__cpp_lib_constexpr</code> macro and increase it on each LWG constexpr paper adoption.</li>
+      <li>Listen to the Standard Library developers and users. Add feature testing macro on their request.</li>
+  </ul>
+
 
     <script type="text/javascript">
     /*
@@ -128,5 +135,4 @@
         */
     </script>
 </body></html>
-
 
