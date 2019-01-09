@@ -34,7 +34,7 @@
     <address>&nbsp;</address>
     <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2018-12-19</address>
+    <address>Date: 2019-01-09</address>
     <h1>Ultimate copy elision</h1>
 
 <div class="changed-added">
@@ -49,7 +49,7 @@
     in the current working draft [<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/n4713.pdf">N4713</a>] provides a whitelist of cases
     when copy elision is permitted. Those rules are good! However they
     do not take into account that modern compilers could inline functions and do other optimizations.</p>
-    <p>This paper motivates and proposes to relax the [class.copy.elision] rules in order to allow compilers to produce much better code  <span class="changed-added">by mixing copy elision, inlining and other optimizations. It also addresses <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_active.html#6">CWG #6</a>, <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_active.html#1049">CWG #1049</a>, and <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_defects.html#1579">CWG #1579</a>. It also gives a non-guaranteed solution for <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_active.html#2327">CWG #2327</a>.</span></p>
+    <p>This paper motivates and proposes to relax the [class.copy.elision] rules in order to allow compilers to produce much better code  <span class="changed-added">by mixing copy elision, inlining and other optimizations. It also addresses <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_active.html#6">CWG #6</a>, <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_active.html#1049">CWG #1049</a>, and <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_defects.html#1579">CWG #1579</a>. It also gives a non-guaranteed solutions for <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_active.html#2327">CWG #2327</a>.</span></p>
 
     <h2>II. The pitfall</h2>
     <h4>A. Teaching practice</h4>
@@ -307,6 +307,21 @@ void example() {
     return takes_by_creference("some string that is too big for SSO");
 }
 </pre>
+
+<p>As Jens Maurer noted a sligtly modified example leads to UB: 'Given your copy elision rules, it seems "copy" could alias "s",
+introducing undefined behavior (see 9.1.7.1 [dcl.type.cv] p4).'</p>
+    <pre class="lmargin50">
+void takes_by_creference(const std::string&amp; v) noexcept {
+    std::string copy{v};
+    copy += "blah";
+}
+
+void example() {
+    const std::string s("some string);
+    return takes_by_creference(s);
+}
+</pre>
+<p>This paper proposes to adjust [dcl.type.cv] p4 making that behavior well defined.</p>
 
 
     <h4>Case 3. CWG #1049</h4>
@@ -1117,34 +1132,41 @@ example_1_move():
 and in constant initialization (6.8.3.2). [ Note: Copy elision might not be performed if the same expression is
 evaluated in another context. — end note ]</p>
 <div class="cppaddition">
-    <p>Additionally, copy elision is allowed for any object with automatic storage duration and its non-volatile nested objects if<span class="changed-deleted">
+    <p>Additionally, copy elision is allowed for any non-volatile object with automatic storage duration and its non-volatile subobjects if<span class="changed-deleted">
     source is not accessed between a copy/move construction of it and its destruction.</span><span class="changed-added">:</span></p>
 <ul class="changed-added">
-    <li>source is not accessed between copy/move and destruction,</li>
-    <li>and target has automatic storage duration,</li>
-    <li>and target belongs to the source's thread of execution,</li>
-    <li>and target's copy constructor accepts source by non-volatile reference,</li>
-    <li>and either
+    <li>the source is not accessed between copy/move and destruction, and</li>
+    <li>the target has automatic storage duration, and</li>
+    <li>the target belongs to the sources thread of execution, and</li>
+    <li>the target is constructed by a copy or move constructor that accepts the source by non-volatile reference, and</li>
+    <li>either
         <ul>
-            <li>scope of source ends after the copy/move construction of target,</li>
-            <li>or source is not accessed between construction and copy, and source construction does not access any global variables and does not return values through output parameters.</li>
+            <li>lifetime of the source ends after the copy/move construction of the target, or</li>
+            <li>the source is not accessed between construction and copy/move, and the source construction does not access any global variables and does not return values through output parameters.</li>
         </ul>
     </li>
 </ul>
-    <p class="changed-added">For the above cases scope of source after the elision extends to the scope of the target.<p>
+    <p class="changed-added">For the above cases lifetime of the source after the elision extends to the lifetime of the target.<p>
     </div>
     </div>
 
+    <p>Adjust the [dcl.type.cv] paragraph 4 to avoid UB for elided copies:</p>
+    <div class="lmargin50 stdquote">
+    Except that any class member declared mutable ([dcl.stc]) <span class="cppaddition">and any elided non-const target ([class.copy.elision])</span> can be modified, any attempt to modify ([expr.ass], [expr.post.incr], [expr.pre.incr]) a const object ([basic.type.qualifier]) during its lifetime ([basic.life]) results in undefined behavior.
+    </div>
+
+<div class="changed-deleted">
     <h2>VIII. Other ways of relaxing [class.copy.elision]</h2>
     <p>We could deal with each of the elision cases from the Section III of this paper separately. Such an approach is used in our companion P0878 paper.
     But note that such an approach is not generic, consumes considerable time, and scales badly because it attempts to allow a specific optimization without a
     way to inspect the abilities of all the compilers. This increases a risk of spending a lot of time on a case that would not be implementable in the nearest
     future or spending a lot of time on a case that is not profitable for that particular compiler.</p>
     <p>It seems better to allow compiler developers to choose optimizations, as they are the ones who know the weak and strong parts of the underlying optimizer.</p>
+</div>
 
-
-<h2>IX. Acknowledgements</h2>
+<h2>VIII. Acknowledgements</h2>
     <p>Many thanks to Walter E. Brown for fixing numerous issues in draft versions of this paper.</p>
+    <p>Many thanks to Jens Maurer for providing multiple comments and for pointing to the UB.</p>
     <p>Many thanks to Marc Glisse for providing a reference to CWG #1049.</p>
     <p>Many thanks to Nicol Bolas for raising many concerns.</p>
 
