@@ -1,0 +1,1100 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>	
+    <title>Concurrent associative data structure with unsynchronized view</title>
+    <meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+    <meta http-equiv="Content-Language" content="en-us">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <style type="text/css">
+        .addition {
+            color: green;
+        }
+
+        .right {
+            float: right;
+        }
+
+        .changed-deleted {
+            background-color: #CFF0FC;
+            text-decoration: line-through;
+            display: none;
+        }
+
+        .addition.changed-deleted {
+            color: green;
+            background-color: #CFF0FC;
+            text-decoration: line-through;
+            text-decoration: black double line-through;
+            display: none;
+        }
+
+        .changed-added {
+            background-color: #CFF0FC;
+        }
+
+        .notes {
+            background-color: #80D080;
+        }
+
+        pre {
+            line-height: 1.2;
+            font-size: 10pt;
+            margin-top: 25px;
+        }
+
+        .desc {
+            margin-left: 35px;
+            margin-top: 10px;
+            padding: 0;
+            white-space: normal;
+        }
+
+        body {
+            max-width: 1024px;
+            margin-left: 25px;
+        }
+
+        .cppkeyword {
+            color: blue;
+        }
+
+        .cppcomment {
+            color: green;
+        }
+
+        .cppcomment > .cppkeyword {
+            color: green;
+        }
+
+        .cpptext {
+            color: #2E8B57;
+        }
+        table.gridtable {
+            font-family: verdana,arial,sans-serif;
+            font-size:11px;
+            color:#333333;
+            border-width: 1px;
+            border-color: #666666;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        table.gridtable th {
+            border-width: 1px;
+            padding: 8px;
+            border-style: solid;
+            border-color: #666666;
+            background-color: #dedede;
+            text-align: center;
+        }
+        table.gridtable td {
+            border-width: 1px;
+            padding: 8px;
+            border-style: solid;
+            border-color: #666666;
+            background-color: #ffffff;
+            text-align: center;
+        }
+    </style>
+</head>
+<body bgcolor="#ffffff">
+<address>Document number: P0652R2</address>
+<address>Project: Programming Language C++</address>
+<address>Audience: SG1 Concurrency</address>
+<address>&nbsp;</address>
+<address>Sergey Murylev, Yandex Ltd, &lt;<a href="mailto:SergeyMurylev@gmail.com">SergeyMurylev@gmail.com</a>&gt;,
+    &lt;<a href="mailto:smurylev@yandex-team.ru">smurylev@yandex-team.ru</a>&gt;
+</address>
+<address>Anton Malakhov, Intel Corp., &lt;<a href="mailto:anton.malakhov@intel.com">anton.malakhov@intel.com</a>&gt;
+</address>
+<address>Antony Polukhin, Yandex.Taxi Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a
+        href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;
+</address>
+<address>&nbsp;</address>
+<address>Date: 2019-01-15</address>
+<h1>Concurrent associative data structure with unsynchronized view</h1>
+<p class='changed-added'>Significant changes since <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0652r1.html">P0652R2</a> are marked with blue.<p>
+
+<h2>I. Introduction and Motivation</h2>
+<p>There's a lot of use-cases where a concurrent modification of
+        unordered associative container is required. <span class="changed-added">For example, there is a popular web service named <a href="http://memcached.org/">Memcached</a> which simply caches objects in memory.
+    Also, we can use it to collect <a href="https://github.com/facebook/hhvm/blob/master/hphp/hhbbc/stats.cpp#L107">statistics</a>,
+    to store connection <a href="https://github.com/apache/activemq-cpp/blob/master/activemq-cpp/src/main/activemq/state/ConnectionState.h#L53">metadata</a> or
+    just use as lightweight key-value <a href="https://github.com/SoftwareNetwork/sw/blob/master/src/builder/file_storage.h#L72">storage</a>.
+    Some big companies like Facebook have it in their standard <a href="https://github.com/facebook/folly/blob/master/folly/concurrency/ConcurrentHashMap.h">library</a>.</span>
+    There were attempts to add
+    such containers/data structures in the past (<a
+            href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2012/n3425.html">N3425</a>, <a
+            href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3732.pdf">N3732</a>, and others...)</p>
+<p>This paper is another attempt to deal with the problem.
+    This time we are trying to keep the interface familiar to users, hard to
+    misuse but still functional.</p>
+<p>Reference implementation is available at <a href="https://github.com/BlazingPhoenix/concurrent-hash-map">https://github.com/BlazingPhoenix/concurrent-hash-map</a>.
+</p>
+
+<h2>II. Design decisions</h2>
+
+<h3>A. Allow Open Addressing:</h3>
+<p>When users wish to use the concurrent associative data structure, they are searching for performance and scalability.
+    Fastest known implementations rely on the <b>open addressing</b> <a
+            href="http://www.cs.cmu.edu/%7Edga/papers/memc3-nsdi2013.pdf">MemC3.pdf</a>,
+    so the interface of this proposal allows having Open Addressing implementation under the hood.</p>
+<p>
+
+</p>
+<h3>B. No functions that are easy to misuse:</h3>
+<p>In C++17 <code>std::shared_ptr::use_count()</code> function
+    was removed because users were misusing it. Users were hoping that the
+    result of the function is actual
+    at the point where they were trying to use it. However, as soon
+    as the result is returned from the function it could expire as someone
+    modifies the value from other thread.</p>
+<p>We followed the C++17 decision and <b>removed all the functions that are useless/dangerous</b> in concurrent
+    environments: <code>size()</code>, <code>count()</code>, <code>empty()</code>, <code>buckets_count()</code> and so
+    forth.</p>
+
+<h3>C. No iterators:</h3>
+<p>Iterators must take care of synchronization, otherwise, the
+    user can not dereference the iterator at all. If Iterators do some
+    synchronization
+    it <b>affects performance</b>. Otherwise, if Iterators do some synchronization then <b>deadlocks will happen</b>.
+    For example, if in first thread we
+    iterate from beginning to the end of the container and in the
+    second thread we iterate from the end to the beginning, then the
+    deadlock will
+    happen in the middle as the iterators met.</p>
+
+<p>It is possible to drop the open addressing idea and make the
+    iterators to have shared ownership of buckets. In that case, iterator may
+    keep the bucket
+    alive. This seems implementable and usable by users but
+    significantly <b>affects performance</b> by adding multiple additional
+    atomic operations
+    and adding additional indirections. We tried to stick to this
+    idea for a long time and minimize the performance impact. Finally, we
+    created a list of use-cases for concurrent
+    associative data structures and found out that in all of those
+    use-cases iterators are useless or kill performance of the whole class
+    (so are also useless).
+    Instead of that, we came up with an idea of <b>unsynchronized view/policy</b>.</p>
+
+<h3>D. View/policy with a full interface:</h3>
+<p>This is the <b>killer feature</b> of this proposal that attempts to fix all the limitations from above and provide a
+    much more useful interface.</p>
+
+<p>The idea is following: multiple operations on unordered
+    containers make sense only if that container is not concurrently
+    modified. A user may take the
+    responsibility that no-one is modifying the container at this
+    point and gain all the operations and iterators.</p>
+
+<p>Such approach allows to initialize/prepare the data for container <b>without additional synchronization overhead.</b>
+    It also <b>allows advanced usage</b>:
+</p>
+<ul>
+    <li>Multiple threads use the same <code>concurrent_unordered_map</code> for reads and write simultaneously.</li>
+    <li>Multiple threads use <code>const unordered_map_view
+    </code> on the same <code>concurrent_unordered_map</code>
+        simultaneously
+        (no modifications through the <code>concurrent_unordered_map</code> interface are allowed!).
+    </li>
+    <li>The single thread uses <code> unordered_map_view</code> (no modifications are allowed from other threads!).</li>
+    <li>Multiple threads use the same <code>const concurrent_unordered_map&amp;</code>
+        for reads and multiple threads
+        use <code>const unordered_map_view</code> on the same concurrent_unordered_map
+        simultaneously
+        (ineffective: use multiple <code>const 
+            unordered_map_view</code> instead).
+    </li>
+    <li>
+        A user can select whether or not to lock the whole container when it creates a view. It can be useful if we
+        want to suspend concurrent usage, to take for example snapshot of contents and serialize state to
+        some storage. If the user decided to use view without lock it's the user responsibility to make sure that there is no concurrent access form other threads,
+        otherwise, it leads to undefined behavior.
+    </li>
+</ul>
+
+<h3>E. No node operations, different from <code>std::unordered_map</code> iterator invalidation:</h3>
+<p>This is a consequence of allowing the open addressing as an underlying implementation.</p>
+
+<h3>F. Allow element visitation using the synchronization of the container:</h3>
+<p>This is a very risky decision because it unleashes new ways
+    for deadlocking/breaking the container (users may recursively visit the
+    same value; users may call heavy functions
+    that will degrade the overall performance of the container;
+    users can call some parallel functions of the standard library that may
+    potentially use the same mutexes as the container implementation...).</p>
+
+<p>However, there's a lot of use-cases where a value must be
+    updated depending on the value that is in the container. Without a
+    visitation, there's no way to do that safely,
+    as all the functions return values by copy. See examples <a href="#exampleB">B</a> and <a href="#exampleC">C</a>.
+</p>
+
+<h3>G. Allow to visit the contents of the container:</h3>
+<p>
+    We've added an ability to visit all elements of the container without locking the whole container.
+    In this case, contents can be occasionally changed during iteration. Such functionality can be useful for debugging.
+</p>
+
+<div class="changed-added">
+<h3>H. We don't propose smart pointer like interface to container items:</h3>
+<p>
+    Some implementations (for example Intel TBB) provide a possibility to get an item from a container with an appropriate lock guard.
+    There are two possible ways to implement it:</p>
+    <ol>
+        <li>
+            We have a lock for each item. In this case, we dramatically increase the size of the container if we use it to store small types,
+            and also we add extra CPU effort to lock each item.
+            If we store as <code>mapped_type</code> some lock guarded type (for example <code>boost::synchronized_value</code>)
+            we can get thread-safe shared ownership of the collection objects without a risk of getting deadlocks.
+        </li>
+        <li>
+            We have a lock for some group of items (bucket). In this case, we can get a deadlock if we try to obtain
+            smart pointer like objects for two items from the same bucket and use them simultaneously.
+        </li>
+    </ol>
+    <p>According to thoughts provided above, we considered not to propose such interface because it decreases performance and
+    creates a very simple ability for a user to make a deadlock.</p>
+</div>
+
+<h2>III. Draft interface and informal description</h2>
+<h3>???.1 Header &lt;concurrent_unordered_map&gt;</h3>
+<pre>namespace std {
+  template &lt;class Key,
+            class T,
+            class Hash = hash&lt;Key&gt;,
+            class Pred = equal_to&lt;Key&gt;,
+            class Allocator = allocator&lt;pair&lt;const Key, T&gt;&gt; &gt;
+  class concurrent_unordered_map;
+
+  template &lt;class Key,
+            class T,
+            class Hash = hash&lt;Key&gt;,
+            class Pred = equal_to&lt;Key&gt;,
+            class Allocator = allocator&lt;pair&lt;const Key, T&gt;&gt; &gt;
+  void swap(concurrent_unordered_map&lt; Key, T, Hash, Pred, Allocator&gt;&amp; lhs,concurrent_unordered_map&lt; Key, T, Hash, Pred, Allocator&gt;&amp; rhs);
+}
+</pre>
+
+<h3>???.2 Class <code>concurrent_unordered_map</code></h3>
+<pre>namespace std {
+  template &lt;class Key,
+            class T,
+            class Hash = hash&lt;Key&gt;,
+            class Pred = equal_to&lt;Key&gt;,
+            class Allocator = allocator&lt;pair&lt;const Key, T&gt;&gt; &gt;
+  class concurrent_unordered_map {
+  public:
+    // type aliases
+    using key_type          = Key;
+    using mapped_type       = T;
+    using value_type        = pair&lt;const Key, T&gt;;
+    using hasher            = Hash;
+    using key_equal         = Pred;
+    using allocator_type    = Allocator;
+    using size_type         = implementation-defined;
+
+    class unordered_map_view;
+
+    // construct/copy/assign/destroy
+    concurrent_unordered_map();
+    explicit concurrent_unordered_map(size_type n);
+    concurrent_unordered_map(size_type n, const Hash&amp; hf,
+                                      const key_equal&amp; eql = key_equal(),
+                                      const allocator_type&amp; a = allocator_type());
+    template &lt;typename InputIterator&gt;
+    concurrent_unordered_map(InputIterator first, InputIterator last,
+                             size_type n = implementation-defined,
+                             const hasher&amp; hf = hasher(),
+                             const key_equal&amp; eql = key_equal(),
+                             const allocator_type&amp; a = allocator_type());
+
+    concurrent_unordered_map(const Allocator&amp;);
+    concurrent_unordered_map(initializer_list&lt;value_type&gt; il,
+                             size_type n = implementation-defined,
+                             const hasher&amp; hf = hasher(),
+                             const key_equal&amp; eql = key_equal(),
+                             const allocator_type&amp; a = allocator_type());
+
+    concurrent_unordered_map(concurrent_unordered_map&amp;&amp; other) noexcept;
+    concurrent_unordered_map(concurrent_unordered_map&amp;&amp; other, const Allocator&amp;);
+
+    concurrent_unordered_map&amp; operator=(concurrent_unordered_map&amp;&amp; other) noexcept;
+    concurrent_unordered_map&amp; operator=(initializer_list&lt;value_type&gt;il);
+
+    ~concurrent_unordered_map();
+
+
+    // members observers
+    allocator_type get_allocator() const;
+    hasher hash_function() const;
+    key_equal key_eq() const;
+
+
+    // visitation
+    template &lt;typename Visitor&gt;
+    void visit(const key_type&amp; key, Visitor&amp; f);
+    template &lt;typename Visitor&gt;
+    void visit(const key_type&amp; key, Visitor&amp; f) const;
+
+    template &lt;typename Visitor&gt;
+    void visit_all(Visitor&amp; f);
+    template &lt;typename Visitor&gt;
+    void visit_all(Visitor&amp; f) const;
+
+    template&lt;typename K, typename Visitor, typename... Args&gt;
+    bool visit_or_emplace(K&amp;&amp; key, Visitor&amp; f, Args&amp;&amp;... args);
+
+
+    // access
+    optional&lt;mapped_type&gt; find(const key_type&amp; key) const;
+    template&lt;typename... Args&gt;
+    mapped_type find(const key_type&amp; key, Args&amp;&amp;... args) const;
+
+
+    // modifiers
+    template&lt;typename K, typename... Args&gt;
+    bool emplace(K&amp;&amp; key, Args&amp;&amp;... args);
+    template&lt;typename K, typename... Args&gt;
+    bool insert_or_assign(K&amp;&amp; key, Args&amp;&amp;... args);
+    template&lt;typename... Args&gt;
+    size_type update(const key_type&amp; key, Args&amp;&amp;... args);
+    size_type erase(const key_type&amp; key);
+
+    template&lt;class H2, class P2&gt;
+    void merge(concurrent_unordered_map&lt;Key, T, H2, P2, Allocator&gt;&amp; source);
+    template&lt;class H2, class P2&gt;
+    void merge(concurrent_unordered_map&lt;Key, T, H2, P2, Allocator&gt;&amp;&amp; source);
+
+    void swap(concurrent_unordered_map&amp;)
+        noexcept(allocator_traits&lt;Allocator&gt;::is_always_equal::value &amp;&amp;
+            is_nothrow_swappable_v&lt;Hash&gt; &amp;&amp;
+            is_nothrow_swappable_v&lt;Pred&gt;);
+    void clear() noexcept;
+
+
+    // view retrieval
+    unordered_map_view make_unordered_map_view(bool lock = false) const noexcept;
+};
+</pre>
+
+
+<p>The <code>concurrent_unordered_map</code> class is an associative data
+    structure that provides an effective key-value storage.
+    Concurrent member functions call on the same instance of <code>concurrent_unordered_map</code> do not introduce data races.</p>
+
+<p><code>key_type</code> shall satisfy <i>Cpp17MoveConstructible</i> requirements.</p>
+<p><code>mapped_type</code> shall satisfy <i>Cpp17MoveConstructible</i> requirements.</p>
+
+<p>Unless specified otherwise all the member functions of <code>concurrent_unordered_map</code> have the following additional requirements, and remarks:
+<div class="desc"><i>Requires:</i> Concurrent member function invocations for the same instance of <code>Hash</code>, <code>Pred</code>, and <code>Allocator</code> do not introduce data races. Concurrent invocations for different instances of <code>Key</code> and <code>T</code> do not introduce data races for the following functions: all the constructors (including default, move and copy constructors); copy and move assignments; destructor.</div>
+
+<div class="desc"><i>Remarks:</i> Call to member function do not introduce data races with other calls to the same or different member functions for the same or different instances of <code>concurrent_unordered_map</code>.</div>
+
+<p>Calls to functions that successfully modify keys or values synchronize with calls to functions successfully reading the value or key of the same keys.</p>
+<p>Destructor call for the <code>unordered_map_view</code> referencing the instance of <code>concurrent_unordered_map</code> synchronize with calls to functions successfully reading the value or key of the <span class="changed-added">same instance of </span> <code>concurrent_unordered_map</code>.</p>
+
+
+<h3>???.2.1 concurrent_unordered_map construct/copy/assign/destroy</h3>
+<pre>concurrent_unordered_map();
+explicit concurrent_unordered_map(size_type n);
+concurrent_unordered_map(size_type n, const Hash&amp; hf,
+                                  const key_equal&amp; eql = key_equal(),
+                                  const allocator_type&amp; a = allocator_type());
+template &lt;typename InputIterator&gt;
+concurrent_unordered_map(InputIterator first, InputIterator last,
+                         size_type n = implementation-defined,
+                         const hasher&amp; hf = hasher(),
+                         const key_equal&amp; eql = key_equal(),
+                         const allocator_type&amp; a = allocator_type());
+
+concurrent_unordered_map(const Allocator&amp;);
+concurrent_unordered_map(initializer_list&lt;value_type&gt; il,
+                         size_type n = implementation-defined,
+                         const hasher&amp; hf = hasher(),
+                         const key_equal&amp; eql = key_equal(),
+                         const allocator_type&amp; a = allocator_type());
+</pre>
+<div class="desc"><i>Effects:</i> Constructs <code>concurrent_unordered_map</code> with the analogous to the <code>unoredered_map</code> effects.</div>
+
+<pre>concurrent_unordered_map(concurrent_unordered_map&amp;&amp; other) noexcept;
+concurrent_unordered_map(concurrent_unordered_map&amp;&amp; other, const Allocator&amp;);
+</pre>
+<div class="desc"><i>Effects:</i> Constructs <code>concurrent_unordered_map</code> with the content of <code>other</code>, leaving other in valid but unspecified state.</div>
+<div class="desc"><i>Remarks:</i> <code>other</code> before the constructor call may not be equal to <code>*this</code> after the constructor call only in case of concurrent access to the <code>other</code>.</div>
+
+<pre>
+concurrent_unordered_map&amp; operator=(concurrent_unordered_map&amp;&amp; other) noexcept;
+</pre>
+<div class="desc"><i>Effects:</i> Assigns the content of <code>other</code> to <code>*this</code>, leaving <code>other</code> in valid but unspecified state.</div>
+<div class="desc"><i>Remarks:</i> <code>other</code> before the operator call may not be equal to <code>*this</code> only in case of concurrent access to the <code>other</code> or concurrent access to <code>*this</code>.</div>
+
+<pre>concurrent_unordered_map&amp; operator=(initializer_list&lt;value_type&gt;il);</pre>
+<div class="desc"><i>Effects:</i> Assigns the content of <code>li</code> to <code>*this</code>.</div>
+<div class="desc"><i>Remarks:</i> <code>li</code> before the operator call may not be equal to <code>*this</code> only in case of concurrent access to <code>*this</code>.</div>
+
+
+<pre>~concurrent_unordered_map();</pre>
+<div class="desc"><i>Remarks:</i> Invocation of this function concurrently with other member functions of the same instance may introduce data races.</div>
+
+
+<h3>???.2.2 concurrent_unordered_map member observers</h3>
+<pre>allocator_type get_allocator() const;
+hasher hash_function() const;
+key_equal key_eq() const;</pre>
+<div class="desc changed-added"><i>Expects:</i> Copy construction of <code>allocator_type</code>, <code>hasher</code> and <code>key_equal</code> should not introduce data races.</div>
+<div class="desc"><i>Returns:</i> Copies of <code>allocator_type</code>, <code>hasher</code> and <code>key_equal</code> respectively.</div>
+
+<h3>???.2.3 concurrent_unordered_map visitation</h3>
+<pre>template &lt;typename Visitor&gt;
+void visit(const key_type&amp; key, Visitor&amp; f);</pre>
+<div class="desc"><i>Constraints:</i> <code>is_invocable_v&lt;Visitor, mapped_type&amp;&gt;</code> </div>
+<div class="desc"><i>Effects:</i> Invokes <code>f</code> on the value stored with a key equivalent to the <code>key</code>.</div>
+<div class="desc"><i>Remarks:</i> Modifications of the value in <code>f</code> do not introduce data races.</div>
+
+<pre>template &lt;typename Visitor&gt;
+void visit(const key_type&amp; key, Visitor&amp; f) const;</pre>
+<div class="desc"><i>Constraints:</i> <code>is_invocable_v&lt;Visitor, const mapped_type&amp;&gt;</code> </div>
+<div class="desc"><i>Effects:</i> Invokes <code>f</code> on the value stored with a key equivalent to the <code>key</code>.</div>
+<div class="desc"><i>Remarks:</i> Reads of the value passed into <code>f</code> do not introduce data races.</div>
+
+<pre>template &lt;typename Visitor&gt;
+void visit_all(Visitor&amp; f);</pre>
+<div class="desc"><i>Constraints:</i> <code>is_invocable_v&lt;Visitor, const key_type&amp;, mapped_type&amp;&gt;</code> </div>
+<div class="desc"><i>Effects:</i> Sequentially invokes <code>f</code> on key and value pairs stored in <code>*this</code>.</div>
+<div class="desc"><i>Remarks:</i> Reads or modifications of non-const arguments passed into <code>f</code> do not introduce data races. <span class="changed-added">It is guaranteed to visit all the keys of <code>*this</code> only if there is no concurrent modifications of <code>*this</code>.</span> <i>[Note:</i> Invocation of <code>f</code> on some
+    key and value does not prevent modifications of other keys and values in <code>*this</code>. <i>- end note]</i>.</div>
+
+<pre>template &lt;typename Visitor&gt;
+void visit_all(Visitor&amp; f) const;</pre>
+<div class="desc"><i>Constraints:</i> <code>is_invocable_v&lt;Visitor, const key_type&amp;, const mapped_type&amp;&gt;</code> </div>
+<div class="desc"><i>Effects:</i> Sequentially invokes <code>f</code> on key and value pairs stored in <code>*this</code>.</div>
+<div class="desc"><i>Remarks:</i> Reads of the arguments passed into <code>f</code> do not introduce data races. <span class="changed-added">It is guaranteed to visit all the keys of <code>*this</code> only if there is no concurrent modifications of <code>*this</code>.</span> <i>[Note:</i> Invocation of <code>f</code> on some
+    key and value does not prevent modifications of other keys and values in <code>*this</code>. <i>- end note]</i>.</div>
+
+<pre>template&lt;typename K, typename Visitor, typename... Args&gt;
+bool visit_or_emplace(K&amp;&amp; key, Visitor&amp; f, Args&amp;&amp;... args);</pre>
+<div class="desc"><i>Constraints:</i> <code>is_invocable_v&lt;Visitor, mapped_type&amp;&gt; &amp;&amp; is_constructible_v&lt;key_type, K&amp;&amp;&gt; &amp;&amp; is_constructible_v&lt;mapped_type, Args&amp;&amp;...&gt;</code> </div>
+<div class="desc"><i>Effects:</i> Invokes <code>f</code> on value stored with the key equivalent to <code>key</code> if such key exist in <code>*this</code>.
+Otherwise stores <code>key_type(std::forward&lt;Key&gt;(key))</code> and <code>mapped_type(std::forward&lt;Args&gt;(args)...)</code>.</div>
+<div class="desc"><i>Remarks:</i> Construction of <code>key_type</code> and <code>mapped_type</code>, access or modification of the arguments passed into <code>f</code> do not introduce data races.</div>
+
+
+<h3>???.2.4 concurrent_unordered_map access</h3>
+<pre>optional&lt;mapped_type&gt; find(const key_type&amp; key) const;</pre>
+<div class="desc"><i>Constraints:</i> <code>is_copy_constructible_v&lt;mapped_type&gt;</code> </div>
+<div class="desc"><i>Returns:</i> Empty optional if there is no key equivalent to <code>key</code> in <code>*this</code>, otherwise returns an optional holding a copy of mapped_type for that key.</div>
+
+<pre>template&lt;typename... Args&gt;
+mapped_type find(const key_type&amp; key, Args&amp;&amp;... args) const;</pre>
+<div class="desc"><i>Constraints:</i> <code>is_copy_constructible_v&lt;mapped_type&gt; &amp;&amp; is_constructible_v&lt;mapped_type, Args&amp;&amp;...&gt;</code> </div>
+<div class="desc"><i>Returns:</i> <code>mapped_type(std::forward&lt;Args&gt;(args...))</code> if there is no key equivalent to <code>key</code> in <code>*this</code>, otherwise returns a copy of mapped_type for that key.</div>
+
+
+
+<h3>???.2.5 concurrent_unordered_map modifiers</h3>
+<pre>template&lt;typename K, typename... Args&gt;
+bool emplace(K&amp;&amp; key, Args&amp;&amp;... args);</pre>
+<div class="desc"><i>Constraints:</i> <code>is_constructible_v&lt;key_type, K&amp;&amp;&gt; &amp;&amp; is_constructible_v&lt;mapped_type, Args&amp;&amp;...&gt;</code> </div>
+<div class="desc"><i>Returns:</i> <code>true</code> if key <code>key</code> was not in the container and function emplaced it, <code>false</code> otherwise</div>
+
+<pre>template&lt;typename K, typename... Args&gt;
+bool insert_or_assign(K&amp;&amp; key, Args&amp;&amp;... args);</pre>
+<div class="desc"><i>Constraints:</i> <code>is_constructible_v&lt;key_type, K&amp;&amp;&gt; &amp;&amp; is_constructible_v&lt;mapped_type, Args&amp;&amp;...&gt; &amp;&amp; is_move_assigneble_v&lt;mapped_type&gt;</code> </div>
+<div class="desc"><i>Returns:</i> <code>true</code> if key <code>key</code> was not in the container and function emplaced it, <code>false</code> if the key was in container and mapped_type for that key was replaced by move assigning <code>mapped_type(std::forward&lt;Args&gt;(args...))</code></div>
+
+<pre>template&lt;typename... Args&gt;
+size_type update(const key_type&amp; key, Args&amp;&amp;... args);</pre>
+<div class="desc"><i>Constraints:</i> <code>is_constructible_v&lt;mapped_type, Args&amp;&amp;...&gt; &amp;&amp; is_move_assigneble_v&lt;mapped_type&gt;</code> </div>
+<div class="desc"><i>Returns:</i> <code>0</code> if the <code>key</code> was not in the container, <code>1</code> if the key was in the container and mapped_type for that key was replaced by move assigning <code>mapped_type(std::forward&lt;Args&gt;(args...))</code></div>
+
+<pre>size_type erase(const key_type&amp; key);</pre>
+<div class="desc"><i>Returns:</i> <code>0</code> if the <code>key</code> was not in the container, <code>1</code> if the key was in the container and was erased.</div>
+
+<pre>template&lt;class H2, class P2&gt;
+void merge(concurrent_unordered_map&lt;Key, T, H2, P2, Allocator&gt;&amp; source);
+template&lt;class H2, class P2&gt;
+void merge(concurrent_unordered_map&lt;Key, T, H2, P2, Allocator&gt;&amp;&amp; source);</pre>
+<div class="desc"><i>Effects:</i> Merges the content of <code>source</code> into <code>*this</code>. For each key and value pair from <code>source</code> apply the following rules:
+        If <code>*this</code> already has the key from <code>source</code>, key and value are left in the <code>source</code>. Otherwise, key and value are moved into <code>*this</code>.
+        <i>[Note:</i> If new values are being concurrently inserted into <code>source</code> during this operation then at the end of this function invocation <code>source</code> may have keys
+        that do not exist in <code>*this</code><i>- end note]</i></div>
+
+<pre>void swap(concurrent_unordered_map&amp; other)
+        noexcept(allocator_traits&lt;Allocator&gt;::is_always_equal::value &amp;&amp;
+            is_nothrow_swappable_v&lt;Hash&gt; &amp;&amp;
+            is_nothrow_swappable_v&lt;Pred&gt;);</pre>
+<div class="desc"><i>Effects:</i> Swaps the content of <code>other</code> into <code>*this</code>.
+        <i>[Note:</i> If new values are being concurrently inserted into <code>other</code> or <code>*this</code> during this operation
+        then at the end of this function invocation <code>other</code> may not be equal to <code>*this</code> before the invocation and 
+        at the end of this function invocation <code>*this</code> may not be equal to <code>other</code> before the invocation<i>- end note]</i></div>
+<div class="desc"><i>Remarks:</i> Does not invoke any move, copy, or swap operations on individual elements.</div>
+
+<pre>void clear() noexcept;</pre>
+<div class="desc"><i>Effects:</i> Clears the content of <code>*this</code>.
+        <i>[Note:</i> If new values are being concurrently inserted into <code>*this</code> during this operation
+        then at the end of this function invocation <code>*this</code> may contain some keys<i>- end note]</i></div>
+
+
+<h3>???.2.6 concurrent_unordered_map view retrieval</h3>
+<pre>unordered_map_view make_unordered_map_view(bool lock = false) const noexcept;</pre>
+<div class="desc"><i>Effects:</i> Creates a view of the container contents. If the argument is <code>true</code> any concurrent access to <code>*this</code> <span class="changed-added">through member functions or any subsequent attempt to invoke <code>this-&gt;make_unordered_map_view(true)</code></span> should block as long as the view is not destroyed.</div>
+<div class="desc changed-added"><i>Synchronization:</i> Synchronizes with previous modifications of <code>*this</code>.</div>
+
+<h3>???.3 Class <code>unordered_map_view</code></h3>
+
+<pre>  template &lt;class Key, class T, class Hash, class Pred, class Allocator&gt;
+    class  concurrent_unordered_map&lt;Key, T, Hash, Pred, Allocator&gt;::unordered_map_view {
+    concurrent_unordered_map&lt;Key, T, Hash, Pred, Allocator&gt;&amp; delegate; // exposition only
+
+  public:
+    // types:
+    using key_type          = Key;
+    using mapped_type       = T;
+    using value_type        = pair&lt;const Key, T&gt;;
+    using hasher            = Hash;
+    using key_equal         = Pred;
+    using allocator_type    = Allocator;
+
+    using pointer           = typename allocator_traits&lt;Allocator&gt;::pointer;
+    using const_pointer     = typename allocator_traits&lt;Allocator&gt;::const_pointer;
+    using reference         = value_type&amp;;
+    using reference         = const value_type&amp;;
+    using size_type         = implementation-defined;
+    using difference_type   = implementation-defined;
+    using iterator          = implementation-defined;
+    using const_iterator    = implementation-defined;
+    using local_iterator    = implementation-defined;
+    using const_local_iterator = implementation-defined;
+
+    // construct/copy/destroy
+    unordered_map_view() = delete;
+    unordered_map_view(unordered_map_view&amp;&amp;) noexcept = delete;
+    unordered_map_view(const unordered_map_view&amp;) noexcept = delete;
+    unordered_map_view&amp; operator=(unordered_map_view&amp;&amp;) noexcept = delete;
+    unordered_map_view&amp; operator=(const unordered_map_view&amp;) noexcept = delete;
+    ~unordered_map_view();
+
+    // iterators:
+    iterator        begin() noexcept;
+    const_iterator  begin() const noexcept;
+    iterator        end() noexcept;
+    const_iterator  end() const noexcept;
+    const_iterator  cbegin() const noexcept;
+    const_iterator  cend() const noexcept;
+
+    // capacity:
+    bool empty() const noexcept;
+    size_type size() const noexcept;
+    size_type max_size() const noexcept;
+
+    // modifiers:
+    template&lt;typename... Args&gt;
+    pair&lt;iterator, bool&gt; emplace(Args&amp;&amp;... args);
+    // We considered have only forwarding reference variant of insert to avoid interface overloading
+    template&lt;class P&gt; pair&lt;iterator, bool&gt; insert(P&amp;&amp; x);
+    template&lt;class InputIterator&gt;
+    void insert(InputIterator first, InputIterator last);
+    void insert(initializer_list&lt;value_type&gt; il);
+
+    template &lt;typename... Args&gt;
+      pair&lt;iterator, bool&gt; try_emplace(const key_type&amp; k, Args&amp;&amp;... args);
+    template &lt;typename... Args&gt;
+      pair&lt;iterator, bool&gt; try_emplace(key_type&amp;&amp; k, Args&amp;&amp;... args);
+    template &lt;class M&gt;
+      pair&lt;iterator, bool&gt; insert_or_assign(const key_type&amp; k, M&amp;&amp; obj);
+    template &lt;class M&gt;
+      pair&lt;iterator, bool&gt; insert_or_assign(key_type&amp;&amp; k, M&amp;&amp; obj);
+
+    iterator erase(iterator position);
+    iterator erase(const_iterator position);
+    size_type erase(const key_type&amp; k);
+    iterator erase(const_iterator first, const_iterator last);
+    void swap(concurrent_unordered_map&amp;)
+        noexcept(allocator_traits&lt;Allocator&gt;::is_always_equal::value &amp;&amp;
+            is_nothrow_swappable_v&lt;Hash&gt; &amp;&amp;
+            is_nothrow_swappable_v&lt;Pred&gt;);
+    void clear() noexcept;
+
+    template&lt;class H2, class P2&gt;
+    void merge(concurrent_unordered_map&lt;Key, T, H2, P2, Allocator&gt;&amp;&amp; source);
+    template&lt;class H2, class P2&gt;
+    void merge(concurrent_unordered_multimap&lt;Key, T, H2, P2, Allocator&gt;&amp;&amp; source);
+
+    // observers:
+    allocator_type get_allocator() const;
+    hasher hash_function() const;
+    key_equal key_eq() const;
+
+    // map operations:
+    iterator find(const key_type&amp; k);
+    const_iterator find(const key_type&amp; k) const;
+    size_type count(const key_type&amp; k) const;
+    pair&lt;iterator, iterator&gt; equal_range(const key_type&amp; k);
+    pair&lt;const_iterator, const_iterator&gt; equal_range(const key_type&amp; k) const;
+
+    // element access:
+    mapped_type&amp; operator[](const key_type&amp; k);
+    mapped_type&amp; operator[](key_type&amp;&amp; k);
+    const mapped_type&amp; at(const key_type&amp; k) const;
+    mapped_type&amp; at(const key_type&amp; k);
+
+    // bucket interface:
+    size_type bucket_count() const;
+    size_type max_bucket_count() const;
+    size_type bucket_size(size_type n);
+    size_type bucket(const key_type&amp; k) const;
+    local_iterator begin(size_type n);
+    const_local_iterator begin(size_type n) const;
+    local_iterator end(size_type n);
+    const_local_iterator end(size_type n) const;
+    const_local_iterator cbegin(size_type n) const;
+    const_local_iterator cend(size_type n) const;
+
+    // hash policy:
+    void rehash(size_type n);
+    float load_factor() const noexcept;
+  };
+}
+</pre>
+<p><code>unordered_map_view</code> class refers <code>concurrent_unordered_map</code>
+    and provides an interface to <code>concurrent_unordered_map</code> that satisfies unordered associative container requirements <span class="changed-added">[unord.req]</span>
+    except iterator invalidation requirements, <code>load_factor</code> functions, <code>size()</code> complexity requirements, <span class="changed-added">buckets</span> and node operations.</p>
+
+<p>[ <i>Note:</i> Concurrent const member functions calls on the instances of <code>unordered_map_view</code> referencing
+    the same <code>concurrent_unordered_map</code> introduce data races <i>- end note. </i>] </p>
+<p>[ <i>Note:</i> Concurrent member functions calls on the <code>concurrent_unordered_map</code> instance <i>A</i> and
+    on the <code>unordered_map_view</code> referencing the instance <i>A</i> introduce data races. <i>- end note. </i>]</p>
+
+<h3>???.3.1 unordered_map_view construct/copy/assign/destroy</h3>
+<pre>~unordered_map_view();</pre>
+<div class="desc"><i>Effects:</i> If <code>*this</code> was created by <code>make_unordered_map_view(true)</code>
+    resumes execution of all the waiting opearions on <code>concurrent_unordered_map</code>.</div>
+
+
+
+
+<h2>IV. Some usage examples in pseudo code</h2>
+<h3><a name="exampleA">A.</a> User session cache</h3>
+<pre>#include &lt;concurrent_unordered_map&gt;
+#include &lt;chrono&gt;
+#include &lt;string_view&gt;
+#include &lt;memory&gt;
+
+using namespace std;
+void precess_user(string_view name, shared_ptr&lt;const user_t&gt; user);
+auto get_new_user();
+auto get_request();
+
+int main() {
+    concurrent_unordered_map&lt;string_view, shared_ptr&lt;user_t&gt; &gt; users;
+
+    // single threaded fill
+    read_users_from_file(users.make_unordered_map_view())
+
+    constexpr unsigned threads_count = 10;
+    while(1) {
+        // concurrent work
+        std::atomic&lt;int&gt; b{threads_count * 100500};
+        thread threads[threads_count];
+
+        for (auto&amp; t: threads) {
+            // processing users
+            t = thread([&amp;users, &amp;b]() {
+                while (--b &gt; 0) {
+                    auto [user_name, data] = co_await get_request();
+                    shared_ptr&lt;const user_t&gt; user = users.find(user_name, shared_ptr&lt;const user_t&gt;{});
+                    if (!user) continue;
+
+                    precess_user(*user, data);
+                }
+            });
+        }
+
+        // accepting users
+        auto start = std::chrono::system_clock::now();
+        while (--b &gt; 0) {
+            auto [new_user_name, user] = co_await get_new_user();
+            users.insert(new_user_name, user);
+            if (std::chrono::duration_cast&lt;std::chrono::milliseconds&gt;(std::chrono::system_clock::now() - start) > 5000) {
+                // debug print rough contents each 5 seconds
+                users.visit_all([] (const string_view& name, const shared_ptr&lt;user_t&gt; user) {
+                    cout &lt;&lt; name &lt;&lt; " " &lt;&lt; user-&gt;status() &lt;&lt; endl;
+                });
+                start = std::chrono::system_clock::now();
+            }
+        }
+
+        for (auto&amp; t: threads) {
+            t.join();
+        }
+
+        // single threaded processing
+        auto unsafe_users = users.make_unordered_map_view();
+        count_statistics(unsafe_users);
+        dump_to_file(unsafe_users);
+        cleanup(unsafe_users);
+    }
+}
+</pre>
+
+
+<h3><a name="exampleB">B.</a> Unique events processor/events deduplicator</h3>
+<pre>#include &lt;concurrent_unordered_map&gt;
+#include &lt;algorithm&gt;
+
+int main() {
+    using namespace std;
+    using event_id = ...;
+    struct event_data {
+        event_data(const event_data&amp;) = delete;
+        event_data&amp; operator=(const event_data&amp;) = delete;
+        ...
+    };
+
+    concurrent_unordered_map&lt;event_id, unique_ptr&lt;event_data&gt; &gt; events;
+
+    // Getting unique events.
+    auto event_generators = get_event_generators();
+    for_each(execution::par_unseq, event_generators.begin(), event_generators.end(), [&amp;events](auto&amp; g) {
+        while (1) {
+            auto [event_name, data] = co_await g.get_event();
+            if (event_name.empty()) {
+                break; // no more events
+            }
+
+            events.visit_or_emplace(event_name, [&amp;data](unique_ptr&lt;event_data&gt;&amp; v){
+                if (v || v-&gt;priority() &lt; data-&gt;priority()) {
+                    std::swap(data, v);
+                }
+            }, unique_ptr&lt;event_data&gt;{});
+        }
+    });
+
+    auto v = events.make_unordered_map_view();
+    for_each(execution::par_unseq, v.begin(), v.end(), [](auto&amp; e) {
+        process(e.first, std::move(e.second));
+    });
+}
+</pre>
+
+<h3><a name="exampleC">C.</a> Gathering statistics</h3>
+<pre>#include &lt;concurrent_unordered_map&gt;
+#include &lt;utility&gt;
+
+int main() {
+    using namespace std;
+    using id_t = ...;
+    using use_count_t = size_t;
+
+    concurrent_unordered_map&lt;id_t, use_count_t&gt; stats;
+
+    constexpr unsigned threads_count = 10;
+    thread threads[threads_count];
+    for (auto&amp; t: threads) {
+        t = thread([&amp;stats]() {
+            while (1) {
+                auto [id, data] = co_await get_something();
+                stats.visit_or_emplace(
+                    id,
+                    [](auto&amp; v){ ++v; },
+                    0
+                );
+
+                precess_stuff(id, data);
+            }
+        });
+    }
+
+    for (auto&amp; t: threads) {
+        t.join();
+    }
+
+    process_stats(events.make_unordered_map_view());
+}
+</pre>
+
+<h2>V. Performance benchmark</h2>
+
+We've compared our implementation with a couple of simple other implementations of concurrent unordered map.<br>
+1) The simplest implementation is just a regular unordered_map with guarded by a single mutex, we've implemented mutex guard as boost::synchronized_value.<br>
+2) Many programming languages have an internal implementation of a concurrent hash map just as a fixed number of regular hash maps, each of them has it's own mutex and represents some kind of hash table shard.<br>
+3) Our reference implementation.<br>
+<br>
+The test was very simple:<br>
+* All maps have string keys and int values.<br>
+* We created an appropriate number of threads that tries on each iteration to find some random value in the map and add another random value to it. If the key is absent from the map we just fill it with a random value.<br>
+* Each thread had 1000000 of iterations.<br>
+* We use a computer with 56 virtual cores & 256GB of memory for the tests.<br>
+
+<h3 align="center">Concurrent unordered map benchmark</h3>
+<table class="gridtable">
+    <tr>
+        <th>Thread count</th>
+        <th>boost::synchronized_value&lt;std::unordered_map&gt;, ms</th>
+        <th>Sharded unordered map, ms</th>
+        <th>std::concurrent_unordered_map prototype, ms</th>
+    </tr>
+    <tr>
+        <td>1</td>
+        <td>837</td>
+        <td>1284</td>
+        <td>954</td>
+    </tr>
+    <tr>
+        <td>2</td>
+        <td>2088</td>
+        <td>2740</td>
+        <td>983</td>
+    </tr>
+    <tr>
+        <td>4</td>
+        <td>5018</td>
+        <td>4408</td>
+        <td>972</td>
+    </tr>
+    <tr>
+        <td>8</td>
+        <td>13867</td>
+        <td>5833</td>
+        <td>994</td>
+    </tr>
+    <tr>
+        <td>16</td>
+        <td>28314</td>
+        <td>11717</td>
+        <td>985</td>
+    </tr>
+    <tr>
+        <td>32</td>
+        <td>61382</td>
+        <td>19726</td>
+        <td>1224</td>
+    </tr>
+    <tr>
+        <td>64</td>
+        <td>136437</td>
+        <td>38021</td>
+        <td>4561</td>
+    </tr>
+</table>
+<br>
+<br>
+
+<img src="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAA/8AAAF7CAMAAACzYsuDAAADAFBMVEX////o6Ojx8fHZ2dlISEgA
+AACDgoKw3gmEhIT80gP/ZgD+//CFhYX/99H82i782Sn/+NTf///v///82Sv///fG/v/82jH/+New
+WBGiQxA2ElS13xaKMym/5Djn//8jOI7/gi53z////9f/484LQJ7fr3BjY2H//99UVW7poD/3/v+j
+8f/x+tL//8tvbmbT//+4+f9RsP7/9rednpy54SPD5kT/eyH/171FIQnU7Xf3/efd8ZP/34//yW68
+4y5px//X74JNp/S45/4LNo3N6mPjkzv/bQyt3//1+93s98L/0LH/n2DK6Vj/s4D/jkEuFwv//+f/
+9L//vI/+6YL/pmz/v2dkUlAiQJz3v2jG507/1pD/9vD/36r/1ocSHDuv////6dn//7X/76Dv+Mr/
+8az/6pf/lUz81Rz/dBZjv//928UaYrza8IvQ7Gz9417/m1ZvISBnv/ZhbnJnaGfQmFnwq0//iTj+
+6404OkYHBxOvVQjQ8v//+vjl9K3j86Tg8pz/rXcYIW/n9bM8InA1HmL9306N2///wZj953gkQmz9
+3T8hCg//7uL/y6j+uYdWDjcyJCgaGiT/xp9Jc45JC0ZmUj3/8ukxhtdOCwQ7leH95Ww0T2cCDE2v
+8P+NwfErRolNSFUECCeVPRP/9cj3y5mLTyr8zA5PT2fOzs7Hw8dirOZjnciQkY+OUFdwYEkFH2tN
+UV0oGUrA2CO7mZTQjlHp9rlUJ13auSphIB6/zgvXx0DslxrcphLzywaY3/5RdL3NyiiBKwOrZT3H
+cCfr9r6mtYyLd09RkNOblrdPOTeh5/+pxesWSqdZX11EYGv6r1fyhwdTjsLqw6bJsqDI2TTWiDHB
+r7hnQiG35Nkjccn/57dGWK5oa5/k1QNmOGrTomJPGyHLug6LstDtuozGmWyoc2HNhkGoVitKYYzu
+uHDf0mq5pkmAczCcbpjqsWG6clC2iEdQSJfT4fPlz9e93Mji17Ph0MY1X63E1YBnLEen06TY4UtH
+mZnp3JF3h4+vp2jgkPBrAAAlEUlEQVR42uzbv0tVcRjH8ad7aTnRIBRERAmCEZFGgXcJokXByxUS
+S8GGEAlp6RcEpoMuNmQKYbW56lBQ/4BD0FLgEjS12RpUW1vX44280XB+GJ/n++39Xs4ZXzzwEVGO
+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
+AElFTkSuQmCC" alt="diagram">
+
+As we can see performance scales linearly when the number of threads is less than the number of cores. But when we exceed the number of cores we observe significant work time growth. We consider that the algorithm from the reference implementation is rather better than naive implementation and better than implementation from another programming languages.
+
+<script type="text/javascript">
+    function colorize_texts(texts) {
+        for (var i = 0; i < texts.length; ++i) {
+            var text = texts[i].innerHTML;
+            text = text.replace(/namespace|enum|void|constexpr|extern|noexcept|bool|template|class |co_await|break|int |auto|const |for |while|using|#endif|#else|#ifndef|#ifdef|typename|continue|if |explicit|public|private|operator|#include|inline| char|typedef|static_assert|static_cast|static/g, "<span class='cppkeyword'>$&<\/span>");
+            text = text.replace(/\/\/[\s\S]+?\n/g, "<span class='cppcomment'>$&<\/span>");
+            //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
+            texts[i].innerHTML = text;
+        }
+    }
+
+    colorize_texts(document.getElementsByTagName("pre"));
+    colorize_texts(document.getElementsByTagName("code"));
+
+    var show = false;
+
+    function show_hide_deleted() {
+        var to_change = document.getElementsByClassName('changed-deleted');
+        for (var i = 0; i < to_change.length; ++i) {
+            to_change[i].style.display = (show ? 'block' : 'none');
+        }
+
+        show = !show;
+    }
+
+    show_hide_deleted()
+</script>
+
+</body>
+</html>
