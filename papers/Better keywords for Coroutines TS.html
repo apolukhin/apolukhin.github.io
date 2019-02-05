@@ -1,0 +1,227 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+    <title>Better keywords for the Coroutines TS</title>
+    <meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+    <meta http-equiv="Content-Language" content="en-us">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <style type="text/css">
+        .addition { color: green; }
+        .right { float:right }
+        .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+        .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+        .changed-added { background-color: #CFF0FC ;}
+        .notes { background-color: gold ;}
+        pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
+        .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; font-family:monospace }
+        body {max-width: 1024px; margin-left: 25px;}
+        .lmargin50{margin-left: 50px;}
+        .width_third{width: 33%;}
+        .cppkeyword { color: blue; }
+        .asmcostly { color: red; }
+        .cppcomment { color: green; }
+        .cppcomment > .cppkeyword{ color: green; }
+        .cpptext { color: #2E8B57; }
+        .cppaddition { background-color: #CFC; }
+        .cppdeletion {  text-decoration: line-through; background-color: #FCC; }
+        .stdquote { background-color: #ECECEC; font-family: Consolas,monospace; }
+    </style>
+    </head>
+    <body bgcolor="#ffffff">
+    <address>Document number: D????R0</address>
+    <address>Project: Programming Language C++</address>
+    <address>Audience: Evolution Working group</address>
+    <address>&nbsp;</address>
+    <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+    <address>&nbsp;</address>
+    <address>Date: 2019-02-05</address>
+    <h1>Better keywords for the Coroutines TS</h1>
+
+    <h2>I. Quick Introduction</h2>
+    <p>At the moment Coroutines TS use keywords <code>co_await</code>, <code>co_yield</code>, and <code>co_return</code>. Those keywords were carefully chosen to be "ugly",
+    so that nobody uses them in their code bases and no code break could happen with the Coroutines TS adoption.</p>
+
+    <p>This paper proposes an approach that allows non "ugly" keywords usage without introducing any breaking change.</p>
+
+    <h2>II. The idea</h2>
+    <p>Introduce a new context sensitive keyword <code>async</code>. All the coroutines must be marked with it. If a function is marked with <code>async</code>, then any usage of <code>yield</code>, <code>await</code> and <code>return</code> relate to the coroutines world.</p>
+<pre>
+struct y&zwnj;ield{};
+struct a&zwnj;wait{};
+
+template &lt;class T&gt;
+future&lt;int&gt; some_coro() async {
+    await something;     // No ambiguities, equivalent to co_await from Coroutines TS
+    yield something2;    // No ambiguities, equivalent to co_yield from Coroutines TS
+    return something3;   // No ambiguities, equivalent to co_return from Coroutines TS
+}
+
+template &lt;class T&gt;
+T not_a_coro() {
+    a&zwnj;wait something;     // `something` is an instance of `struct await`
+    y&zwnj;ield something2;    // `something2` is an instance of `struct yield`
+    return something3;   // returning a variable `something3`
+}
+</pre>
+
+    <h2>III. Advantages</h2>
+    <ul>
+      <li><code>return</code> in a coroutine does not introduce UB any more</li>
+      <li>No need in "ugly" <code>co_await</code>, <code>co_yield</code>, and <code>co_return</code></li>
+      <li>Improves code readability. Functions are distinguishable from coroutines by the declaration, no need to inspect function body or function return type</li>
+      <li>Promise type could be validated by the compiler without looking into the coroutine body</li>
+    </ul>
+
+<table border=1 id="diff">
+  <tr>
+    <th>Coroutines TS</th>
+    <th>This proposal</th>
+  </tr>
+
+  <tr>
+    <td><pre>
+// Is it a coroutine?
+template &lt;class T&gt;
+T function(string s);
+</pre></td>
+
+    <td><pre>
+// This is a coroutine
+template &lt;class T&gt;
+T function(string s) async ;
+</pre></tr>
+
+  <tr>
+    <td><pre>
+template &lt;class T&gt;
+T function(string s) {
+    if (s.empty()) {
+        return {}; // UB?
+    }
+
+    co_await query(s);
+    co_yield s;
+    co_return {"Done: " + s};
+}</pre></td>
+    <td><pre>
+template &lt;class T&gt;
+T function(string s) async {
+    if (s.empty()) {
+        return {}; // no UB!
+    }
+
+    await query(s);
+    yield s;
+    return {"Done: " + s};
+}</pre></td>
+  </tr>
+
+  <tr>
+    <td><pre>
+// 3rd paty code
+struct y&zwnj;ield{};
+struct a&zwnj;wait{};
+
+template &lt;class T&gt;
+T not_a_coro() {
+    a&zwnj;wait something;     // `something` is a `struct await`
+    y&zwnj;ield something2;    // `something2` is a `struct yield`
+    return something3;   // returning a variable `something3`
+}
+</pre></td>
+    <td><pre>
+// 3rd paty code
+struct y&zwnj;ield{};
+struct a&zwnj;wait{};
+
+template &lt;class T&gt;
+T not_a_coro() { // OK, no `async`, nothing is broken
+    a&zwnj;wait something;
+    y&zwnj;ield something2;
+    return something3;
+}</pre></td>
+  </tr>
+
+  <tr>
+    <td><pre>
+future&lt;int&gt; f(stream str)
+{
+  shared_ptr&lt;vector&lt;char&gt;&gt; buf = ...;
+  int count = co_await str.read(512, buf);
+  co_await str.write(512, buf);
+  co_return count + 11;
+}</pre></td>
+    <td><pre>
+future&lt;int&gt; f(stream str) async
+{
+  shared_ptr&lt;vector&lt;char&gt;&gt; buf = ...;
+  int count = await str.read(512, buf);
+  await str.write(512, buf);
+  return count + 11;
+}</pre></td>
+  </tr>
+</table>
+
+<p>If the new <code>async</code> keyword does not acceptable, the following input could be used to preview the above table with other keywords:</p>
+<input type="text" maxlength="16" size="10" value="async" oninput="on_input_change(this)">
+
+
+    <h2>IV. History of the problem</h2>
+    <p>Early versions of the coroutines (<a href="https://wg21.link/n3722">N3722</a> for example) were using a special keyword <code>resumable</code> to highlight that the function is a coroutine:</p>
+<pre>
+future&lt;int&gt; f(stream str) resumable
+{
+  shared_ptr&lt;vector&lt;char&gt;&gt; buf = ...;
+  int count = await str.read(512, buf);
+  return count + 11;
+}
+</pre>
+    <p>That keyword was dropped somewhere around the <a href="https://wg21.link/n4286">N4286</a> while keeping the <code>await</code> and <code>yield</code>:</p>
+<pre>
+std::future&lt;void&gt; tcp_reader(int total)
+{
+  char buf[64 * 1024];
+  auto conn = await Tcp::Connect("127.0.0.1", 1337);
+  do
+  {
+    auto bytesRead = await conn.read(buf, sizeof(buf));
+    total -= bytesRead;
+  }
+  while (total > 0);
+}
+</pre>
+    <p>After <a href="https://wg21.link/n4402">N4402</a>, the <code>await</code> and <code>yield</code> were changed to "ugly" versions: `the reason "yield" wasn't used was afraid about breaking code in finance and agriculture`.</p>
+
+
+<h2>V. Wording</h2>
+  <p>TODO:</p>
+
+    <script type="text/javascript">
+        function colorize_texts(texts) {
+        for (var i = 0; i < texts.length; ++i) {
+            var text = texts[i].innerHTML;
+            text = text.replace(/namespace|if |async|do\n|while|resumable|co_await|co_yield|co_return|await|yield|char|sizeof|long|enum|void|constexpr|extern|noexcept|bool|template|class |struct|auto|const|typename|explicit|public|private|operator|#include|inline| char|typedef|static_assert|int|return|union|static_cast|static/g,"<span class='cppkeyword'>$&<\/span>");
+            text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+            //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
+            texts[i].innerHTML = text;
+        }
+        }
+
+        colorize_texts(document.getElementsByTagName("pre"));
+        colorize_texts(document.getElementsByTagName("code"));
+
+        function show_hide_deleted() {
+        var to_change = document.getElementsByClassName('changed-deleted');
+        for (var i = 0; i < to_change.length; ++i) {
+            to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
+        }
+        }
+        show_hide_deleted()
+
+        initial_text = document.getElementById('diff').innerHTML
+        function on_input_change(self) {
+            document.getElementById('diff').innerHTML = initial_text.replace(/async/g, self.value);
+        }
+    </script>
+</body></html>
+
