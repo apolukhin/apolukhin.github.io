@@ -34,14 +34,14 @@
     <address>&nbsp;</address>
     <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2019-02-05</address>
+    <address>Date: 2019-02-06</address>
     <h1>Better keywords for the Coroutines TS</h1>
 
     <h2>I. Quick Introduction</h2>
     <p>At the moment Coroutines TS use keywords <code>co_await</code>, <code>co_yield</code>, and <code>co_return</code>. Those keywords were carefully chosen to be "ugly",
     so that nobody uses them in their code bases and no code break could happen with the Coroutines TS adoption.</p>
 
-    <p>This paper proposes an approach that allows non "ugly" keywords usage without introducing any breaking change.</p>
+    <p>This paper proposes an approach that allows non "ugly" keywords usage without introducing any breaking change to existing code bases.</p>
 
     <h2>II. The idea</h2>
     <p>Introduce a new context sensitive keyword <code>async</code>. All the coroutines must be marked with it. If a function is marked with <code>async</code>, then any usage of <code>yield</code>, <code>await</code> and <code>return</code> relate to the coroutines world.</p>
@@ -51,9 +51,9 @@ struct a&zwnj;wait{};
 
 template &lt;class T&gt;
 future&lt;int&gt; some_coro() async {
-    await something;     // No ambiguities, equivalent to co_await from Coroutines TS
-    yield something2;    // No ambiguities, equivalent to co_yield from Coroutines TS
-    return something3;   // No ambiguities, equivalent to co_return from Coroutines TS
+    await something;     // Equivalent to co_await from Coroutines TS
+    yield something2;    // Equivalent to co_yield from Coroutines TS
+    return something3;   // Equivalent to co_return from Coroutines TS
 }
 
 template &lt;class T&gt;
@@ -69,7 +69,7 @@ T not_a_coro() {
       <li><code>return</code> in a coroutine does not introduce UB any more</li>
       <li>No need in "ugly" <code>co_await</code>, <code>co_yield</code>, and <code>co_return</code></li>
       <li>Improves code readability. Functions are distinguishable from coroutines by the declaration, no need to inspect function body or function return type</li>
-      <li>Promise type could be validated by the compiler without looking into the coroutine body</li>
+      <li>Promise type could be partially validated by the compiler without looking into the coroutine body</li>
     </ul>
 
 <table border=1 id="diff">
@@ -162,7 +162,7 @@ future&lt;int&gt; f(stream str) async
   </tr>
 </table>
 
-<p>If the new <code>async</code> keyword does not acceptable, the following input could be used to preview the above table with other keywords:</p>
+<p>If the new <code>async</code> keyword is not acceptable, the following input could change it be used to preview the above table with other keywords:</p>
 <input type="text" maxlength="16" size="10" value="async" oninput="on_input_change(this)">
 
 
@@ -190,17 +190,57 @@ std::future&lt;void&gt; tcp_reader(int total)
   while (total > 0);
 }
 </pre>
-    <p>After <a href="https://wg21.link/n4402">N4402</a>, the <code>await</code> and <code>yield</code> were changed to "ugly" versions: `the reason "yield" wasn't used was afraid about breaking code in finance and agriculture`.</p>
+    <p>After <a href="https://wg21.link/n4402">N4402</a>, the <code>await</code> and <code>yield</code> were changed to keyword-placeholders. Later, the "ugly" versions of the keywords were introduced: `the reason "yield" wasn't used was afraid about breaking code in finance and agriculture`.</p>
+    <p>Gor Nishanov explained the <code>resumable</code> keyword removal:</p>
+    <pre>
+    1) compiler knows that a function is a coroutine
+    2) it forces you to write some kind of tag on a function anyway
+</pre>
+    <p>Gor also noted, that during the keywords discussion in Lexena 2015 he proposed to bring some tag back, but that idea was shouted down at that moment.</p>
+    <p>Nowadays, 4 years later, some people find the solution with <code>async</code> like keywords <a href="https://www.reddit.com/r/cpp/comments/8mtiiz/coroutines_lambdastyle_variable_capture/">tempting</a>. Because of that and because the "ugly" keywords and the <code>resumable</code> keyword did not met, we propose to revise the idea based on the lessons learned on ~4 years of experience with <code>co_*</code>.</p>
 
+<h2>V. Using <code>y&zwnj;ield</code> and <code>a&zwnj;wait</code> functions/classes in coroutines</h2>
+  <p>For an already written code with functions/classes named <code>y&zwnj;ield</code> or <code>a&zwnj;wait</code> <b>nothing</b> gets broken with this paper.</p>
+  <p>Writing a <b>new code</b> with coroutines <b>and</b> with functions/classes named <code>y&zwnj;ield</code> or <code>a&zwnj;wait</code> may require some workarounds.</p>
+  <pre>
+void y&zwnj;ield();
+struct a&zwnj;wait{};
 
-<h2>V. Wording</h2>
+template &lt;class T&gt;
+future&lt;int&gt; some_coro() async {
+    await something;     // co_await, not a class. Compile time error
+    yield();             // co_yield, not a function call. Compile time error
+}
+</pre>
+
+The workarounds for the above code are quite simple, and require either renaming the function and class, or adding a type alias and a function with other name:
+  <pre>
+void y&zwnj;ield();
+struct a&zwnj;wait{};
+
+// workarounds
+void corn_y&zwnj;ield() { y&zwnj;ield(); }
+using corn_a&zwnj;wait = a&zwnj;wait;
+
+template &lt;class T&gt;
+future&lt;int&gt; some_coro() async {
+    corn_a&zwnj;wait something;     // OK
+    corn_y&zwnj;ield();             // OK
+}
+</pre>
+
+<h2>VI. Wording</h2>
   <p>TODO:</p>
+
+<h2>VII. Acknowledgements</h2>
+  <p>Many thanks to Gor Nishanov, for exploring the coroutines design space, for TS implementations, for teaching people about the coroutines,
+  and for an insane amount of interesting coroutines related measurements/talks/presentations.</p>
 
     <script type="text/javascript">
         function colorize_texts(texts) {
         for (var i = 0; i < texts.length; ++i) {
             var text = texts[i].innerHTML;
-            text = text.replace(/namespace|if |async|do\n|while|resumable|co_await|co_yield|co_return|await|yield|char|sizeof|long|enum|void|constexpr|extern|noexcept|bool|template|class |struct|auto|const|typename|explicit|public|private|operator|#include|inline| char|typedef|static_assert|int|return|union|static_cast|static/g,"<span class='cppkeyword'>$&<\/span>");
+            text = text.replace(/namespace|if |using|async|do\n|while|resumable|co_await|co_yield|co_return|await|yield|char|sizeof|long|enum|void|constexpr|extern|noexcept|bool|template|class |struct|auto|const|typename|explicit|public|private|operator|#include|inline| char|typedef|static_assert|int|return|union|static_cast|static/g,"<span class='cppkeyword'>$&<\/span>");
             text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
             //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
             texts[i].innerHTML = text;
