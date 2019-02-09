@@ -28,13 +28,13 @@
     </style>
     </head>
     <body bgcolor="#ffffff">
-    <address>Document number: D????R0</address>
+    <address>Document number: D1485R0</address>
     <address>Project: Programming Language C++</address>
     <address>Audience: Evolution Working group</address>
     <address>&nbsp;</address>
     <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2019-02-06</address>
+    <address>Date: 2019-02-09</address>
     <h1>Better keywords for the Coroutines TS</h1>
 
     <h2>I. Quick Introduction</h2>
@@ -44,7 +44,7 @@
     <p>This paper proposes an approach that allows non "ugly" keywords usage without introducing any breaking change to existing code bases.</p>
 
     <h2>II. The idea</h2>
-    <p>Introduce a new context sensitive keyword <code>async</code>. All the coroutines must be marked with it. If a function is marked with <code>async</code>, then any usage of <code>yield</code>, <code>await</code> and <code>return</code> relate to the coroutines world.</p>
+    <p>Introduce a new context sensitive keyword <code>async</code>. All the coroutine definitions must be marked with it. If a function is marked with <code>async</code>, then any usage of <code>yield</code>, <code>await</code> and <code>return</code> relate to the coroutines world.</p>
 <pre>
 struct y&zwnj;ield{};
 struct a&zwnj;wait{};
@@ -66,10 +66,10 @@ T not_a_coro() {
 
     <h2>III. Advantages</h2>
     <ul>
-      <li><code>return</code> in a coroutine does not introduce UB any more</li>
       <li>No need in "ugly" <code>co_await</code>, <code>co_yield</code>, and <code>co_return</code></li>
-      <li>Improves code readability. Functions are distinguishable from coroutines by the declaration, no need to inspect function body or function return type</li>
       <li>Promise type could be partially validated by the compiler without looking into the coroutine body</li>
+      <li><code>return</code> in a coroutine does not cause annoying compile time error</li>
+      <li>Users may put <code>async</code> on declarations to highlight that function is a coroutine</li>
     </ul>
 
 <table border=1 id="diff">
@@ -80,23 +80,10 @@ T not_a_coro() {
 
   <tr>
     <td><pre>
-// Is it a coroutine?
-template &lt;class T&gt;
-T function(string s);
-</pre></td>
-
-    <td><pre>
-// This is a coroutine
-template &lt;class T&gt;
-T function(string s) async ;
-</pre></tr>
-
-  <tr>
-    <td><pre>
 template &lt;class T&gt;
 T function(string s) {
     if (s.empty()) {
-        return {}; // UB?
+        return {}; // ill formed
     }
 
     co_await query(s);
@@ -107,7 +94,7 @@ T function(string s) {
 template &lt;class T&gt;
 T function(string s) async {
     if (s.empty()) {
-        return {}; // no UB!
+        return {}; // OK
     }
 
     await query(s);
@@ -140,13 +127,12 @@ T not_a_coro() { // OK, no `async`, nothing is broken
     y&zwnj;ield something2;
     return something3;
 }</pre></td>
-  </tr>
 
   <tr>
     <td><pre>
 future&lt;int&gt; f(stream str)
 {
-  shared_ptr&lt;vector&lt;char&gt;&gt; buf = ...;
+  vector&lt;char&gt; buf = ...;
   int count = co_await str.read(512, buf);
   co_await str.write(512, buf);
   co_return count + 11;
@@ -154,11 +140,25 @@ future&lt;int&gt; f(stream str)
     <td><pre>
 future&lt;int&gt; f(stream str) async
 {
-  shared_ptr&lt;vector&lt;char&gt;&gt; buf = ...;
+  vector&lt;char&gt; buf = ...;
   int count = await str.read(512, buf);
   await str.write(512, buf);
   return count + 11;
 }</pre></td>
+  </tr>
+
+  <tr>
+    <td><pre>
+// Is it a coroutine?
+template &lt;class T&gt;
+T function(string s);
+</pre></td>
+
+    <td><pre>
+// This is a coroutine
+template &lt;class T&gt;
+T function(string s) async ;
+</pre></td>
   </tr>
 </table>
 
