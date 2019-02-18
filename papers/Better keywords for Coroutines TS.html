@@ -37,7 +37,7 @@
     <address>&nbsp;</address>
     <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2019-02-11</address>
+    <address>Date: 2019-02-17</address>
     <h1>Better keywords for the Coroutines TS</h1>
 
 <p align="right">“Our greatest weakness lies in giving up. The most certain</p><p align="right"> way to succeed is always to try just one more time.”</p>
@@ -198,9 +198,21 @@ T function(string s) async ;
   yield x;
 </pre></td>
   </tr>
+
+  <tr>
+    <td><pre>
+  auto x = []() noexcept -&gt; future { co_await z; };
+  co_await x();
+</pre></td>
+
+    <td><pre>
+  auto x = []() async noexcept -&gt; future { await z; };
+  await x();
+</pre></td>
+  </tr>
 </table>
 
-<p>If the new <code>async</code> keyword is not acceptable, the following input could change it be used to preview the above table with other keywords:</p>
+<p>If the new <code>async</code> keyword is not acceptable, the following input could change it be used to preview the above table with other keywords (<code>coro</code>,<code>nonlin</code>,<code>await</code>,<code>gap</code>):</p>
 <input type="text" maxlength="16" size="10" value="async" oninput="on_input_change(this)">
 
 
