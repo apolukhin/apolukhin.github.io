@@ -29,7 +29,7 @@
     <address>Alexey Gorgurov &lt;<a href="mailto:leha-bot@yandex.ru">leha-bot@yandex.ru</a>&gt;, &lt;<a href="mailto:no-vista@yandex.ru">no-vista@yandex.ru</a>&gt;</address>
     <address>Antony Polukhin, Yandex.Taxi Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2019-04-25</address>
+    <address>Date: 2019-05-15</address>
     <h1>A Proposal to add stacktrace library</h1>
 
     <p class="changed-added">Significant changes since <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p0881r3.html">P0881R3</a> are marked with blue.</p><p>
@@ -374,13 +374,6 @@ namespace std {
   // 20.?.3, class <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>
   class <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>;
 
-  constexpr bool operator==(const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; x, const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; y) noexcept;
-  constexpr bool operator!=(const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; x, const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; y) noexcept;
-  constexpr bool operator&lt; (const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; x, const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; y) noexcept;
-  constexpr bool operator&gt; (const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; x, const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; y) noexcept;
-  constexpr bool operator&lt;=(const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; x, const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; y) noexcept;
-  constexpr bool operator&gt;=(const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; x, const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; y) noexcept;
-
   // 20.?.4, class basic_stacktrace
   template&lt;class Allocator&gt;
   class basic_stacktrace;
@@ -436,6 +429,10 @@ namespace std {
 
     // 20.?.3.4, modifiers
     void swap(<span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; other) noexcept;
+
+    // 20.?.3.5, comparison
+    constexpr bool operator==(const stacktrace_entry&amp; other) const noexcept;
+    constexpr strong_ordering operator&lt;=&gt;(const stacktrace_entry&amp; other) const noexcept;
   };
 }
         </pre>
@@ -478,23 +475,11 @@ namespace std {
     <div class="desc"><i>Effects:</i> Exchanges the contents of <code>*this</code> and <code>other</code>.</div>
 
     <h3>20.?.3.5 Comparison <span class="right">[<span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>.cmp]</span></h3>
-    <pre>constexpr bool operator==(const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; x, const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; y) noexcept;</pre>
-    <div class="desc changed-added"><i>Returns:</i> <code class="changed-deleted">x.address() == y.address()</code><code>true</code> only if <code>x</code> and <code>y</code> represent the same <span class="changed-deleted">stack frame</span><span class="changed-added">stacktrace entry</span> or neither <code>x</code> nor <code>y</code> represent a <span class="changed-deleted">stack frame</span><span class="changed-added">stacktrace entry</span>.</div>
+    <pre>constexpr bool operator==(const stacktrace_entry&amp; other) const noexcept;</pre>
+    <div class="desc changed-added"><i>Returns:</i> <code>true</code> only if <code>*this</code> and <code>other</code> represent the same stacktrace entry or neither <code>*this</code> nor <code>other</code> represent a stacktrace entry.</div>
 
-    <pre>constexpr bool operator!=(const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; x, const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; y) noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code class="changed-deleted">x.address() != y.address()</code><code class="changed-added">!(x == y)</code>.</div>
-
-    <pre>constexpr bool operator&lt; (const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; x, const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; y) noexcept;</pre>
-    <div class="desc changed-added"><i>Returns:</i> <code class="changed-deleted">less&lt;&gt;{}(x.address(), y.address())</code> A value such that <code>operator&lt;</code> is a total ordering as described in [alg.sorting].</div>
-
-    <pre>constexpr bool operator&gt; (const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; x, const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; y) noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code class="changed-deleted">greater&lt;&gt;{}(x.address(), y.address())</code><code class="changed-added">y &lt; x</code>.</div>
-
-    <pre>constexpr bool operator&lt;=(const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; x, const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; y) noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code class="changed-deleted">less_equal&lt;&gt;{}(x.address(), y.address())</code><code class="changed-added">!(y &lt; x)</code>.</div>
-
-    <pre>constexpr bool operator&gt;=(const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; x, const <span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span>&amp; y) noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code class="changed-deleted">greater_equal&lt;&gt;{}(x.address(), y.address())</code><code class="changed-added">!(x &lt; y)</code>.</div>
+    <pre>constexpr strong_ordering operator&lt;=&gt; (const stacktrace_entry&amp; other) const noexcept;</pre>
+    <div class="desc changed-added"><i>Returns:</i> A value such that <code>operator&lt;=&gt;</code> is a total ordering as described in [alg.sorting].</div>
 
     <h3>20.?.4 Class template <code>basic_stacktrace</code> <span class="right">[stacktrace.basic.template]</span></h3>
     <pre>
@@ -547,7 +532,9 @@ namespace std {
 
     // 20.?.4.3, comparisons
     template &lt;class Allocator2&gt;
-    strong_ordering operator&lt;=&gt;(const basic_stacktrace&lt; Allocator2 &gt;&amp; rhs) const noexcept;
+    bool operator==(const basic_stacktrace&lt; Allocator2 &gt;&amp; other) const noexcept;
+    template &lt;class Allocator2&gt;
+    strong_ordering operator&lt;=&gt;(const basic_stacktrace&lt; Allocator2 &gt;&amp; other) const noexcept;
 
     // 20.?.4.4, modifiers
     void swap(basic_stacktrace&amp; other);
@@ -574,6 +561,7 @@ explicit basic_stacktrace(const allocator_type&amp; alloc) noexcept;</pre>
 
     <pre>basic_stacktrace(size_type skip, size_type max_depth, const allocator_type&amp; alloc = allocator_type()) noexcept;</pre>
     <div class="desc">Let <code>t</code> be a stacktrace as-if obtained via <code>basic_stacktrace(alloc)</code>. Let <code>n</code> be <code>t.size()</code>.</div>
+    <div class="desc changed-added"><i>Expects:</i> <code>skip &lt;= skip + max_depth</code>.</div>
     <div class="desc"><i>Ensures:</i> <code>frames</code> contains the values <code>[t.begin() + min(n, skip), t.begin() + min(n, skip + max_depth))</code>.</div>
 
     <h3>20.?.4.2 Observers <span class="right">[stacktrace.basic.obs]</span></h3>
@@ -621,9 +609,12 @@ const_iterator crend() const noexcept;</pre>
 
     <h3>20.?.4.3 Comparisons <span class="right">[stacktrace.basic.comp]</span></h3>
     <pre>template &lt;class Allocator2&gt;
-strong_ordering operator&lt;=&gt;(const basic_stacktrace&lt; Allocator2 &gt;&amp; rhs) const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code>this-&gt;size() &lt;=&gt; rhs.size()</code> if <code>this-&gt;size() != rhs.size()</code>.
-    <code>lexicographical_compare_3way(this-&gt;begin(), this-&gt;end(), rhs.begin(), rhs.end())</code> otherwise.</div>
+bool operator==(const basic_stacktrace&lt; Allocator2 &gt;&amp; other) const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>this-&gt;size() == other.size() && equal(this-&gt;begin(), this-&gt;end(), other.begin(), other.end())</code></div>
+    <pre>template &lt;class Allocator2&gt;
+strong_ordering operator&lt;=&gt;(const basic_stacktrace&lt; Allocator2 &gt;&amp; other) const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>this-&gt;size() &lt;=&gt; other.size()</code> if <code>this-&gt;size() != other.size()</code>.
+    <code>lexicographical_compare_3way(this-&gt;begin(), this-&gt;end(), other.begin(), other.end())</code> otherwise.</div>
 
     <h3>20.?.4.4 Modifiers <span class="right">[stacktrace.basic.mod]</span></h3>
     <pre>void swap(basic_stacktrace&amp; other);</pre>
