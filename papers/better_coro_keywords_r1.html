@@ -1,0 +1,513 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+    <title>Better keywords for the Coroutines</title>
+    <meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+    <meta http-equiv="Content-Language" content="en-us">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <style type="text/css">
+        .addition { color: green; }
+        .right { float:right }
+        .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+        .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+        .changed-added { background-color: #CFF0FC ;}
+        .notes { background-color: gold ;}
+        pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
+        .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; font-family:monospace }
+        body {max-width: 1024px; margin-left: 25px;}
+        del { background-color: red; }
+        ins { background-color: lightgreen; }
+        .sub { vertical-align: sub; }
+        .lmargin50{margin-left: 50px;}
+        .width_third{width: 33%;}
+        .cppkeyword { color: blue; }
+        .asmcostly { color: red; }
+        .cppcomment { color: green; }
+        .cppcomment > .cppkeyword{ color: green; }
+        .cpptext { color: #2E8B57; }
+        .cppaddition { background-color: #CFC; }
+        .cppdeletion {  text-decoration: line-through; background-color: #FCC; }
+        .stdquote { background-color: #ECECEC; font-family: Consolas,monospace; }
+    </style>
+    </head>
+    <body bgcolor="#ffffff">
+    <address>Document number: D1485R1</address>
+    <address>Project: Programming Language C++</address>
+    <address>Audience: Evolution Working group</address>
+    <address>&nbsp;</address>
+    <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+    <address>&nbsp;</address>
+    <address>Date: 2019-05-15</address>
+    <h1>Better keywords for the Coroutines</h1>
+
+<p align="right">“Our greatest weakness lies in giving up. The most certain</p><p align="right"> way to succeed is always to try just one more time.”</p>
+<p align="right"><i>― Thomas A. Edison</i></p>
+
+    <h2>I. Quick Introduction</h2>
+    <p>At the moment Coroutines TS use keywords <code>co_await</code>, <code>co_yield</code>, and <code>co_return</code>. Those keywords were carefully chosen to be "ugly",
+    so that nobody uses them in their code bases and no code break could happen with the Coroutines TS adoption.</p>
+
+    <p>This paper revises an approach that allows non "ugly" keywords usage without introducing any breaking change to existing code bases.</p>
+
+    <h2>II. The idea</h2>
+    <p>Introduce a new context sensitive keyword <code>async</code>. All the coroutine definitions must be marked with it. If a function is marked with <code>async</code>, then any usage of <code>yield</code>, <code>await</code> and <code>return</code> relate to the coroutines world.</p>
+<pre>
+struct y&zwnj;ield{};
+struct a&zwnj;wait{};
+
+template &lt;class T&gt;
+future&lt;int&gt; some_coro() async {
+    await something;     // Equivalent to co_await from Coroutines TS
+    yield something2;    // Equivalent to co_yield from Coroutines TS
+    return something3;   // Equivalent to co_return from Coroutines TS
+}
+
+template &lt;class T&gt;
+T not_a_coro() {
+    a&zwnj;wait something;     // `something` is an instance of `struct await`
+    y&zwnj;ield something2;    // `something2` is an instance of `struct yield`
+    return something3;   // returning a variable `something3`
+}
+</pre>
+
+
+    <h2>III. Disadvantages</h2>
+    <ul>
+      <li>Users are forced to type <code>async</code> on the function definition. That gives at least 1 additional key press for simple cases when only one keyword is used in the coroutine body.</li>
+      <li>There are rare border cases when you can not identify what <code>yield x;</code> means without looking at the beginning of the function definition</li>
+      <li><code>co_await</code>, <code>co_yield</code>, and <code>co_return</code> are unique. It makes simpler to search them in the Internet.</li>
+      <li>Using existing functions or classes with name <code>yield</code> while writing new code with coroutines cause problems.</li>
+    </ul>
+
+
+    <h2>IV. Advantages</h2>
+    <ul>
+      <li>No need in "ugly" <code>co_await</code>, <code>co_yield</code>, and <code>co_return</code></li>
+      <li>Promise type could be partially validated by the compiler without looking into the coroutine body</li>
+      <li><code>return</code> in a coroutine does not cause annoying compile time error</li>
+      <li>Users may put <code>async</code> on declarations to highlight that function is a coroutine</li>
+      <li><code>return</code> is just a return. Less differences between functions and coroutines</li>
+      <li><code>co_await</code>, <code>co_yield</code>, and <code>co_return</code> still have a chance to break <b>existing</b> code. There could be code bases where they are already used. For example <b><code>co_y&zwnj;ield</code> could be used for Carbon Monoxide Yield</b> in chemistry, ecology and heavy industry.</li>
+      <li><code>await</code> and <code>yield</code> are not unique to C++, but still searchable in the Internet. They and the <code>async</code> are familiar to people who come from other languages.</li>
+      <li>IDE could highlight the <code>yield</code> and <code>await</code> according to the context, which makes them distinguishable from classes and functions without looking at the beginning of the coroutine.</li>
+    </ul>
+
+<table border=1 id="diff">
+  <tr>
+    <th>Coroutines TS</th>
+    <th>This proposal</th>
+  </tr>
+
+  <tr>
+    <td><pre>
+template &lt;class T&gt;
+T function(string s) {
+    if (s.empty()) {
+        return {}; // ill formed
+    }
+
+    co_await query(s);
+    co_yield s;
+    co_return {"Done: " + s};
+}</pre></td>
+    <td><pre>
+template &lt;class T&gt;
+T function(string s) async {
+    if (s.empty()) {
+        return {}; // OK
+    }
+
+    await query(s);
+    yield s;
+    return {"Done: " + s};
+}</pre></td>
+  </tr>
+
+  <tr>
+    <td><pre>
+// 3rd paty code
+struct y&zwnj;ield{};
+struct a&zwnj;wait{};
+
+template &lt;class T&gt;
+T not_a_coro() {
+    a&zwnj;wait something;     // `something` is a `struct await`
+    y&zwnj;ield something2;    // `something2` is a `struct yield`
+    return something3;   // returning a variable `something3`
+}
+</pre></td>
+    <td><pre>
+// 3rd paty code
+struct y&zwnj;ield{};
+struct a&zwnj;wait{};
+
+template &lt;class T&gt;
+T not_a_coro() { // OK, no `async`, nothing is broken
+    a&zwnj;wait something;
+    y&zwnj;ield something2;
+    return something3;
+}</pre></td>
+
+  <tr>
+    <td><pre>
+future&lt;int&gt; f(stream str)
+{
+  vector&lt;char&gt; buf = ...;
+  int count = co_await str.read(512, buf);
+  co_await str.write(512, buf);
+  co_return count + 11;
+}</pre></td>
+    <td><pre>
+future&lt;int&gt; f(stream str) async
+{
+  vector&lt;char&gt; buf = ...;
+  int count = await str.read(512, buf);
+  await str.write(512, buf);
+  return count + 11;
+}</pre></td>
+  </tr>
+
+  <tr>
+    <td><pre>
+// Is it a coroutine?
+template &lt;class T&gt;
+T function(string s);
+</pre></td>
+
+    <td><pre>
+// This is a coroutine
+template &lt;class T&gt;
+T function(string s) async ;
+</pre></td>
+  </tr>
+
+  <tr>
+    <td><pre>
+  y&zwnj;ield x{1, 2, 3}; // new variable of type `y&zwnj;ield`
+  // ...
+  y&zwnj;ield x; // new variable of type `y&zwnj;ield`
+  // ...
+  co_yield x;
+</pre></td>
+
+    <td><pre>
+  y&zwnj;ield x{1, 2, 3};
+  // ...
+  y&zwnj;ield x;
+  // ...
+  yield x;
+</pre></td>
+  </tr>
+
+  <tr>
+    <td><pre>
+  auto x = []() noexcept -&gt; future { co_await z; };
+  co_await x();
+</pre></td>
+
+    <td><pre>
+  auto x = []() async noexcept -&gt; future { await z; };
+  await x();
+</pre></td>
+  </tr>
+</table>
+
+<p>If the new <code>async</code> keyword is not acceptable, the following input could change it be used to preview the above table with other keywords (<code>coro</code>,<code>nonlin</code>,<code>await</code>,<code>gap</code>):</p>
+<input type="text" maxlength="16" size="10" value="async" oninput="on_input_change(this)">
+
+
+    <h2>V. Generators and <code>async</code></h2>
+    <p>There is a concern that <code>async</code> keyword does not make sence for the generators.</p>
+    <p>According to the dictionaries asynchronous has the following meanings:</p>
+    <ol>
+    <li>two or more objects or events not existing or happening at the same time.</li>
+    <li>(computing and telecommunications) a form of computer control timing protocol in which a specific operation begins upon receipt of an indication (signal) that the preceding operation has been completed.</li>
+    </ol>
+
+    <p>Usage of `async` or `asynchronous` for generators matches both:</p>
+    <ol>
+    <li>the caller execution is asynchronous to the generator execution.</li>
+    <li>`yield` indicates (signals) that the operation has been completed.</li>
+    </ol>
+
+    <h2>VI. History of the problem</h2>
+    <p>Early versions of the coroutines (<a href="https://wg21.link/n3722">N3722</a> for example) were using a special keyword <code>resumable</code> to highlight that the function is a coroutine:</p>
+<pre>
+future&lt;int&gt; f(stream str) resumable
+{
+  shared_ptr&lt;vector&lt;char&gt;&gt; buf = ...;
+  int count = await str.read(512, buf);
+  return count + 11;
+}
+</pre>
+    <p>That keyword was dropped somewhere around the <a href="https://wg21.link/n4286">N4286</a> while keeping the <code>await</code> and <code>yield</code>:</p>
+<pre>
+std::future&lt;void&gt; tcp_reader(int total)
+{
+  char buf[64 * 1024];
+  auto conn = await Tcp::Connect("127.0.0.1", 1337);
+  do
+  {
+    auto bytesRead = await conn.read(buf, sizeof(buf));
+    total -= bytesRead;
+  }
+  while (total > 0);
+}
+</pre>
+    <p>After <a href="https://wg21.link/n4402">N4402</a>, the <code>await</code> and <code>yield</code> were changed to keyword-placeholders [<a href="http://wiki.edg.com/bin/view/Wg21lenexa/N4402">discussion</a>]: `the reason "yield" wasn't used was afraid about breaking code in finance and agriculture`. Later, the "ugly" versions of the keywords were introduced [<a href="wiki.edg.com/bin/view/Wg21kona2015/P0071R0">discussion</a>].</p>
+    <p>Gor Nishanov explained the <code>resumable</code> keyword removal:</p>
+    <pre>
+    1) compiler knows that a function is a coroutine
+    2) it forces you to write some kind of tag on a function anyway
+</pre>
+    <p>Gor also noted, that during the keywords discussion in Lexena 2015 he proposed to bring some tag back, but that idea was shouted down at that moment.</p>
+    <p>Nowadays, 4 years later, people on the reflector and <a href="https://www.reddit.com/r/cpp/comments/8mtiiz/coroutines_lambdastyle_variable_capture/">probably outside the WG21</a> find the solution with <code>async</code> like keywords tempting. Because of that and because the "ugly" keywords and the <code>resumable</code> keyword did not met, we propose to revise the idea based on the lessons learned on ~4 years of experience with <code>co_*</code>.</p>
+
+
+<h2>VII. Using <code>y&zwnj;ield</code> and <code>a&zwnj;wait</code> functions/classes in coroutines</h2>
+  <p>For an already written code with functions/classes named <code>y&zwnj;ield</code> or <code>a&zwnj;wait</code> <b>nothing</b> gets broken with this paper.</p>
+  <p>Writing a <b>new code</b> with coroutines <b>and</b> with functions/classes named <code>y&zwnj;ield</code> or <code>a&zwnj;wait</code> may require some workarounds.</p>
+  <pre>
+void y&zwnj;ield();
+struct a&zwnj;wait{};
+
+template &lt;class T&gt;
+future&lt;int&gt; some_coro() async {
+    await something;     // co_await, not a class. Compile time error
+    yield();             // co_yield, not a function call. Compile time error
+}
+</pre>
+
+The workarounds for the above code are quite simple, and require either renaming the function and class, or adding a type alias and a function with other name:
+  <pre>
+void y&zwnj;ield();
+struct a&zwnj;wait{};
+
+// workarounds
+void corn_y&zwnj;ield() { y&zwnj;ield(); }
+using corn_a&zwnj;wait = a&zwnj;wait;
+
+template &lt;class T&gt;
+future&lt;int&gt; some_coro() async {
+    corn_a&zwnj;wait something;     // OK
+    corn_y&zwnj;ield();             // OK
+}
+</pre>
+
+<p>Note that such workarounds do <b>not</b> prevent ADL or templates usage:</p>
+<pre>
+struct a&zwnj;wait{};
+struct foo{};
+struct tst{ void y&zwnj;ield() };
+
+void y&zwnj;ield(a&zwnj;wait aw);
+void y&zwnj;ield(foo f);
+
+// workarounds
+template &lt;class T&gt; void adl_y&zwnj;ield(T v) { y&zwnj;ield(v); }
+void adl_y&zwnj;ield(tst v) { v.y&zwnj;ield(); }
+
+template &lt;class T&gt;
+future&lt;int&gt; some_coro(T val) async {
+    adl_y&zwnj;ield(val);             // OK
+}
+
+auto res = some_coro(a&zwnj;wait{});  // OK
+</pre>
+
+<h2>VIII. Distinguishability</h2>
+<p>A concern of distinguishability was raised on reflector during the proposal discussion. Here's a few examples on border cases when we see "only a single line of code in function":</p>
+<table border=1>
+  <tr>
+    <th>Coroutines TS</th>
+    <th>This proposal</th>
+  </tr>
+
+  <tr>
+    <td><pre>
+  y&zwnj;ield x{1, 2, 3};
+</pre></td>
+    <td><pre>
+  y&zwnj;ield x{1, 2, 3};
+</pre></td>
+  </tr>
+
+  <tr>
+    <td><pre>
+  y&zwnj;ield x;
+</pre></td>
+    <td><pre>
+  y&zwnj;ield x;
+</pre></td>
+  </tr>
+
+  <tr>
+    <td><pre>
+  co_yield x;
+</pre></td>
+    <td><pre>
+  yield x;
+</pre></td>
+  </tr>
+
+  <tr>
+    <td><pre>
+  co_yield (x == 0);
+</pre></td>
+    <td><pre>
+  yield (x == 0);
+</pre></td>
+  </tr>
+
+  <tr>
+    <td><pre>
+  y&zwnj;ield(x == 0);
+</pre></td>
+    <td><pre>
+  y&zwnj;ield(x == 0);
+</pre></td>
+  </tr>
+
+</table>
+
+
+<p>Note that the above problem only arises if we do not see the beginning of the function. Otherwise it's obvious:</p>
+<table border=1>
+  <tr>
+    <th>Coroutines TS</th>
+    <th>This proposal</th>
+  </tr>
+
+  <tr>
+    <td><pre>
+type foo() {
+  y&zwnj;ield x{1, 2, 3};
+</pre></td>
+    <td><pre>
+type foo() {
+  y&zwnj;ield x{1, 2, 3};
+</pre></td>
+  </tr>
+
+  <tr>
+    <td><pre>
+type foo() {
+  y&zwnj;ield x;
+</pre></td>
+    <td><pre>
+type foo() {
+  y&zwnj;ield x;
+</pre></td>
+  </tr>
+
+  <tr>
+    <td><pre>
+type foo() {
+  co_yield x;
+</pre></td>
+    <td><pre>
+type foo() async {
+  yield x;
+</pre></td>
+  </tr>
+
+  <tr>
+    <td><pre>
+type foo() {
+  co_yield (x == 0);
+</pre></td>
+    <td><pre>
+type foo() async {
+  yield (x == 0);
+</pre></td>
+  </tr>
+
+  <tr>
+    <td><pre>
+type foo() {
+  y&zwnj;ield(x == 0);
+</pre></td>
+    <td><pre>
+type foo() {
+  y&zwnj;ield(x == 0);
+</pre></td>
+  </tr>
+
+</table>
+
+
+<h2>VIII. Wording, relative to <a href="http://wg21.link/N4810">N4810</a> (related paper: <a href="http://wg21.link/N4775">N4775 C++ Extensions for
+Coroutines</a>)</h2>
+<ol>
+  <li>Remove the keywords co_await, co_yield, and co_return from Table 5 "Keywords".</li>
+  <li>Change [dcl.fct.def.coroutine] p1:
+  <p>
+  A function is a coroutine if <del>it contains a coroutine-return-statement (9.6.3.1), an await-expression
+(8.3.8), a yield-expression (8.21), or a range-based for (9.5.4) with co_await</del><ins>its definition marked with <code>async</code></ins>.
+  </p>
+  </li>
+  <li>Change examples [dcl.fct.def.coroutine] in p2. and p10. by adding <code>async</code> to each of the coroutines (<code>f() <ins>async</ins></code>, <code>g1() <ins>async</ins></code>, <code>g2() <ins>async</ins></code>, <code>g3() <ins>async</ins></code>).
+  <li>Change [expr.await] p1:
+  <p>
+  The <code>co_await</code> expression <ins>appears only in coroutines and</ins> is used to suspend evaluation of a coroutine (11.4.4) while awaiting
+completion of the computation represented by the operand expression.
+  </p>
+  </li>
+  <li>Change examples [expr.await] in p6. by adding <code>async</code> to each of the coroutines (<code>h() <ins>async</ins></code>, <code>g() <ins>async</ins></code>).
+  <li>Change [stmt.return.coroutine]:
+  <p>9.6.3.1 The co<del>_</del><ins>routine </ins>return statement [stmt.return.coroutine]</p>
+  <p>...</p>
+  <p>A coroutine returns to its caller or resumer (11.4.4) by the co_return statement or when suspended (8.3.8). <del>A coroutine shall not return to its caller or resumer by a return statement(9.6.3).</del>
+  </p>
+  </li>
+  <li>Remove all the <code>co_</code> prefixes from all the occurrences of <code>co_await</code>, <code>co_yield</code>, and <code>co_return</code>.</li>
+  <li>Add to the [dcl.fct] p1 and p2 respectively:
+  <pre>D1 ( parameter-declaration-clause ) cv-qualifier-seq<span class="sub">opt</span>
+	ref-qualifier<span class="sub">opt</span> <ins>async<span class="sub">opt</span></ins> noexcept-specifier<span class="sub">opt</span> attribute-specifier-seq<span class="sub">opt</span>
+	...
+D1 ( parameter-declaration-clause ) cv-qualifier-seq<span class="sub">opt</span>
+	ref-qualifier<span class="sub">opt</span> <ins>async<span class="sub">opt</span></ins> noexcept-specifier<span class="sub">opt</span> attribute-specifier-seq<span class="sub">opt</span> trailing-return-type</pre>
+</li>
+  <li>Add to the [dcl.decl] p5 grammar:
+  <pre>parameters-and-qualifiers:
+	( parameter-declaration-clause ) cv-qualifier-seq<span class="sub">opt</span>
+		ref-qualifier<span class="sub">opt</span> <ins>async<span class="sub">opt</span></ins> noexcept-specifier<span class="sub">opt</span> attribute-specifier-seq<span class="sub">opt</span></pre>
+</li>
+</ol>
+
+
+<h2>IX. Acknowledgements</h2>
+  <p>Many thanks to Gor Nishanov, for exploring the coroutines design space, for TS implementations, for teaching people about the coroutines,
+  and for an insane amount of interesting coroutines related measurements/talks/presentations.</p>
+
+  <p>Thanks to Ville Voutilainen and Bjarne Stroustrup for pointing me to the previous discussions of the problem and to some concerns.</p>
+
+    <script type="text/javascript">
+        function colorize_texts(texts) {
+        for (var i = 0; i < texts.length; ++i) {
+            var text = texts[i].innerHTML;
+            text = text.replace(/namespace|if |using|async|do\n|while|resumable|co_await|co_yield|co_return|await|yield|char|sizeof|long|enum|void|constexpr|extern|noexcept|bool|template|class |struct|auto|const|typename|explicit|public|private|operator|#include|inline| char|typedef|static_assert|int|return|union|static_cast|static/g,"<span class='cppkeyword'>$&<\/span>");
+            text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+            //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
+            texts[i].innerHTML = text;
+        }
+        }
+
+        colorize_texts(document.getElementsByTagName("pre"));
+        colorize_texts(document.getElementsByTagName("code"));
+
+        function show_hide_deleted() {
+        var to_change = document.getElementsByClassName('changed-deleted');
+        for (var i = 0; i < to_change.length; ++i) {
+            to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
+        }
+        }
+        show_hide_deleted()
+
+        initial_text = document.getElementById('diff').innerHTML
+        function on_input_change(self) {
+            document.getElementById('diff').innerHTML = initial_text.replace(/async/g, self.value);
+        }
+    </script>
+</body></html>
+
