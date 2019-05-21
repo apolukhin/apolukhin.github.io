@@ -29,7 +29,7 @@
     <address>Alexey Gorgurov &lt;<a href="mailto:leha-bot@yandex.ru">leha-bot@yandex.ru</a>&gt;, &lt;<a href="mailto:no-vista@yandex.ru">no-vista@yandex.ru</a>&gt;</address>
     <address>Antony Polukhin, Yandex.Taxi Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2019-05-15</address>
+    <address>Date: 2019-05-20</address>
     <h1>A Proposal to add stacktrace library</h1>
 
     <p class="changed-added">Significant changes since <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p0881r3.html">P0881R3</a> are marked with blue.</p><p>
@@ -500,13 +500,17 @@ namespace std {
 
     // 20.?.4.1, construct/copy/destroy
     basic_stacktrace() noexcept;
-    explicit basic_stacktrace(const allocator_type&amp; alloc) noexcept;
-    basic_stacktrace(size_type skip, size_type max_depth, const allocator_type&amp; alloc = allocator_type()) noexcept;
+    <span class="changed-deleted">explicit </span>basic_stacktrace(<span class="changed-added">allocator_arg_t, </span>const allocator_type&amp; alloc) noexcept;
+    basic_stacktrace(size_type skip, size_type max_depth<span class="changed-deleted">, const allocator_type&amp; alloc = allocator_type()</span>) noexcept;
+    <span class="changed-added">basic_stacktrace(allocator_arg_t, const allocator_type&amp; alloc, size_type skip, size_type max_depth) noexcept;</span>
 
     basic_stacktrace(const basic_stacktrace&amp; other) = default;
     basic_stacktrace(basic_stacktrace&amp;&amp; other) noexcept = default;
+    <span class="changed-added">basic_stacktrace(allocator_arg_t, const allocator_type&amp; alloc, const basic_stacktrace&amp; other);</span>
+    <span class="changed-added">basic_stacktrace(allocator_arg_t, const allocator_type&amp; alloc, basic_stacktrace&amp;&amp; other);</span>
     basic_stacktrace&amp; operator=(const basic_stacktrace&amp; other) = default;
     basic_stacktrace&amp; operator=(basic_stacktrace&amp;&amp; other) = default;
+
     ~basic_stacktrace() = default;
 
     // 20.?.4.2, observers
@@ -553,16 +557,30 @@ namespace std {
 
     <h3>20.?.4.1 Construct/copy/destroy <span class="right">[stacktrace.basic.cons]</span></h3>
     <pre>basic_stacktrace() noexcept;
-explicit basic_stacktrace(const allocator_type&amp; alloc) noexcept;</pre>
+<span class="changed-deleted">explicit </span>basic_stacktrace(<span class="changed-added">allocator_arg_t, </span>const allocator_type&amp; alloc) noexcept;</pre>
 
-    <div class="desc"><i>Effects:</i> Stores the stacktrace of the current evaluation in the current thread of execution in <code>frames</code>. <code>alloc</code> is passed to the frames constructor. </div>
+    <div class="desc"><i>Effects:</i> Stores the stacktrace of the current evaluation in the current thread of execution in <code>frames</code>. <code>alloc</code> is passed to the <code>frames</code> constructor. </div>
     <div class="desc"><i>[Note:</i> If the stacktrace was successfully obtained, then <code>frames.front()</code> is the <code><span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span></code> representing approximately the current evaluation, and <code>frames.back()</code> is the <code><span class="changed-deleted">stack_frame</span><span class="changed-added">stacktrace_entry</span></code> representing approximately the initial function of the current thread of execution.<i> - end note]</i></div>
     <div class="desc"><i>Ensures:</i> <code>!*this</code> if failed to store stacktrace of the current thread of execution; <code>!!*this</code> otherwise.</div>
 
-    <pre>basic_stacktrace(size_type skip, size_type max_depth, const allocator_type&amp; alloc = allocator_type()) noexcept;</pre>
+    <pre>basic_stacktrace(size_type skip, size_type max_depth<span class="changed-deleted">, const allocator_type&amp; alloc = allocator_type()</span>) noexcept;</pre>
+    <div class="desc">Let <code>t</code> be a stacktrace as-if obtained via <code>basic_stacktrace()</code>. Let <code>n</code> be <code>t.size()</code>.</div>
+    <div class="desc changed-added"><i>Expects:</i> <code>skip &lt;= skip + max_depth</code>.</div>
+    <div class="desc"><i>Effects:</i> <code>frames(t.begin() + min(n, skip), t.begin() + min(n, skip + max_depth))</code>.</div>
+
+    <pre><span class="changed-added">basic_stacktrace(allocator_arg_t, const allocator_type&amp; alloc, size_type skip, size_type max_depth) noexcept;</span></pre>
     <div class="desc">Let <code>t</code> be a stacktrace as-if obtained via <code>basic_stacktrace(alloc)</code>. Let <code>n</code> be <code>t.size()</code>.</div>
     <div class="desc changed-added"><i>Expects:</i> <code>skip &lt;= skip + max_depth</code>.</div>
-    <div class="desc"><i>Ensures:</i> <code>frames</code> contains the values <code>[t.begin() + min(n, skip), t.begin() + min(n, skip + max_depth))</code>.</div>
+    <div class="desc"><i>Effects:</i> <code>frames(t.begin() + min(n, skip), t.begin() + min(n, skip + max_depth), alloc)</code>.</div>
+
+<div class="changed-added">
+    <pre>basic_stacktrace(const basic_stacktrace&amp; other) = default;
+basic_stacktrace(allocator_arg_t, const allocator_type&amp; alloc, const basic_stacktrace&amp; other);
+basic_stacktrace(allocator_arg_t, const allocator_type&amp; alloc, basic_stacktrace&amp;&amp; other);
+basic_stacktrace&amp; operator=(const basic_stacktrace&amp; other) = default;
+basic_stacktrace&amp; operator=(basic_stacktrace&amp;&amp; other) = default;</pre>
+    <div class="desc"><i>Remarks:</i> Implementations may strengthen the exception specification for those functions [res.on.exception.handling] by ensuring that <code>!*this</code> is <code>true</code> on failed allocation.</div>
+</div>
 
     <h3>20.?.4.2 Observers <span class="right">[stacktrace.basic.obs]</span></h3>
 
