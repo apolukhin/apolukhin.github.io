@@ -29,7 +29,7 @@
     <address>Alexey Gorgurov &lt;<a href="mailto:leha-bot@yandex.ru">leha-bot@yandex.ru</a>&gt;, &lt;<a href="mailto:no-vista@yandex.ru">no-vista@yandex.ru</a>&gt;</address>
     <address>Antony Polukhin, Yandex.Taxi Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2019-05-20</address>
+    <address>Date: 2019-05-22</address>
     <h1>A Proposal to add stacktrace library</h1>
 
     <p class="changed-added">Significant changes since <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p0881r3.html">P0881R3</a> are marked with blue.</p><p>
@@ -68,13 +68,16 @@ Backtrace:
 	by providing a signal safe allocator and changing the <code>stacktrace</code> implementation details.</p>
 	<p><b>Note on performance:</b> during Boost.Stacktrace development phase many users requested a fast way to store stacktrace, without decoding the function names. This functionality is preserved in the paper.
 	All the <code>stack_frame</code> functions and constructors are lazy and won't decode the pointer information if there was no explicit request from class user.</p>
-	<p><b>Note on allocations:</b> initial implementations of Boost.Stacktrace were not using allocator and all the frames were placed inside a fixed size internal storage.
+	<p><b>Note on allocations:</b> initial <span class="changed-added">(pre-Boost)</span> implementations of Boost.Stacktrace were not using allocator and all the frames were placed inside a fixed size internal storage.
 	That was a mistake! Sometimes the most important information is located at the bottom of the stack. For example if you run Boost.Test, then the test name will be located low on the stack.
 	With a fixed size storage the bottom of the stack could be lost along with the information.</p>
 	<p>Current design assumes that by default users wish to see the whole stack and OK with dynamic allocations, because do not construct <code>stacktrace</code>
 	in performance critical places.
 	For those users, who wish to use <code>stacktrace</code> on a hot path or in embedded environments <code>basic_stacktrace</code> allows to provide a custom allocator that allocates
 	on the stack or in some other place, where users thinks it is appropriate.</p>
+        <p class="changed-added">Custom allocators support for functions like <code>to_string</code>, <code>source_file</code> and <code>description</code> is not provided. Those functions usually require platform specific
+	allocations, system calls and a lot of CPU intensive work. Custom allocator does not provide benefits for those functions as the platform specific operations take an order of magnitude more time than the allocation.
+	</p>
 	<p><b>Note on returning <code>std::string</code> and not having <code>noexcept</code> on <code>stack_frame::source_line()</code></b>:
 	Unfortunately this is a necessarity on some platforms, where getting source line requires allocating or where source
 	file name <a href="https://github.com/boostorg/stacktrace/blob/a0f948e9f505cb53baf582fccbcb3024fd255ee1/include/boost/stacktrace/detail/frame_msvc.ipp#L213-L219">returned into</a> a storage
