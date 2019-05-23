@@ -29,7 +29,7 @@
     <address>Alexey Gorgurov &lt;<a href="mailto:leha-bot@yandex.ru">leha-bot@yandex.ru</a>&gt;, &lt;<a href="mailto:no-vista@yandex.ru">no-vista@yandex.ru</a>&gt;</address>
     <address>Antony Polukhin, Yandex.Taxi Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2019-05-22</address>
+    <address>Date: 2019-05-23</address>
     <h1>A Proposal to add stacktrace library</h1>
 
     <p class="changed-added">Significant changes since <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p0881r3.html">P0881R3</a> are marked with blue.</p><p>
@@ -351,7 +351,8 @@ conversion; string contents are implementation defined.
     <li><code>to_string(stacktrace)</code> should query information from debug symbols, symbol export tables and any other sources, returning demangled signatures if possible.</li>
     <li class="changed-added">Providing information about inlined functions that have no separate stacktrace entries is welcomed in <code>to_string(stacktrace)</code>.</li>
     <li class="changed-added">Detecting inlined functions and doing other heavy operations is not welcomed in basic_stacktrace constructors.</li>
-    </ul>
+    <li class="changed-added"><code>stacktrace</code> should be usable in contract violation handler, coroutines, handler functions [handler.functions], parallel algorithms, etc.</li>
+</ul>
 
 
     <h2>V. Wording</h2>
