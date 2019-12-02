@@ -1,0 +1,136 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+    <title>Numbers and their Scopes</title>
+    <meta http-equiv="Content-Language" content="en-us">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <style type="text/css">
+        .addition { color: green; }
+        .right { float:right }
+        .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+        .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+        .changed-added { background-color: #CFF0FC ;}
+        .notes { background-color: gold ;}
+        pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
+        .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; font-family:monospace }
+        body {max-width: 1024px; margin-left: 25px;}
+        del { background-color: red; }
+        ins { background-color: lightgreen; }
+        .sub { vertical-align: sub; }
+        .lmargin50{margin-left: 50px;}
+        .width_third{width: 33%;}
+        .cppkeyword { color: blue; }
+        .asmcostly { color: red; }
+        .cppcomment { color: green; }
+        .cppcomment > .cppkeyword{ color: green; }
+        .cpptext { color: #2E8B57; }
+        .cppaddition { background-color: #CFC; }
+        .cppdeletion {  text-decoration: line-through; background-color: #FCC; }
+        .stdquote { background-color: #ECECEC; font-family: Consolas,monospace; }
+    </style>
+    </head>
+    <body bgcolor="#ffffff">
+    <address>Document number: D????R0</address>
+    <address>Project: Programming Language C++</address>
+    <address>Audience: SG6, LEWGI</address>
+    <address>&nbsp;</address>
+    <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+    <address>&nbsp;</address>
+    <address>Date: 2019-12-01</address>
+    <h1>Numbers and their Scopes</h1>
+
+<p align="right">“A huge gap exists between what we know is possible with today's </p><p align="right"> machines and what we have so far been able to finish.”</p>
+<p align="right"><i>― Donald Knuth</i></p>
+
+    <h2>I. Quick Introduction</h2>
+    <p>This paper provides explanation on <a href="https://wg21.link/p1889">P1889 "C++ Numerics Work In Progress"</a> and attempts to nail down scopes and priorities of P1889.</p>
+
+    <h2>II. The main question</h2>
+    <p>SG6 is doing a great job for many years. Right now SG6 has multiple papers with more than a 10 years history. SG6 planned to be design and ship those papers as a whole (probably as a TS). <a href="https://wg21.link/P0101">P0101 "An Outline of a C++ Numbers Technical Specification"</a> from year 2015 was attempting to put most of the papers under the single roof.</p>
+
+    <p>Last notes of <a href="http://wiki.edg.com/bin/view/Wg21kona2015/DiscussionNotes#P0101R0">the P0101 discussion</a> are:
+<pre>
+- the plan is to have a working draft at the end of the next meeting
+- end of this week we should report a vision and outline
+</pre>
+
+    <p>P1889 puts P0101 papers together. It is a starting point for the outcome of the P0101 discussion.</p>
+    <p>However, some concerns were expressed on the reflector. That leads us to the <b>main question</b>:</p>
+    <p><b><i>Are we willing to start the work on a united numbers paper P1889?</i></b></p>
+    <p>Some important points to consider</p>
+    <ol>
+      <li>Many of the papers from P0101 are not maintained any more or do not evelove on their own.</li>
+      <li>People are not aware of the P0101 and keep designing, reviewing and evelolving papers without a consistent view.</li>
+      <li>Some of the papers from P0101 were already reviewed by other subgroups and do not change for many years.</li>
+      <li>Many numeric papers are close to being ready to ship but can not progress because SG6 wish to ship them as a part of a bigger paper.</li>
+    </ol>
+    <p>My personal opinion is following:</p>
+    <p>"WG21 can come up with new ideas and numeric papers every meeting. That's a good and never ending process. That process should not block existing/preapproved papers from shipping.
+    Without shipping we are stagnating."</p>
+
+
+    <h2>III. The Name and Motto</h2>
+    <p>We need a short name and sentence that describes the P1889, so that any reader that is unaware of the P1889 could understand it's intent.</p>
+    How about "Numbers" and "User friendly numeric types, aliases and low level building blocks to implement them"?
+
+
+    <h2>IV. The Scope</h2>
+    <p>P0101 was providing the "Introduction on SG6" and "Design Principles" paragraphs. Those are a good starting points for understanding of the SG6 motivation for work that was done with the numeric papers.</p>
+    <p>For P1889 we need a clear understanding of scope and priorities. We need an understanding of "When to stop designing". Proposed scopes are:</p>
+    <ol>
+      <li>Provide new numeric types that are widely useful and were already discussed</li>
+      <li>Provide basic building blocks for implementing new numeric types on top of build-in types</li>
+      <li>Provide minimal and consistent functionality to make the introduced types and functions usable for basic use-cases</li>
+    </ol>
+
+    <p>Examples of fitting ideas:</p>
+    <ol>
+      <li>Add unbounded integer type ― it is a widely useful facility that is required for solving many mathematical tasks. It exists in almost any modern programming language. It's been discussed in SG6 and preapproved during the discussion of P0101</li>
+      <li>Add overflow detection and rounding facilities ― those are important for implementing new numeric types. They've been discussed in SG6 and preapproved during the discussion of P0101</li>
+      <li>Add <code>to_chars</code>/<code>from_chars</code> overloads for all the numeric types ― this is a minimal building block for <i>string&lt;-&gt;number</i> conversions and without it users won't be able to output the number</li>
+    </ol>
+
+    <p>Examples of non-fitting ideas:</p>
+    <ol>
+      <li>Add <code>binary-coded-decimal</code> number type ― that idea was not discussed in SG6 before and it is a very exotic number representation.</li>
+      <li>Add converters from <code>binary-coded-decimal</code> type to <code>int</code> ― <code>binary-coded-decimal</code> type is not a built-in type.</li>
+      <li>Extend <code>std::locale</code> to localize new types ― this is not a minimal required functionality. This could be added later.</li>
+    </ol>
+
+
+    <h2>V. Schedule</h2>
+    <p>To progress we need a schedule. Or at least a deadline to stop adding new numeric types and concentrate on consistency and functionality.</p>
+
+
+    <h2>VI. Acknowledgements</h2>
+    <p>Many thanks to all the people who participate in the SG6.</p>
+
+    <script type="text/javascript">
+        function colorize_texts(texts) {
+        for (var i = 0; i < texts.length; ++i) {
+            var text = texts[i].innerHTML;
+            text = text.replace(/namespace|if |using|async|do\n|while|resumable|co_await|co_yield|co_return|await|yield|char|sizeof|long|enum|void|constexpr|extern|noexcept|bool|template|class |struct|auto|const|typename|explicit|public|private|operator|#include|inline| char|typedef|static_assert|int|return|union|static_cast|static/g,"<span class='cppkeyword'>$&<\/span>");
+            text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+            //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
+            texts[i].innerHTML = text;
+        }
+        }
+
+        //colorize_texts(document.getElementsByTagName("pre"));
+        //colorize_texts(document.getElementsByTagName("code"));
+
+        function show_hide_deleted() {
+        var to_change = document.getElementsByClassName('changed-deleted');
+        for (var i = 0; i < to_change.length; ++i) {
+            to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
+        }
+        }
+        show_hide_deleted()
+
+        initial_text = document.getElementById('diff').innerHTML
+        function on_input_change(self) {
+            document.getElementById('diff').innerHTML = initial_text.replace(/async/g, self.value);
+        }
+    </script>
+</body></html>
+
