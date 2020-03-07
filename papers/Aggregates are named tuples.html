@@ -1,0 +1,256 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+    <title>Aggregates are named tuples</title>
+    <meta http-equiv="Content-Language" content="en-us">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <style type="text/css">
+        .addition { color: green; }
+        .right { float:right }
+        .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+        .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+        .changed-added { background-color: #CFF0FC ;}
+        .notes { background-color: gold ;}
+        pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
+        .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; font-family:monospace }
+        body {max-width: 1024px; margin-left: 25px;}
+        del { background-color: red; }
+        ins { background-color: lightgreen; text-decoration: none; }
+        .sub { vertical-align: sub; }
+        .lmargin50{margin-left: 50px;}
+        .width_third{width: 33%;}
+        .cppkeyword { color: blue; }
+        .asmcostly { color: red; }
+        .cppcomment { color: green; }
+        .cppcomment > .cppkeyword{ color: green; }
+        .cpptext { color: #2E8B57; }
+        .cppaddition { background-color: #CFC; }
+        .cppdeletion {  text-decoration: line-through; background-color: #FCC; }
+        .stdquote { background-color: #ECECEC; font-family: Consolas,monospace; }
+    </style>
+    </head>
+    <body bgcolor="#ffffff">
+    <address>Document number: D2141R0</address>
+    <address>Project: Programming Language C++</address>
+    <address>Audience: LEWGI, LEWG</address>
+    <address>&nbsp;</address>
+    <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+    <address>&nbsp;</address>
+    <address>Date: 2020-03-05</address>
+    <h1>Aggregates are named tuples</h1>
+
+<p align="right">“Call him Voldemort, Harry. Always use the proper name for things.”</p>
+<p align="right"><i>―  J.K. Rowling, Harry Potter and the Sorcerer's Stone </i></p>
+
+    <h2>I. Quick Introduction</h2>
+    <p>In C++ we have:</p>
+    <ul>
+      <li>tuples - types that provide access to members by index. Those are useful for generic programming</li>
+      <li>aggregates - types with named fields. Those are just easy to use.</li>
+    </ul>
+    <p>This paper was inspired by multiple years of experience with <a href="https://github.com/apolukhin/magic_get">PFR/magic_get library</a>. The core idea of this paper is to add functionality to some aggregates so that they could behave as tuples.</p>
+
+    <h2>II. Motivation and Examples</h2>
+    <p><code>std::tuple</code> and <code>std::pair</code> are great for generic programming, however they have disadvantages. First of all, code that uses them becomes barely readable. Consider two definitions:</p>
+<pre>
+struct auth_info_aggreagte {
+    std::int64_t id;
+    std::int64_t session_id;
+    std::int64_t source_id;
+    std::time_t valid_till;
+};
+
+using auth_info_tuple = std::tuple<
+    std::int64_t,
+    std::int64_t,
+    std::int64_t,
+    std::time_t
+>;</pre>
+    <p>Definition via structure is much more clear. Same story with usages: <code>return std::get&lt;1&gt;(value);</code> vs. <code>return value.session_id;</code> </p>
+
+    <p>Another advantage of aggregates a more efficient copy, move construction and assignments:</p>
+
+<pre>
+template &lt;class T&gt;
+constexpr bool validate() {
+    static_assert(std::is_trivially_move_constructible_v&lt;T&gt;);
+    static_assert(std::is_trivially_copy_constructible_v&lt;T&gt;);
+    static_assert(std::is_trivially_move_assignable_v&lt;T&gt;);
+    static_assert(std::is_trivially_copy_assignable_v&lt;T&gt;);
+    return true;
+}
+
+constexpr bool tuples_fail = validate&lt;auth_info_tuple&gt;(); // Fails majority of checks
+constexpr bool aggregates_are_ok = validate&lt;auth_info_aggreagte&gt;();
+</pre>
+
+    <p>Because of the above issues many coding guidelines <b>recommend to use aggregates instead of tuples</b>.</p>
+    <p>However at the moment aggregates fail when it comes to the functional like programming:</p>
+
+<pre>
+namespace impl {
+    template &lt;class Stream, class Result, std::size_t... I>
+    void fill_fileds(Stream&amp; s, Result&amp; res, std::index_sequence&lt;I...&gt;) {
+        (s &gt;&gt; ... &gt;&gt; std::get&lt;I&gt;(res));
+    }
+}
+
+template &lt;class T&gt;
+T ExecuteSQL(std::string_view statement) {
+    std::stringstream stream;
+    // some logic that feeds data into stream
+
+    T result;
+    impl::fill_fileds(stream, result, std::make_index_sequence&lt;std::tuple_size_v&lt;T&gt;&gt;());
+    return result;
+}
+
+constexpr std::string_view query = "SELECT id, session_id, source_id, valid_till FROM auth";
+const auto tuple_result = ExecuteSQL&lt;auth_info_tuple&gt;(query);
+const auto aggreagate_result = ExecuteSQL&lt;auth_info_aggreagte&gt;(query); // does not compile
+
+// Playground https://godbolt.org/z/y49lya
+</pre>
+
+    <p>By bringing the functionality of tuples into aggregates we get all the advantages of tuples without loosing advantages of aggregates. We get <b>named tuples</b>.</p>
+
+
+    <h2>III. The Idea</h2>
+    <p>Make <code>std::get</code>, <code>std::tuple_element</code> and <code>std::tuple_size</code> work with aggregates that have no base classes.</p>
+
+
+    <h2>IV. Interaction with other papers</h2>
+    <p><a href="https://wg21.link/P1061">P1061 "Structured Bindings can introduce a Pack"</a> makes it really simple to implement the ideas proposed in this paper. For example <code>std::tuple_size</code> could be implemented as:</p>
+<pre>
+template &lt;class T>
+constexpr std::size_t fields_count() {
+    auto [...x] = T();
+    return sizeof...(x);
+}
+
+template &lt;class T&gt;
+struct tuple_size: std::integral_constant&lt;std::size_t, fields_count&lt;T&gt;()&gt; {};
+</pre>
+    <p><a href="https://wg21.link/P1061">P1061</a> is not a requirement for this paper acceptance. Same logic could be implemented is a compiler built-in or even via some metaprogramming tricks, as in <a href="https://github.com/apolukhin/magic_get">PFR/magic_get library</a>.</p>
+
+    <p>There may be concerns, that proposed functionality may hurt <a href="https://wg21.link/N4818">N4818 "C++ Extensions for Reflection"</a> adoption, as some of functionality becomes available without reflection. Experience with <a href="https://github.com/apolukhin/magic_get">PFR/magic_get library</a> shows that <code>std::get</code> and <code>std::tuple_size</code> functions cover only very basic cases of reflection. we still need reflection for trivial things, like serialization to JSON, because only reflection gives us field names of the structure.</p>
+
+    <h2>V. Wording</h2>
+    <p>Adjust [tuple.syn]:</p>
+
+<pre>
+  // [tuple.helper], tuple helper classes
+  template&lt;class T&gt; struct tuple_size;                  // not defined
+  template&lt;class T&gt; struct tuple_size&lt;const T&gt;;
+
+<ins>  template&lt;class T&gt;
+    concept non-derived-aggregate = <i>see-below</i>;       // exposition only
+
+  template&lt;non-derived-aggregate T&gt; struct tuple_size;</ins>
+
+  template&lt;class... Types&gt; struct tuple_size&lt;tuple&lt;Types...&gt;&gt;;
+
+  template&lt;size_t I, class T&gt; struct tuple_element;     // not defined
+  template&lt;size_t I, class T&gt; struct tuple_element&lt;I, const T&gt;;
+
+<ins>  template&lt;size_t I, non-derived-aggregate T&gt; struct tuple_element;</ins>
+
+  template&lt;size_t I, class... Types&gt;
+    struct tuple_element&lt;I, tuple&lt;Types...&gt;&gt;;
+
+  template&lt;size_t I, class T&gt;
+    using tuple_element_t = typename tuple_element&lt;I, T&gt;::type;
+
+  // [tuple.elem], element access
+<ins>  template&lt;size_t I, non-derived-aggregate T&gt;
+    constexpr tuple_element_t&lt;I, T&gt;&amp; get(T&amp;) noexcept;
+  template&lt;size_t I, non-derived-aggregate T&gt;
+    constexpr tuple_element_t&lt;I, const T&gt;&amp; get(const T&amp;) noexcept;</ins>
+  template&lt;size_t I, class... Types&gt;
+    constexpr tuple_element_t&lt;I, tuple&lt;Types...&gt;&gt;&amp; get(tuple&lt;Types...&gt;&amp;) noexcept;
+  template&lt;size_t I, class... Types&gt;
+    constexpr tuple_element_t&lt;I, tuple&lt;Types...&gt;&gt;&amp;&amp; get(tuple&lt;Types...&gt;&amp;&amp;) noexcept;
+  template&lt;size_t I, class... Types&gt;
+    constexpr const tuple_element_t&lt;I, tuple&lt;Types...&gt;&gt;&amp; get(const tuple&lt;Types...&gt;&amp;) noexcept;
+  template&lt;size_t I, class... Types&gt;
+    constexpr const tuple_element_t&lt;I, tuple&lt;Types...&gt;&gt;&amp;&amp; get(const tuple&lt;Types...&gt;&amp;&amp;) noexcept;
+  template&lt;class T, class... Types&gt;
+    constexpr T&amp; get(tuple&lt;Types...&gt;&amp; t) noexcept;
+  template&lt;class T, class... Types&gt;
+    constexpr T&amp;&amp; get(tuple&lt;Types...&gt;&amp;&amp; t) noexcept;
+  template&lt;class T, class... Types&gt;
+    constexpr const T&amp; get(const tuple&lt;Types...&gt;&amp; t) noexcept;
+  template&lt;class T, class... Types&gt;
+    constexpr const T&amp;&amp; get(const tuple&lt;Types...&gt;&amp;&amp; t) noexcept;
+</pre>
+    <p>Adjust [tuple.helper]:</p>
+<pre>
+  template&lt;class T&gt; struct tuple_size;
+      All specializations of tuple_­size meet the Cpp17UnaryTypeTrait requirements ([meta.rqmts]) with a base
+      characteristic of integral_­constant&lt;size_­t, N&gt; for some N.
+
+<ins>  template&lt;class T&gt; concept non-derived-aggregate;
+      Satisfied if <code>T</code> is an aggregate without base class.
+
+  template&lt;non-derived-aggregate T&gt; struct tuple_size;
+      Let N denote the fileds count in <code>T</code>. Specialization meets the Cpp17UnaryTypeTrait
+      requirements ([meta.rqmts]) with a base characteristic of <code>integral_constant&lt;size_t, N&gt;</code>.</ins>
+
+
+  template&lt;class... Types&gt;
+  struct tuple_size&lt;tuple&lt;Types...&gt;&gt; : public integral_constant&lt;size_t, sizeof...(Types)&gt; { };
+
+  ....
+
+<ins>  template&lt;size_t I, non-derived-aggregate T&gt; struct tuple_element;
+      Let TE denote the type of the I<sup>th</sup> filed of <code>T</code>, where indexing is zero-based. Specialization meets the Cpp17TransformationTrait
+      requirements ([meta.rqmts]) with a member typedef <code>type</code> that names the type <code>TE</code>.</ins>
+</pre>
+
+<p>Add paragraph at the beginning of [tuple.elem]:</p>
+
+<pre>
+  <b>Element access</b> [tuple.elem]
+
+<ins>  template&lt;size_t I, non-derived-aggregate T&gt;
+    constexpr tuple_element_t&lt;I, T&gt;&amp; get(T&amp; t) noexcept;
+  template&lt;size_t I, non-derived-aggregate T&gt;
+    constexpr tuple_element_t&lt;I, const T&gt;&amp; get(const T&amp; t) noexcept;
+      Mandates: <code>I &lt; tuple_size_v&lt;T&gt;</code>.
+      Returns: A reference to the I<sup>th</sup> field of <code>t</code>, where indexing is zero-based.
+</ins>
+</pre>
+
+
+    <h2>VI. Acknowledgements</h2>
+    <p>TBD</p>
+
+    <script type="text/javascript">
+        function colorize_texts(texts) {
+        for (var i = 0; i < texts.length; ++i) {
+            var text = texts[i].innerHTML;
+            text = text.replace(/namespace|using|async|do\n|while|resumable|co_await|co_yield|co_return|await|yield|sizeof|long|enum|void|concept |constexpr|extern|noexcept|bool|template|class |struct |auto|const |typename|explicit|public|private|operator|#include|inline| char |static_assert|int |return|union|static_cast|static/g,"<span class='cppkeyword'>$&<\/span>");
+            text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+            //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
+            texts[i].innerHTML = text;
+        }
+        }
+
+        colorize_texts(document.getElementsByTagName("pre"));
+        colorize_texts(document.getElementsByTagName("code"));
+
+        function show_hide_deleted() {
+        var to_change = document.getElementsByClassName('changed-deleted');
+        for (var i = 0; i < to_change.length; ++i) {
+            to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
+        }
+        }
+        show_hide_deleted()
+
+        initial_text = document.getElementById('diff').innerHTML
+        function on_input_change(self) {
+            document.getElementById('diff').innerHTML = initial_text.replace(/async/g, self.value);
+        }
+    </script>
+</body></html>
+
