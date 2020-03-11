@@ -1,0 +1,350 @@
+From: <Saved by Blink>
+Snapshot-Content-Location: https://isocpp.org/files/papers/D2141R0.html
+Subject: Aggregates are named tuples
+Date: Wed, 11 Mar 2020 19:08:37 -0000
+MIME-Version: 1.0
+Content-Type: multipart/related;
+	type="text/html";
+	boundary="----MultipartBoundary--RxTpaZCCjXGVKOCMzTDXZUSVecyTGUBRJiuUj0Onqj----"
+
+
+------MultipartBoundary--RxTpaZCCjXGVKOCMzTDXZUSVecyTGUBRJiuUj0Onqj----
+Content-Type: text/html
+Content-ID: <frame-A74498FCE64CBDB71D883BAFE7720535@mhtml.blink>
+Content-Transfer-Encoding: binary
+Content-Location: https://isocpp.org/files/papers/D2141R0.html
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd"><html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><link rel="stylesheet" type="text/css" href="cid:css-181a9426-1d3a-4139-b810-6cd5411f538b@mhtml.blink" />
+    <title>Aggregates are named tuples</title>
+    <meta http-equiv="Content-Language" content="en-us">
+    
+
+    
+    </head>
+    <body bgcolor="#ffffff">
+    <address>Document number: D2141R0</address>
+    <address>Project: Programming Language C++</address>
+    <address>Audience: LEWGI, LEWG, EWGI, EWG</address>
+    <address>&nbsp;</address>
+    <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+    <address>&nbsp;</address>
+    <address>Date: 2020-03-11</address>
+    <h1>Aggregates are named tuples</h1>
+
+<p align="right">“Call him Voldemort, Harry. Always use the proper name for things.”</p>
+<p align="right"><i>―  J.K. Rowling, Harry Potter and the Sorcerer's Stone </i></p>
+
+    <h2>I. Quick Introduction</h2>
+    <p>In C++ we have:</p>
+    <ul>
+      <li>tuples - types that provide access to members by index. Those are useful for generic programming</li>
+      <li>aggregates - types with named fields. Those are just easy to use.</li>
+    </ul>
+    <p>This paper was inspired by multiple years of experience with <a href="https://github.com/apolukhin/magic_get">PFR/magic_get library</a>. The core idea of this paper is to add functionality to some aggregates so that they could behave as tuples.</p>
+
+    <h2>II. Motivation and Examples</h2>
+    <p><code>std::tuple</code> and <code>std::pair</code> are great for generic programming, however they have disadvantages. First of all, code that uses them becomes barely readable. Consider two definitions:</p>
+<pre><span class="cppkeyword">struct </span>auth_info_aggreagte {
+    std::int64_t id;
+    std::int64_t session_id;
+    std::int64_t source_id;
+    std::time_t valid_till;
+};
+
+<span class="cppkeyword">using</span> auth_info_tuple = std::tuple&lt;
+    std::int64_t,
+    std::int64_t,
+    std::int64_t,
+    std::time_t
+&gt;;</pre>
+    <p>Definition via structure is much more clear. Same story with usages: <code><span class="cppkeyword">return</span> std::get&lt;1&gt;(value);</code> vs. <code><span class="cppkeyword">return</span> value.session_id;</code> </p>
+
+    <p>Another advantage of aggregates a more efficient copy, move construction and assignments:</p>
+
+<pre><span class="cppkeyword">template</span> &lt;<span class="cppkeyword">class </span>T&gt;
+<span class="cppkeyword">constexpr</span> <span class="cppkeyword">bool</span> validate() {
+    <span class="cppkeyword">static_assert</span>(std::is_trivially_move_constructible_v&lt;T&gt;);
+    <span class="cppkeyword">static_assert</span>(std::is_trivially_copy_constructible_v&lt;T&gt;);
+    <span class="cppkeyword">static_assert</span>(std::is_trivially_move_assignable_v&lt;T&gt;);
+    <span class="cppkeyword">static_assert</span>(std::is_trivially_copy_assignable_v&lt;T&gt;);
+    <span class="cppkeyword">return</span> true;
+}
+
+<span class="cppkeyword">constexpr</span> <span class="cppkeyword">bool</span> tuples_fail = validate&lt;auth_info_tuple&gt;(); <span class="cppcomment">// Fails majority of checks
+</span><span class="cppkeyword">constexpr</span> <span class="cppkeyword">bool</span> aggregates_are_ok = validate&lt;auth_info_aggreagte&gt;();
+</pre>
+
+    <p>Because of the above issues many coding guidelines <b>recommend to use aggregates instead of tuples</b>.</p>
+    <p>However at the moment aggregates fail when it comes to the functional like programming:</p>
+
+<pre><span class="cppkeyword">namespace</span> impl {
+    <span class="cppkeyword">template</span> &lt;<span class="cppkeyword">class </span>Stream, <span class="cppkeyword">class </span>Result, std::size_t... I&gt;
+    <span class="cppkeyword">void</span> fill_fileds(Stream&amp; s, Result&amp; res, std::index_sequence&lt;I...&gt;) {
+        (s &gt;&gt; ... &gt;&gt; std::get&lt;I&gt;(res));
+    }
+}
+
+<span class="cppkeyword">template</span> &lt;<span class="cppkeyword">class </span>T&gt;
+T ExecuteSQL(std::string_view statement) {
+    std::stringstream stream;
+    <span class="cppcomment">// some logic that feeds data into stream
+</span>
+    T result;
+    impl::fill_fileds(stream, result, std::make_index_sequence&lt;std::tuple_size_v&lt;T&gt;&gt;());
+    <span class="cppkeyword">return</span> result;
+}
+
+<span class="cppkeyword">constexpr</span> std::string_view query = "SELECT id, session_id, source_id, valid_till FROM auth";
+<span class="cppkeyword">const </span><span class="cppkeyword">auto</span> tuple_result = ExecuteSQL&lt;auth_info_tuple&gt;(query);
+<span class="cppkeyword">const </span><span class="cppkeyword">auto</span> aggreagate_result = ExecuteSQL&lt;auth_info_aggreagte&gt;(query); <span class="cppcomment">// does not compile
+</span>
+<span class="cppcomment">// Playground https://godbolt.org/z/y49lya
+</span></pre>
+
+    <p>By bringing the functionality of tuples into aggregates we get all the advantages of tuples without loosing advantages of aggregates. We get <b>named tuples</b>.</p>
+
+
+    <h2>III. The Idea</h2>
+    <p>Make <code>std::get</code>, <code>std::tuple_element</code> and <code>std::tuple_size</code> work with aggregates that have no base classes. This also makes <code>std::tuple_element_t</code>, <code>std::tuple_size_v</code>, <code>std::apply</code> and <code>std::make_from_tuple</code> usable with aggregates.</p>
+
+
+    <h2>IV. Interaction with other papers</h2>
+    <p><a href="https://wg21.link/P1061">P1061 "Structured Bindings can introduce a Pack"</a> makes it really simple to implement the ideas proposed in this paper. For example <code>std::tuple_size</code> could be implemented as:</p>
+<pre><span class="cppkeyword">template</span> &lt;<span class="cppkeyword">class </span>T&gt;
+<span class="cppkeyword">constexpr</span> std::size_t fields_count() {
+    <span class="cppkeyword">auto</span> [...x] = T();
+    <span class="cppkeyword">return</span> <span class="cppkeyword">sizeof</span>...(x);
+}
+
+<span class="cppkeyword">template</span> &lt;<span class="cppkeyword">class </span>T&gt;
+<span class="cppkeyword">struct </span>tuple_size: std::integral_constant&lt;std::size_t, fields_count&lt;T&gt;()&gt; {};
+</pre>
+    <p><a href="https://wg21.link/P1061">P1061</a> is not a requirement for this paper acceptance. Same logic could be implemented is a compiler built-in or even via some metaprogramming tricks, as in <a href="https://github.com/apolukhin/magic_get">PFR/magic_get library</a>.</p>
+
+    <p>There may be concerns, that proposed functionality may hurt <a href="https://wg21.link/N4818">N4818 "C++ Extensions for Reflection"</a> adoption, as some of functionality becomes available without reflection. Experience with <a href="https://github.com/apolukhin/magic_get">PFR/magic_get library</a> shows that <code>std::get</code> and <code>std::tuple_size</code> functions cover only very basic cases of reflection. we still need reflection for trivial things, like serialization to JSON, because only reflection gives us field names of the structure.</p>
+
+
+    <p>Parts of <a href="https://wg21.link/P1858R1">P1858R1 "Generalized pack declaration and usage"</a> address some of the ideas of this paper on a language level and give
+    simple to use tools to implement ideas of this paper. However this paper brings capabilities symmetry to the standard library, shows another approach to deal with accessing fields by index and allows existing user code to work out-of-the-box with aggregates:</p>
+
+    <table border="1">
+      <tbody><tr><th>C++20</th><th>This paper</th><th>P1858</th></tr>
+      <tr><td>
+<pre><span class="cppcomment">// Works only with tuples
+</span><span class="cppcomment">// 
+</span><span class="cppkeyword">int </span>foo(<span class="cppkeyword">auto</span> value) {
+    if (!std::get&lt;10&gt;(value)) {
+        <span class="cppkeyword">return</span> 0;
+    }
+
+    <span class="cppkeyword">return</span> std::apply(function, value);
+}
+</pre>
+      </td><td>
+<pre><span class="cppcomment">// Works with tuples and aggregates
+</span><span class="cppcomment">// No code change required
+</span><span class="cppkeyword">int </span>foo(<span class="cppkeyword">auto</span> value) {
+    if (!std::get&lt;10&gt;(value)) {
+        <span class="cppkeyword">return</span> 0;
+    }
+
+    <span class="cppkeyword">return</span> std::apply(function, value);
+}
+</pre>
+      </td><td>
+<pre><span class="cppcomment">// Works with tuples and aggregates
+</span><span class="cppcomment">// Users are forced to rewrite code
+</span><span class="cppkeyword">int </span>foo(<span class="cppkeyword">auto</span> value) {
+    if (!value::[10]) {
+        <span class="cppkeyword">return</span> 0;
+    }
+
+    <span class="cppkeyword">return</span> std::invoke(function, value::[:]);
+}
+</pre>
+      </td></tr>
+
+
+      <tr><td>
+<pre><span class="cppkeyword">template</span> &lt;<span class="cppkeyword">class </span>T&gt;
+<span class="cppkeyword">auto</span> portable_function(<span class="cppkeyword">const </span>T&amp; value) {
+    <span class="cppcomment">// Works with tuples since C++11
+</span>    <span class="cppkeyword">return</span> std::get&lt;2&gt;(value);
+}
+</pre>
+      </td><td>
+<pre><span class="cppkeyword">template</span> &lt;<span class="cppkeyword">class </span>T&gt;
+<span class="cppkeyword">auto</span> portable_function(<span class="cppkeyword">const </span>T&amp; value) {
+    <span class="cppcomment">// Works with tuples since C++11 and with aggregates
+</span>    <span class="cppkeyword">return</span> std::get&lt;2&gt;(value);
+}
+</pre>
+      </td><td>
+<pre><span class="cppkeyword">template</span> &lt;<span class="cppkeyword">class </span>T&gt;
+<span class="cppkeyword">auto</span> portable_function(<span class="cppkeyword">const </span>T&amp; value) {
+  #ifdef __cpp_generalized_packs
+    <span class="cppcomment">// Works with tuples and aggregates
+</span>    <span class="cppkeyword">return</span> value::[2];
+  #else
+    <span class="cppcomment">// Works with tuples since C++11
+</span>    <span class="cppkeyword">return</span> std::get&lt;2&gt;(value);
+  #endif
+}
+</pre>
+      </td></tr>
+    </tbody></table>
+
+    <h2>V. Wording</h2>
+    <p>Adjust [tuple.syn]:</p>
+
+<pre>  <span class="cppcomment">// [tuple.helper], tuple helper classes
+</span>  <span class="cppkeyword">template</span>&lt;<span class="cppkeyword">class </span>T&gt; <span class="cppkeyword">struct </span>tuple_size;                  <span class="cppcomment">// not defined
+</span>  <span class="cppkeyword">template</span>&lt;<span class="cppkeyword">class </span>T&gt; <span class="cppkeyword">struct </span>tuple_size&lt;<span class="cppkeyword">const </span>T&gt;;
+
+<ins>  <span class="cppkeyword">template</span>&lt;<span class="cppkeyword">class </span>T&gt;
+    <span class="cppkeyword">concept </span><i>decomposable</i> = <i>see-below</i>;       <span class="cppcomment">// exposition only
+</span>
+  <span class="cppkeyword">template</span>&lt;<i>decomposable</i> T&gt; <span class="cppkeyword">struct </span>tuple_size;</ins>
+
+  <span class="cppkeyword">template</span>&lt;class... Types&gt; <span class="cppkeyword">struct </span>tuple_size&lt;tuple&lt;Types...&gt;&gt;;
+
+  <span class="cppkeyword">template</span>&lt;size_t I, <span class="cppkeyword">class </span>T&gt; <span class="cppkeyword">struct </span>tuple_element;     <span class="cppcomment">// not defined
+</span>  <span class="cppkeyword">template</span>&lt;size_t I, <span class="cppkeyword">class </span>T&gt; <span class="cppkeyword">struct </span>tuple_element&lt;I, <span class="cppkeyword">const </span>T&gt;;
+
+<ins>  <span class="cppkeyword">template</span>&lt;size_t I, <i>decomposable</i> T&gt; <span class="cppkeyword">struct </span>tuple_element;</ins>
+
+  <span class="cppkeyword">template</span>&lt;size_t I, class... Types&gt;
+    <span class="cppkeyword">struct </span>tuple_element&lt;I, tuple&lt;Types...&gt;&gt;;
+
+  <span class="cppkeyword">template</span>&lt;size_t I, <span class="cppkeyword">class </span>T&gt;
+    <span class="cppkeyword">using</span> tuple_element_t = <span class="cppkeyword">typename</span> tuple_element&lt;I, T&gt;::type;
+
+  <span class="cppcomment">// [tuple.elem], element access
+</span><ins>  <span class="cppkeyword">template</span>&lt;size_t I, <i>decomposable</i> T&gt;
+    <span class="cppkeyword">constexpr</span> tuple_element_t&lt;I, T&gt;&amp; get(T&amp;) <span class="cppkeyword">noexcept</span>;
+  <span class="cppkeyword">template</span>&lt;size_t I, <i>decomposable</i> T&gt;
+    <span class="cppkeyword">constexpr</span> tuple_element_t&lt;I, <span class="cppkeyword">const </span>T&gt;&amp; get(<span class="cppkeyword">const </span>T&amp;) <span class="cppkeyword">noexcept</span>;</ins>
+  <span class="cppkeyword">template</span>&lt;size_t I, class... Types&gt;
+    <span class="cppkeyword">constexpr</span> tuple_element_t&lt;I, tuple&lt;Types...&gt;&gt;&amp; get(tuple&lt;Types...&gt;&amp;) <span class="cppkeyword">noexcept</span>;
+  <span class="cppkeyword">template</span>&lt;size_t I, class... Types&gt;
+    <span class="cppkeyword">constexpr</span> tuple_element_t&lt;I, tuple&lt;Types...&gt;&gt;&amp;&amp; get(tuple&lt;Types...&gt;&amp;&amp;) <span class="cppkeyword">noexcept</span>;
+  <span class="cppkeyword">template</span>&lt;size_t I, class... Types&gt;
+    <span class="cppkeyword">constexpr</span> <span class="cppkeyword">const </span>tuple_element_t&lt;I, tuple&lt;Types...&gt;&gt;&amp; get(<span class="cppkeyword">const </span>tuple&lt;Types...&gt;&amp;) <span class="cppkeyword">noexcept</span>;
+  <span class="cppkeyword">template</span>&lt;size_t I, class... Types&gt;
+    <span class="cppkeyword">constexpr</span> <span class="cppkeyword">const </span>tuple_element_t&lt;I, tuple&lt;Types...&gt;&gt;&amp;&amp; get(<span class="cppkeyword">const </span>tuple&lt;Types...&gt;&amp;&amp;) <span class="cppkeyword">noexcept</span>;
+  <span class="cppkeyword">template</span>&lt;<span class="cppkeyword">class </span>T, class... Types&gt;
+    <span class="cppkeyword">constexpr</span> T&amp; get(tuple&lt;Types...&gt;&amp; t) <span class="cppkeyword">noexcept</span>;
+  <span class="cppkeyword">template</span>&lt;<span class="cppkeyword">class </span>T, class... Types&gt;
+    <span class="cppkeyword">constexpr</span> T&amp;&amp; get(tuple&lt;Types...&gt;&amp;&amp; t) <span class="cppkeyword">noexcept</span>;
+  <span class="cppkeyword">template</span>&lt;<span class="cppkeyword">class </span>T, class... Types&gt;
+    <span class="cppkeyword">constexpr</span> <span class="cppkeyword">const </span>T&amp; get(<span class="cppkeyword">const </span>tuple&lt;Types...&gt;&amp; t) <span class="cppkeyword">noexcept</span>;
+  <span class="cppkeyword">template</span>&lt;<span class="cppkeyword">class </span>T, class... Types&gt;
+    <span class="cppkeyword">constexpr</span> <span class="cppkeyword">const </span>T&amp;&amp; get(<span class="cppkeyword">const </span>tuple&lt;Types...&gt;&amp;&amp; t) <span class="cppkeyword">noexcept</span>;
+</pre>
+    <p>Choose one of the alternatives for <i>decomposable</i> definition:</p>
+<ol>
+<li><pre><ins>  <span class="cppkeyword">template</span>&lt;<span class="cppkeyword">class </span>T&gt; <span class="cppkeyword">concept </span><i>decomposable</i>;
+      Satisfied if <code>T</code> is an aggregate without base class.</ins></pre></li>
+
+<li><pre><ins>  <span class="cppkeyword">template</span>&lt;<span class="cppkeyword">class </span>T&gt; <span class="cppkeyword">concept </span><i>decomposable</i>;
+      Satisfied if <code>T</code> is an aggregate.</ins></pre></li>
+
+<li><pre><ins>  <span class="cppkeyword">template</span>&lt;<span class="cppkeyword">class </span>T&gt; <span class="cppkeyword">concept </span><i>decomposable</i>;
+      Satisfied if the expression <code><span class="cppkeyword"><span class="cppkeyword">auto</span></span> [<i>arg<sub>0</sub>,... arg<sub>i</sub><i>] = std::declval&lt;T&gt;();</i></i></code><i><i> is well formed for some amount of <i>arg</i> arguments.</i></i></ins></pre></li><i><i>
+</i></i></ol><i><i>
+
+    <p>Adjust [tuple.helper]:</p>
+<pre>  <span class="cppkeyword">template</span>&lt;<span class="cppkeyword">class </span>T&gt; <span class="cppkeyword">struct </span>tuple_size;
+      All specializations of tuple_­size meet the Cpp17UnaryTypeTrait requirements ([meta.rqmts]) with a base
+      characteristic of integral_­constant&lt;size_­t, N&gt; for some N.
+
+<ins>  <i>====INSERT ONE OF THE <i>decomposable</i> DEINITIONS====</i></ins>
+
+
+<ins>  <span class="cppkeyword">template</span>&lt;<i>decomposable</i> T&gt; <span class="cppkeyword">struct </span>tuple_size;
+      Let N denote the fileds count in <code>T</code>. Specialization meets the Cpp17UnaryTypeTrait
+      requirements ([meta.rqmts]) with a base characteristic of <code>integral_constant&lt;size_t, N&gt;</code>.</ins>
+
+
+  <span class="cppkeyword">template</span>&lt;class... Types&gt;
+  <span class="cppkeyword">struct </span>tuple_size&lt;tuple&lt;Types...&gt;&gt; : <span class="cppkeyword">public</span> integral_constant&lt;size_t, <span class="cppkeyword">sizeof</span>...(Types)&gt; { };
+
+  ....
+
+<ins>  <span class="cppkeyword">template</span>&lt;size_t I, <i>decomposable</i> T&gt; <span class="cppkeyword">struct </span>tuple_element;
+      Let TE denote the type of the I<sup>th</sup> filed of <code>T</code>, where indexing is zero-based. Specialization meets the Cpp17TransformationTrait
+      requirements ([meta.rqmts]) with a member typedef <code>type</code> that names the type <code>TE</code>.</ins>
+</pre>
+
+<p>Add paragraph at the beginning of [tuple.elem]:</p>
+
+<pre>  <b>Element access</b> [tuple.elem]
+
+<ins>  <span class="cppkeyword">template</span>&lt;size_t I, <i>decomposable</i> T&gt;
+    <span class="cppkeyword">constexpr</span> tuple_element_t&lt;I, T&gt;&amp; get(T&amp; t) <span class="cppkeyword">noexcept</span>;
+  <span class="cppkeyword">template</span>&lt;size_t I, <i>decomposable</i> T&gt;
+    <span class="cppkeyword">constexpr</span> tuple_element_t&lt;I, <span class="cppkeyword">const </span>T&gt;&amp; get(<span class="cppkeyword">const </span>T&amp; t) <span class="cppkeyword">noexcept</span>;
+      Mandates: <code>I &lt; tuple_size_v&lt;T&gt;</code>.
+      Returns: A reference to the I<sup>th</sup> field of <code>t</code>, where indexing is zero-based.
+</ins>
+</pre>
+
+
+    <h2>VI. Acknowledgements</h2>
+    <p>Many thanks to Barry Revzin for writing P1858 and providing early notes on this paper.</p>
+
+    
+
+
+</i></i></body></html>
+------MultipartBoundary--RxTpaZCCjXGVKOCMzTDXZUSVecyTGUBRJiuUj0Onqj----
+Content-Type: text/css
+Content-Transfer-Encoding: binary
+Content-Location: cid:css-181a9426-1d3a-4139-b810-6cd5411f538b@mhtml.blink
+
+@charset "utf-8";
+
+.addition { color: green; }
+
+.right { float: right; }
+
+.changed-deleted { background-color: rgb(207, 240, 252); text-decoration: line-through; display: none; }
+
+.addition.changed-deleted { color: green; background-color: rgb(207, 240, 252); text-decoration: line-through double black; display: none; }
+
+.changed-added { background-color: rgb(207, 240, 252); }
+
+.notes { background-color: gold; }
+
+pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
+
+.desc { margin-left: 35px; margin-top: 10px; padding: 0px; white-space: normal; font-family: monospace; }
+
+body { max-width: 1024px; margin-left: 25px; }
+
+del { background-color: red; }
+
+ins { background-color: lightgreen; text-decoration: none; }
+
+.sub { vertical-align: sub; }
+
+.lmargin50 { margin-left: 50px; }
+
+.width_third { width: 33%; }
+
+.cppkeyword { color: blue; }
+
+.asmcostly { color: red; }
+
+.cppcomment { color: green; }
+
+.cppcomment > .cppkeyword { color: green; }
+
+.cpptext { color: rgb(46, 139, 87); }
+
+.cppaddition { background-color: rgb(204, 255, 204); }
+
+.cppdeletion { text-decoration: line-through; background-color: rgb(255, 204, 204); }
+
+.stdquote { background-color: rgb(236, 236, 236); font-family: Consolas, monospace; }
+------MultipartBoundary--RxTpaZCCjXGVKOCMzTDXZUSVecyTGUBRJiuUj0Onqj------
