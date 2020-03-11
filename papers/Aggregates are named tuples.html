@@ -32,11 +32,11 @@
     <body bgcolor="#ffffff">
     <address>Document number: D2141R0</address>
     <address>Project: Programming Language C++</address>
-    <address>Audience: LEWGI, LEWG</address>
+    <address>Audience: LEWGI, LEWG, EWGI, EWG</address>
     <address>&nbsp;</address>
     <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2020-03-05</address>
+    <address>Date: 2020-03-11</address>
     <h1>Aggregates are named tuples</h1>
 
 <p align="right">“Call him Voldemort, Harry. Always use the proper name for things.”</p>
@@ -116,7 +116,7 @@ const auto aggreagate_result = ExecuteSQL&lt;auth_info_aggreagte&gt;(query); // 
 
 
     <h2>III. The Idea</h2>
-    <p>Make <code>std::get</code>, <code>std::tuple_element</code> and <code>std::tuple_size</code> work with aggregates that have no base classes.</p>
+    <p>Make <code>std::get</code>, <code>std::tuple_element</code> and <code>std::tuple_size</code> work with aggregates that have no base classes. This also makes <code>std::tuple_element_t</code>, <code>std::tuple_size_v</code>, <code>std::apply</code> and <code>std::make_from_tuple</code> usable with aggregates.</p>
 
 
     <h2>IV. Interaction with other papers</h2>
@@ -135,6 +135,83 @@ struct tuple_size: std::integral_constant&lt;std::size_t, fields_count&lt;T&gt;(
 
     <p>There may be concerns, that proposed functionality may hurt <a href="https://wg21.link/N4818">N4818 "C++ Extensions for Reflection"</a> adoption, as some of functionality becomes available without reflection. Experience with <a href="https://github.com/apolukhin/magic_get">PFR/magic_get library</a> shows that <code>std::get</code> and <code>std::tuple_size</code> functions cover only very basic cases of reflection. we still need reflection for trivial things, like serialization to JSON, because only reflection gives us field names of the structure.</p>
 
+
+    <p>Parts of <a href="https://wg21.link/P1858R1">P1858R1 "Generalized pack declaration and usage"</a> address some of the ideas of this paper on a language level and give
+    simple to use tools to implement ideas of this paper. However this paper brings capabilities symmetry to the standard library, shows another approach to deal with field access by index and allows existing user code to work out-of-the-box with aggregates:</p>
+
+    <table border=1>
+      <tr><th>C++20</th><th>This paper</th><th>P1858</th></tr>
+      <tr><td>
+<pre>
+// Works only with tuples
+// 
+int foo(auto value) {
+    if (!std::get&lt;10&gt;(value)) {
+        return 0;
+    }
+
+    return std::apply(function, value);
+}
+</pre>
+      </td><td>
+<pre>
+// Works with tuples and aggregates
+// No code change required
+int foo(auto value) {
+    if (!std::get&lt;10&gt;(value)) {
+        return 0;
+    }
+
+    return std::apply(function, value);
+}
+</pre>
+      </td><td>
+<pre>
+// Works with tuples and aggregates
+// Users are forced to rewrite code
+int foo(auto value) {
+    if (!value::[10]) {
+        return 0;
+    }
+
+    return std::invoke(function, value::[:]);
+}
+</pre>
+      </td></tr>
+
+
+      <tr><td>
+<pre>
+template &lt;class T&gt;
+auto portable_function(const T&amp; value) {
+    // Works with tuples since C++11
+    return std::get&lt;2&gt;(value);
+}
+</pre>
+      </td><td>
+<pre>
+template &lt;class T&gt;
+auto portable_function(const T&amp; value) {
+    // Works with tuples since C++11 and with aggregates
+    return std::get&lt;2&gt;(value);
+}
+</pre>
+      </td><td>
+<pre>
+template &lt;class T&gt;
+auto portable_function(const T&amp; value) {
+  #ifdef __cpp_generalized_packs
+    // Works with tuples and aggregates
+    return value::[2];
+  #else
+    // Works with tuples since C++11
+    return std::get&lt;2&gt;(value);
+  #endif
+}
+</pre>
+      </td></tr>
+    </table>
+
     <h2>V. Wording</h2>
     <p>Adjust [tuple.syn]:</p>
 
@@ -144,16 +221,16 @@ struct tuple_size: std::integral_constant&lt;std::size_t, fields_count&lt;T&gt;(
   template&lt;class T&gt; struct tuple_size&lt;const T&gt;;
 
 <ins>  template&lt;class T&gt;
-    concept non-derived-aggregate = <i>see-below</i>;       // exposition only
+    concept <i>decomposable</i> = <i>see-below</i>;       // exposition only
 
-  template&lt;non-derived-aggregate T&gt; struct tuple_size;</ins>
+  template&lt;<i>decomposable</i> T&gt; struct tuple_size;</ins>
 
   template&lt;class... Types&gt; struct tuple_size&lt;tuple&lt;Types...&gt;&gt;;
 
   template&lt;size_t I, class T&gt; struct tuple_element;     // not defined
   template&lt;size_t I, class T&gt; struct tuple_element&lt;I, const T&gt;;
 
-<ins>  template&lt;size_t I, non-derived-aggregate T&gt; struct tuple_element;</ins>
+<ins>  template&lt;size_t I, <i>decomposable</i> T&gt; struct tuple_element;</ins>
 
   template&lt;size_t I, class... Types&gt;
     struct tuple_element&lt;I, tuple&lt;Types...&gt;&gt;;
@@ -162,9 +239,9 @@ struct tuple_size: std::integral_constant&lt;std::size_t, fields_count&lt;T&gt;(
     using tuple_element_t = typename tuple_element&lt;I, T&gt;::type;
 
   // [tuple.elem], element access
-<ins>  template&lt;size_t I, non-derived-aggregate T&gt;
+<ins>  template&lt;size_t I, <i>decomposable</i> T&gt;
     constexpr tuple_element_t&lt;I, T&gt;&amp; get(T&amp;) noexcept;
-  template&lt;size_t I, non-derived-aggregate T&gt;
+  template&lt;size_t I, <i>decomposable</i> T&gt;
     constexpr tuple_element_t&lt;I, const T&gt;&amp; get(const T&amp;) noexcept;</ins>
   template&lt;size_t I, class... Types&gt;
     constexpr tuple_element_t&lt;I, tuple&lt;Types...&gt;&gt;&amp; get(tuple&lt;Types...&gt;&amp;) noexcept;
@@ -183,16 +260,28 @@ struct tuple_size: std::integral_constant&lt;std::size_t, fields_count&lt;T&gt;(
   template&lt;class T, class... Types&gt;
     constexpr const T&amp;&amp; get(const tuple&lt;Types...&gt;&amp;&amp; t) noexcept;
 </pre>
+    <p>Choose one of the alternatives for <i>decomposable</i> definition:</p>
+<ol>
+<li><pre><ins>  template&lt;class T&gt; concept <i>decomposable</i>;
+      Satisfied if <code>T</code> is an aggregate without base class.</ins></pre></li>
+
+<li><pre><ins>  template&lt;class T&gt; concept <i>decomposable</i>;
+      Satisfied if <code>T</code> is an aggregate.</ins></pre></li>
+
+<li><pre><ins>  template&lt;class T&gt; concept <i>decomposable</i>;
+      Satisfied if the expression <code>auto [<i>arg<sub>0</sub>,... arg<sub>i</sub><i>] = std::declval&lt;T&gt;();</code> is well formed for some amount of <i>arg</i> arguments.</ins></pre></li>
+</ol>
+
     <p>Adjust [tuple.helper]:</p>
 <pre>
   template&lt;class T&gt; struct tuple_size;
       All specializations of tuple_­size meet the Cpp17UnaryTypeTrait requirements ([meta.rqmts]) with a base
       characteristic of integral_­constant&lt;size_­t, N&gt; for some N.
 
-<ins>  template&lt;class T&gt; concept non-derived-aggregate;
-      Satisfied if <code>T</code> is an aggregate without base class.
+<ins>  <i>====INSERT ONE OF THE <i>decomposable</i> DEINITIONS====</i></ins>
 
-  template&lt;non-derived-aggregate T&gt; struct tuple_size;
+
+<ins>  template&lt;<i>decomposable</i> T&gt; struct tuple_size;
       Let N denote the fileds count in <code>T</code>. Specialization meets the Cpp17UnaryTypeTrait
       requirements ([meta.rqmts]) with a base characteristic of <code>integral_constant&lt;size_t, N&gt;</code>.</ins>
 
@@ -202,7 +291,7 @@ struct tuple_size: std::integral_constant&lt;std::size_t, fields_count&lt;T&gt;(
 
   ....
 
-<ins>  template&lt;size_t I, non-derived-aggregate T&gt; struct tuple_element;
+<ins>  template&lt;size_t I, <i>decomposable</i> T&gt; struct tuple_element;
       Let TE denote the type of the I<sup>th</sup> filed of <code>T</code>, where indexing is zero-based. Specialization meets the Cpp17TransformationTrait
       requirements ([meta.rqmts]) with a member typedef <code>type</code> that names the type <code>TE</code>.</ins>
 </pre>
@@ -212,9 +301,9 @@ struct tuple_size: std::integral_constant&lt;std::size_t, fields_count&lt;T&gt;(
 <pre>
   <b>Element access</b> [tuple.elem]
 
-<ins>  template&lt;size_t I, non-derived-aggregate T&gt;
+<ins>  template&lt;size_t I, <i>decomposable</i> T&gt;
     constexpr tuple_element_t&lt;I, T&gt;&amp; get(T&amp; t) noexcept;
-  template&lt;size_t I, non-derived-aggregate T&gt;
+  template&lt;size_t I, <i>decomposable</i> T&gt;
     constexpr tuple_element_t&lt;I, const T&gt;&amp; get(const T&amp; t) noexcept;
       Mandates: <code>I &lt; tuple_size_v&lt;T&gt;</code>.
       Returns: A reference to the I<sup>th</sup> field of <code>t</code>, where indexing is zero-based.
@@ -223,7 +312,7 @@ struct tuple_size: std::integral_constant&lt;std::size_t, fields_count&lt;T&gt;(
 
 
     <h2>VI. Acknowledgements</h2>
-    <p>TBD</p>
+    <p>Many thanks to Barry Revzin for writing P1858 and providing early notes on this paper.</p>
 
     <script type="text/javascript">
         function colorize_texts(texts) {
@@ -253,4 +342,3 @@ struct tuple_size: std::integral_constant&lt;std::size_t, fields_count&lt;T&gt;(
         }
     </script>
 </body></html>
-
