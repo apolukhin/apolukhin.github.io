@@ -1,0 +1,182 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+    <title>Back to "Throws: Nothing"</title>
+    <meta http-equiv="Content-Language" content="en-us">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <style type="text/css">
+        .addition { color: green; }
+        .right { float:right }
+        .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+        .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+        .changed-added { background-color: #CFF0FC ;}
+        .notes { background-color: gold ;}
+        pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
+        .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; font-family:monospace }
+        body {max-width: 1024px; margin-left: 25px;}
+        del { background-color: red; }
+        ins { background-color: lightgreen; text-decoration: none; }
+        .sub { vertical-align: sub; }
+        .lmargin50{margin-left: 50px;}
+        .width_third{width: 33%;}
+        .cppkeyword { color: blue; }
+        .asmcostly { color: red; }
+        .cppcomment { color: green; }
+        .cppcomment > .cppkeyword{ color: green; }
+        .cpptext { color: #2E8B57; }
+        .cppaddition { background-color: #CFC; }
+        .cppdeletion {  text-decoration: line-through; background-color: #FCC; }
+        .stdquote { background-color: #ECECEC; font-family: Consolas,monospace; }
+    </style>
+    </head>
+    <body bgcolor="#ffffff">
+    <address>Document number: D2144R0</address>
+    <address>Project: Programming Language C++</address>
+    <address>Audience: LEWGI, LEWG</address>
+    <address>&nbsp;</address>
+    <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+    <address>&nbsp;</address>
+    <address>Date: 2020-03-11</address>
+    <h1>Back to "Throws: Nothing"</h1>
+
+<p align="right">“Successful engineering is all about understanding how things break or fail”</p>
+<p align="right"><i>―  Henry Petroski</i></p>
+
+    <h2>I. Introduction</h2>
+    <p>During the discussion of the <a href="https://wg21.link/P1656">P1656 "Throws: Nothing" should be noexcept</a> in Prague not all the important points were made. This paper brings additional information on use cases and P1656 breakages.</p>
+
+
+    <h2>II. Points in favor of "Throws: Nothing" </h2>
+    <h3>A. User experience with Documentation</h3>
+    <p>Due to more than 10 years of experience with <code>noexcept</code> users get used to the fact, that <code>noexcept</code> means "bullet proof safety" (committee use "wide contract" term to describe that).</p>
+    <p>Now take a look at the following function:</p>
+<pre>
+    constexpr basic_string_view(const CharT* s) noexcept;
+</pre>
+
+    <p>The <i><code>noexcept</code> means "bullet proof safety"</i> habit provokes users to not read the documentation for the function. <code>noexcept</code> increases the chances of misusing the function.</p>
+
+    <h3>B. There are too many standard libraries for too many cases</h3>
+    <p>Big companies tend to have their own standard libraries. Some of them are written from scratch, some of them are copy-pasted and patched opensource solutions.</p>
+    <p>There are many workloads where reacting on a contract violation by throwing an exception is perfectly valid and makes a lot of sense. Here's a real world example:</p>
+    <ol>
+    <li>Service under a high load with some caches. Calling <code>std::terminate</code> or <code>std::abort</code> looses the cache and in-process requests, forces the slow restart of the service and increased load on remaining instances. It is a perfectly valid desire to throw exceptions on contract violations rather than abort. In that case if someone updates of the database so that service starts calling <code>optional::operator*()</code> on an empty optional we do not terminate. With termination even a small rate of bad requests that dereference empty optional could yield all the instances irresponsible. That's much worse than a ~1% speed degradation on checks and throws.</li>
+
+    <li>Software Watchdogs. If the monitored service responded with unexpected data it is much better to throw and catch an exception on contract violation, rather than terminate and do a slow restart. With exceptions we can force restart the bad service and keep reacting on signals from other services. With termination we loose time on watchdog restart, leaving the services uncontrolled for some time.</li>
+    </ol>
+
+    <p>Forcing the <code>noexcept</code> policy for narrow contracts makes all those in-house standard libraries non conforming. C++ Standard does not satisfy the needs of those users any more.</p>
+
+
+    <h3>C. The Contracts</h3>
+    <p>We do not have Contracts as a language feature right now. Our understanding of Contracts is still vague, we have close to 0 in-field experience with them. But hey are coming!</p>
+
+    <p>We've been living for 10 years with the "narrow contracts are not <code>noexcept</code>" hoping that Contracts could do a good job in that place.</p>
+
+    <p>With P1656 adoption we're killing one of the use-cases for Contracts, probably making them quite useless for the Standard library. Even if no standard library vendor plans to use contracts right now, there are in house standard libraries that may benefit from Contracts in "Throws: Nothing." functions.</p>
+
+
+    <h3>D. <code>noexcept</code> everywhere is close to useless for the Standard Library</h3>
+    <p>Standard library sometimes implements different algorithms depending on the results of <code>std::is_nothrow_*_v</code> for copy/move constructors, assignments and default constructors. In those cases we already have <code>noexcept</code> and it improves the codegen.</p>
+
+    <p>But it does not improve codegen for other cases.</p>
+
+    <p>Due to the Standard library being mostly a header only library modern compilers deduce <code>noexcept</code> specifiers by themselves. Moreover, standard C functions are nowadays mostly a built-in compiler intrinsics, so even for them <code>noexcept</code> makes almost no sense. Other places that could benefit from <code>noexcept</code> are already decorated by vendors (Standard permits that).</p>
+
+    <p>Additional <code>noexcept</code> in the Standard won't give you a better codegen.</p>
+
+
+    <h3>E. <code>std::terminate</code> hell</h3>
+    <p>This point is an outcome of bullet A. When users see <code>noexcept</code> in the docs they tend to propagate that <code>noexcept</code> to the enclosing function:</p>
+
+<pre>
+    basic_string_view::basic_string_view(const CharT* s, size_t s) noexcept;
+    T& std::vector::back() noexcept;
+    // ...
+
+    std::vector&lt;char&gt; get_data_from_cache(std::string_view username) noexcept; 
+
+    // vector::back() is noexcept, string_view constructor is noexcept => function is noexcept
+    auto user_function1(std::vector&lt;char&gt;&amp; v) noexcept {
+        return std::string_view(&v.back(), 1);
+    }
+
+    auto user_function2(std::string_view username) noexcept {
+        std::vector&lt;char&gt; v = get_data_from_cache(username); 
+        return user_function1(v);
+    }
+</pre>
+
+    <p>But that does not play well with refactoring. Users put themselves in to the "<code>std::terminate</code> hell":</p>
+<pre>
+    basic_string_view::basic_string_view(const CharT* s, size_t s) noexcept;
+    T& std::vector::back() noexcept;
+    // ...
+
+    std::vector&lt;char&gt; get_data_from_cache(std::string_view username) noexcept; 
+
+    // Now we throw on empty vectors => function is NOT noexcept
+    auto user_function1(std::vector&lt;char&gt;&amp; v) {
+        if (std::empty(v)) {
+            throw std::out_of_range("user_function1 called with empty vector");
+        }
+        return std::string_view(&v.back(), 1);
+    }
+
+    // Other code relied on user_function1 being noexcept. Now it is broken.
+    auto user_function2(std::string_view username) noexcept {
+        std::vector&lt;char&gt; v = get_data_from_cache(username); 
+        return user_function1(v); // sometimes terminates
+    }
+</pre>
+    <p>By making the functions with narrow contracts <code>noexcept</code> we provoke users to mark their own narrow contract functions with <code>noexcept</code>. That complicates the future refactoring and tends to be a bad practice.</p>
+
+    <h2>III. Conclusions</h2>
+    <p>The noexcept specifier allows us to express a contract explicitly in the specification, but we should not use it to confuse users and provide no-throwing guarantees for Undefined Behavior cases.</p>
+
+    <p>We are designing not only interfaces, we are designing the Standard Library as a whole.</p>
+
+    <p>By forcing the <code>noexcept</code> instead of "Throws: Nothing" we:</p>
+    <ul>
+        <li>make in-house standard libraries non conforming</li>
+        <li>we do <b>not</b> improve the codegen for the Standard library</li>
+        <li>provoke users for writing bad code</li>
+        <li>nullify one of the advantages of the upcoming Contracts</li>
+    </ul>
+
+
+    <h2>IV. Tentative polls</h2>
+    <p>Postpone <a href="https://wg21.link/P1656">P1656 "Throws: Nothing" should be noexcept</a> adoption and revise it after the Contracts land into the WD.</p>
+
+    <h2>V. Acknowledgements</h2>
+    <p>TBD</p>
+
+    <script type="text/javascript">
+        function colorize_texts(texts) {
+        for (var i = 0; i < texts.length; ++i) {
+            var text = texts[i].innerHTML;
+            text = text.replace(/namespace|using|async|do\n|while|resumable|co_await|co_yield|co_return|await|yield|sizeof|long|enum|void|concept |constexpr|extern|noexcept|bool|template|class |struct |auto|const |typename|explicit|public|private|operator|#include|inline| char |static_assert|int |return|union|static_cast|static/g,"<span class='cppkeyword'>$&<\/span>");
+            text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+            //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
+            texts[i].innerHTML = text;
+        }
+        }
+
+        colorize_texts(document.getElementsByTagName("pre"));
+        //colorize_texts(document.getElementsByTagName("code"));
+
+        function show_hide_deleted() {
+        var to_change = document.getElementsByClassName('changed-deleted');
+        for (var i = 0; i < to_change.length; ++i) {
+            to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
+        }
+        }
+        show_hide_deleted()
+
+        initial_text = document.getElementById('diff').innerHTML
+        function on_input_change(self) {
+            document.getElementById('diff').innerHTML = initial_text.replace(/async/g, self.value);
+        }
+    </script>
+</body></html>
+
