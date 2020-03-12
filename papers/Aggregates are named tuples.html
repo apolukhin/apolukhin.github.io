@@ -269,14 +269,14 @@ auto portable_function(const T&amp; value) {
       Satisfied if <code>T</code> is an aggregate.</ins></pre></li>
 
 <li><pre><ins>  template&lt;class T&gt; concept <i>decomposable</i>;
-      Satisfied if the expression <code>auto [<i>arg<sub>0</sub>,... arg<sub>i</sub><i>] = std::declval&lt;T&gt;();</code> is well formed for some amount of <i>arg</i> arguments.</ins></pre></li>
+      Satisfied if the expression <code>auto [<i>arg<sub>0</sub>,... arg<sub>i</sub></i>] = std::declval&lt;T&gt;();</code> is well formed for some amount of <i>arg</i> arguments.</ins></pre></li>
 </ol>
 
     <p>Adjust [tuple.helper]:</p>
 <pre>
   template&lt;class T&gt; struct tuple_size;
-      All specializations of tuple_­size meet the Cpp17UnaryTypeTrait requirements ([meta.rqmts]) with a base
-      characteristic of integral_­constant&lt;size_­t, N&gt; for some N.
+      All specializations of tuple_size meet the Cpp17UnaryTypeTrait requirements ([meta.rqmts]) with a base
+      characteristic of integral_constant&lt;size_t, N&gt; for some N.
 
 <ins>  <i>====INSERT ONE OF THE <i>decomposable</i> DEINITIONS====</i></ins>
 
