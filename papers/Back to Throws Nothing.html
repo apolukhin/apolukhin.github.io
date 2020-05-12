@@ -36,7 +36,7 @@
     <address>&nbsp;</address>
     <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2020-03-11</address>
+    <address>Date: 2020-05-12</address>
     <h1>Back to "Throws: Nothing"</h1>
 
 <p align="right">“Successful engineering is all about understanding how things break or fail”</p>
@@ -46,7 +46,14 @@
     <p>During the discussion of the <a href="https://wg21.link/P1656">P1656 "Throws: Nothing" should be noexcept</a> in Prague not all the important points were made. This paper brings additional information on use cases and P1656 breakages.</p>
 
 
-    <h2>II. Points in favor of "Throws: Nothing" </h2>
+    <h2>II. Points against "Throws: Nothing"</h2>
+    <h3>A. There's almost no functions without UB</h3>
+    <p>For a moment let's consider <code>this</code> to be the part of function arguments. User kind-of provides it to the function, and in that case it may be a bad pointer. This bring UB to most of the member functions. For example <code>std::vector::empty()</code> now has an UB if called on bad pointer and should not be marked with <code>noexcept</code>.</p>
+    <p>Moreover, even pure functions without parameters may trigger UB as per stack overflow or signed integer overflow.</p>
+    <p>Treating <code>noexcept</code> as 100% guarantee that there's no UB is wrong. Current rules "noexcept means no UB if you do not do ugly things" worked well, but the borders of that rule are quite vague.</p>
+
+
+    <h2>III. Points in favor of "Throws: Nothing" </h2>
     <h3>A. User experience with Documentation</h3>
     <p>Due to more than 10 years of experience with <code>noexcept</code> users get used to the fact, that <code>noexcept</code> means "bullet proof safety" (committee use "wide contract" term to describe that).</p>
     <p>Now take a look at the following function:</p>
@@ -98,7 +105,7 @@
 
     // vector::back() is noexcept, string_view constructor is noexcept => function is noexcept
     auto user_function1(std::vector&lt;char&gt;&amp; v) noexcept {
-        return std::string_view(&v.back(), 1);
+        return std::string_view(&amp;v.back(), 1);
     }
 
     auto user_function2(std::string_view username) noexcept {
@@ -110,7 +117,7 @@
     <p>But that does not play well with refactoring. Users put themselves in to the "<code>std::terminate</code> hell":</p>
 <pre>
     basic_string_view::basic_string_view(const CharT* s, size_t s) noexcept;
-    T& std::vector::back() noexcept;
+    T&amp; std::vector::back() noexcept;
     // ...
 
     std::vector&lt;char&gt; get_data_from_cache(std::string_view username) noexcept; 
@@ -120,7 +127,7 @@
         if (std::empty(v)) {
             throw std::out_of_range("user_function1 called with empty vector");
         }
-        return std::string_view(&v.back(), 1);
+        return std::string_view(&amp;v.back(), 1);
     }
 
     // Other code relied on user_function1 being noexcept. Now it is broken.
@@ -131,7 +138,7 @@
 </pre>
     <p>By making the functions with narrow contracts <code>noexcept</code> we provoke users to mark their own narrow contract functions with <code>noexcept</code>. That complicates the future refactoring and tends to be a bad practice.</p>
 
-    <h2>III. Conclusions</h2>
+    <h2>IV. Conclusions</h2>
     <p>The noexcept specifier allows us to express a contract explicitly in the specification, but we should not use it to confuse users and provide no-throwing guarantees for Undefined Behavior cases.</p>
 
     <p>We are designing not only interfaces, we are designing the Standard Library as a whole.</p>
@@ -145,10 +152,10 @@
     </ul>
 
 
-    <h2>IV. Tentative polls</h2>
+    <h2>V. Tentative polls</h2>
     <p>Postpone <a href="https://wg21.link/P1656">P1656 "Throws: Nothing" should be noexcept</a> adoption and revise it after the Contracts land into the WD.</p>
 
-    <h2>V. Acknowledgements</h2>
+    <h2>VI. Acknowledgements</h2>
     <p>TBD</p>
 
     <script type="text/javascript">
