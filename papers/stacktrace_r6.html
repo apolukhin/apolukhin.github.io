@@ -419,6 +419,8 @@ namespace std {
 namespace std {
   class stacktrace_entry {
   public:
+    <span class="changed-added">using native_handle_type = <i>implementation-defined</i>;
+</span>
     // 20.?.3.1, constructors
     constexpr stacktrace_entry() noexcept;
     constexpr stacktrace_entry(const stacktrace_entry&amp; other) noexcept<span class="changed-deleted"> = default</span>;
@@ -449,7 +451,7 @@ namespace std {
     <div class="desc"><i>Effects:</i> Constructs a <code>stacktrace_entry</code> object that does not represent a stacktrace entry.</div>
 
     <h3>20.?.3.2 Observers <span class="right">[stacktrace.entry.obs]</span></h3>
-    <pre>constexpr <i>implementation-defined</i> native_handle() const noexcept;</pre>
+    <pre>constexpr <span class="changed-added">native_handle_type</span><span class="changed-deleted"><i>implementation-defined</i></span> native_handle() const noexcept;</pre>
     <div class="desc"><i>Returns:</i> An unspecified representation of the evaluation represented by <code>*this</code>.</div>
     <div class="desc"><i>Remarks:</i> Successive invocations of the <code>native_handle()</code> function for the same <code>stacktrace_entry</code> object return identical values.</div>
 
@@ -524,8 +526,8 @@ namespace std {
     const_iterator cend() const noexcept;
     const_reverse_iterator crbegin() const noexcept;
     const_reverse_iterator crend() const noexcept;
-
-    explicit operator bool() const noexcept;
+<span class="changed-deleted">
+    explicit operator bool() const noexcept;</span>
     [[nodiscard]] bool empty() const noexcept;
     size_type size() const noexcept;
     size_type max_size() const noexcept;
@@ -603,10 +605,10 @@ const_iterator crbegin() const noexcept;</pre>
     <pre>const_iterator rend() const noexcept;
 const_iterator crend() const noexcept;</pre>
     <div class="desc"><i>Returns:</i> <code>frames.crend()</code>.</div>
-
+<div class="changed-deleted">
     <pre>explicit operator bool() const noexcept;</pre>
     <div class="desc"><i>Returns:</i> <code>!frames.empty()</code>.</div>
-
+</div>
     <pre>[[nodiscard]] bool empty() const noexcept;</pre>
     <div class="desc"><i>Returns:</i> <code>frames.empty()</code>.</div>
 
