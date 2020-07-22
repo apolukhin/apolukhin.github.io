@@ -18,11 +18,6 @@ var editor = (function() {
 			"cmd": cmd,
 		};
 
-        if (location.protocol === 'https:') {
-            // page is secure, c
-            location.href = 'http:' + window.location.href.substring(window.location.protocol.length);
-        }
-
 		output.text("Executing... Please wait.");
 
         if (window.XMLHttpRequest) { // Mozilla, Safari, ...
@@ -54,7 +49,7 @@ var editor = (function() {
             }
         };
 
-        httpRequest.open('POST', 'http://coliru.stacked-crooked.com/compile');
+        httpRequest.open('POST', 'https://coliru.stacked-crooked.com/compile');
         httpRequest.setRequestHeader('Content-Type', 'text/plain; charset=utf-8');
         httpRequest.send(JSON.stringify(to_compile));
 	};
