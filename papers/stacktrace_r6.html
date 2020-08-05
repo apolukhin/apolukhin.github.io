@@ -549,7 +549,7 @@ namespace std {
     void swap(basic_stacktrace&amp; other);
 
   private:
-    vector&lt;value_type, allocator_type&gt; frames; // exposition only
+    vector&lt;value_type, allocator_type&gt; frames_; // exposition only
   };
 
 }
@@ -566,38 +566,38 @@ namespace std {
     <h3>20.?.4.1 Construct/copy/destroy <span class="right">[stacktrace.basic.cons]</span></h3>
 <div class="changed-added">
     <pre>static basic_stacktrace current(const allocator_type&amp; alloc = allocator_type()) noexcept;</pre>
-    <div class="desc"><i>Returns:</i> A <code>basic_stacktrace</code> object with <code>frames</code> storing the stacktrace of the current evaluation in the current thread of execution, or an empty <code>basic_stacktrace</code> object if <code>frames</code> initialization failed. <code>alloc</code> is passed to the constructor of the <code>basic_stacktrace</code> object.</div>
-    <div class="desc"><i>[Note:</i> If the stacktrace was successfully obtained, then <code>frames.front()</code> is the <code>stacktrace_entry</code> representing approximately the current evaluation, and <code>frames.back()</code> is the <code>stacktrace_entry</code> representing approximately the initial function of the current thread of execution.<i> - end note]</i></div>
+    <div class="desc"><i>Returns:</i> A <code>basic_stacktrace</code> object with <code>frames_</code> storing the stacktrace of the current evaluation in the current thread of execution, or an empty <code>basic_stacktrace</code> object if <code>frames_</code> initialization failed. <code>alloc</code> is passed to the constructor of the <code>basic_stacktrace</code> object.</div>
+    <div class="desc"><i>[Note:</i> If the stacktrace was successfully obtained, then <code>frames_.front()</code> is the <code>stacktrace_entry</code> representing approximately the current evaluation, and <code>frames_.back()</code> is the <code>stacktrace_entry</code> representing approximately the initial function of the current thread of execution.<i> - end note]</i></div>
 
     <pre>static basic_stacktrace current(size_type skip, const allocator_type&amp; alloc = allocator_type()) noexcept;</pre>
     <div class="desc">Let <code>t</code> be a stacktrace as-if obtained via <code>basic_stacktrace::current(alloc)</code>. Let <code>n</code> be <code>t.size()</code>.</div>
-    <div class="desc"><i>Returns:</i> <code>basic_stacktrace</code> object with direct-non-list-initialized <code>frames</code> from arguments <code>t.begin() + min(n, skip)</code> and <code>t.end()</code>, or an empty <code>basic_stacktrace</code> object if <code>frames</code> initialization failed.</div>
+    <div class="desc"><i>Returns:</i> <code>basic_stacktrace</code> object with direct-non-list-initialized <code>frames_</code> from arguments <code>t.begin() + min(n, skip)</code> and <code>t.end()</code>, or an empty <code>basic_stacktrace</code> object if <code>frames_</code> initialization failed.</div>
 
     <pre>static basic_stacktrace current(size_type skip, size_type max_depth, const allocator_type&amp; alloc = allocator_type()) noexcept;</pre>
     <div class="desc">Let <code>t</code> be a stacktrace as-if obtained via <code>basic_stacktrace::current(alloc)</code>. Let <code>n</code> be <code>t.size()</code>.</div>
     <div class="desc"><i>Preconditions:</i> <code>skip &lt;= skip + max_depth</code>.</div>
-    <div class="desc"><i>Returns:</i> <code>basic_stacktrace</code> object with direct-non-list-initialized <code>frames</code> from arguments <code>t.begin() + min(n, skip)</code> and <code>t.begin() + min(n, skip + max_depth)</code>, or an empty <code>basic_stacktrace</code> object if <code>frames</code> initialization failed.</div>
+    <div class="desc"><i>Returns:</i> <code>basic_stacktrace</code> object with direct-non-list-initialized <code>frames_</code> from arguments <code>t.begin() + min(n, skip)</code> and <code>t.begin() + min(n, skip + max_depth)</code>, or an empty <code>basic_stacktrace</code> object if <code>frames_</code> initialization failed.</div>
 </div>
 
 
     <pre>basic_stacktrace() noexcept<span class="changed-added">(is_nothrow_default_constructible_v&lt;allocator_type&gt;)</span>;</pre>
-    <div class="desc changed-deleted"><i>Effects:</i> Stores the stacktrace of the current evaluation in the current thread of execution in <code>frames</code>. <code>alloc</code> is passed to the <code>frames</code> constructor. </div>
+    <div class="desc changed-deleted"><i>Effects:</i> Stores the stacktrace of the current evaluation in the current thread of execution in <code>frames_</code>. <code>alloc</code> is passed to the <code>frames_</code> constructor. </div>
     <div class="desc changed-added"><i>Effects:</i> Constructs an empty <code>basic_stacktrace</code>.</div>
     <div class="desc changed-added"><i>Postconditions:</i> <code>empty()</code> is <code>true</code>.</div>
 
     <pre><span class="changed-added">explicit </span>basic_stacktrace(<span class="changed-deleted">allocator_arg_t, </span>const allocator_type&amp; alloc) noexcept;</pre>
-    <div class="desc changed-added"><i>Effects:</i> Constructs an empty <code>basic_stacktrace</code>. <code>alloc</code> is passed to the <code>frames</code> constructor.</div>
+    <div class="desc changed-added"><i>Effects:</i> Constructs an empty <code>basic_stacktrace</code>. <code>alloc</code> is passed to the <code>frames_</code> constructor.</div>
     <div class="desc changed-added"><i>Postconditions:</i> <code>empty()</code> is <code>true</code>.</div>
 <div class="changed-deleted">
     <pre>basic_stacktrace(size_type skip, size_type max_depth<span class="changed-added">, const allocator_type&amp; alloc = allocator_type()</span>) noexcept;</pre>
     <div class="desc">Let <code>t</code> be a stacktrace as-if obtained via <code>basic_stacktrace()</code>. Let <code>n</code> be <code>t.size()</code>.</div>
     <div class="desc"><i>Preconditions:</i> <code>skip &lt;= skip + max_depth</code>.</div>
-    <div class="desc"><i>Effects:</i> direct-non-list-initializes <code>frames</code> with the arguments <code>t.begin() + min(n, skip)</code> and <code>t.begin() + min(n, skip + max_depth)</code>.</div>
+    <div class="desc"><i>Effects:</i> direct-non-list-initializes <code>frames_</code> with the arguments <code>t.begin() + min(n, skip)</code> and <code>t.begin() + min(n, skip + max_depth)</code>.</div>
 
     <pre>basic_stacktrace(allocator_arg_t, const allocator_type&amp; alloc, size_type skip, size_type max_depth) noexcept;</pre>
     <div class="desc">Let <code>t</code> be a stacktrace as-if obtained via <code>basic_stacktrace(alloc)</code>. Let <code>n</code> be <code>t.size()</code>.</div>
     <div class="desc"><i>Preconditions:</i> <code>skip &lt;= skip + max_depth</code>.</div>
-    <div class="desc"><i>Effects:</i> direct-non-list-initializes <code>frames</code> with the arguments <code>t.begin() + min(n, skip)</code>, <code>t.begin() + min(n, skip + max_depth)</code>, and <code>alloc</code>.</div>
+    <div class="desc"><i>Effects:</i> direct-non-list-initializes <code>frames_</code> with the arguments <code>t.begin() + min(n, skip)</code>, <code>t.begin() + min(n, skip + max_depth)</code>, and <code>alloc</code>.</div>
 </div>
 
     <pre>basic_stacktrace(const basic_stacktrace&amp; other)<span class="changed-deleted"> = default</span>;
@@ -614,45 +614,45 @@ basic_stacktrace&amp; operator=(basic_stacktrace&amp;&amp; other)<span class="ch
 [random.access.iterators]. All requirements on container iterators [container.requirements] apply to <code>iterator</code>.</div>
 </div>
     <pre>allocator_type get_allocator() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code>frames.get_allocator()</code>.</div>
+    <div class="desc"><i>Returns:</i> <code>frames_.get_allocator()</code>.</div>
 
     <pre>const_iterator begin() const noexcept;
 const_iterator cbegin() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <span class="changed-added">An iterator referring to the first element in <code>frames</code>. If <code>empty()</code> is <code>true</code>, then it returns the
-same value as <code>end()</code></span><code class="changed-deleted">frames.cbegin()</code>.</div>
+    <div class="desc"><i>Returns:</i> <span class="changed-added">An iterator referring to the first element in <code>frames_</code>. If <code>empty()</code> is <code>true</code>, then it returns the
+same value as <code>end()</code></span><code class="changed-deleted">frames_.cbegin()</code>.</div>
 
     <pre>const_iterator end() const noexcept;
 const_iterator cend() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <span class="changed-added">The end iterator</span><code class="changed-deleted">frames.cend()</code>.</div>
+    <div class="desc"><i>Returns:</i> <span class="changed-added">The end iterator</span><code class="changed-deleted">frames_.cend()</code>.</div>
 
     <pre>const_iterator rbegin() const noexcept;
 const_iterator crbegin() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code class="changed-added">reverse_iterator(this-&gt;cend())</code><code class="changed-deleted">frames.crbegin()</code>.</div>
+    <div class="desc"><i>Returns:</i> <code class="changed-added">reverse_iterator(this-&gt;cend())</code><code class="changed-deleted">frames_.crbegin()</code>.</div>
 
     <pre>const_iterator rend() const noexcept;
 const_iterator crend() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code class="changed-added">reverse_iterator(this-&gt;cbegin())</code><code class="changed-deleted">frames.crend()</code>.</div>
+    <div class="desc"><i>Returns:</i> <code class="changed-added">reverse_iterator(this-&gt;cbegin())</code><code class="changed-deleted">frames_.crend()</code>.</div>
 <div class="changed-deleted">
     <pre>explicit operator bool() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code>!frames.empty()</code>.</div>
+    <div class="desc"><i>Returns:</i> <code>!frames_.empty()</code>.</div>
 </div>
     <pre>[[nodiscard]] bool empty() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code>frames.empty()</code>.</div>
+    <div class="desc"><i>Returns:</i> <code>frames_.empty()</code>.</div>
 
     <pre>size_type size() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code>frames.size()</code>.</div>
+    <div class="desc"><i>Returns:</i> <code>frames_.size()</code>.</div>
 
     <pre>size_type max_size() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code>frames.max_size()</code>.</div>
+    <div class="desc"><i>Returns:</i> <code>frames_.max_size()</code>.</div>
 
     <pre>const_reference operator[](size_type frame_no) const;</pre>
     <div class="desc"><i>Preconditions:</i> <code>frame_no &lt; size()</code>.</div>
-    <div class="desc"><i>Returns:</i> <code>frames[frame_no]</code>.</div>
+    <div class="desc"><i>Returns:</i> <code>frames_[frame_no]</code>.</div>
     <div class="desc"><i>Throws:</i> Nothing.</div>
 
     <pre>const_reference at(size_type frame_no) const;</pre>
     <div class="desc"><i>Throws:</i> <code>out_of_range</code> if <code>frame_no &gt;= size()</code>.</div>
-    <div class="desc"><i>Returns:</i> <code>frames[frame_no]</code>.</div>
+    <div class="desc"><i>Returns:</i> <code>frames_[frame_no]</code>.</div>
 
 
     <h3>20.?.4.3 Comparisons <span class="right">[stacktrace.basic.comp]</span></h3>
