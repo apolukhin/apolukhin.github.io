@@ -1,0 +1,401 @@
+%PDF-1.3
+1 0 obj
+<< /Type /Catalog
+/Outlines 2 0 R
+/Pages 3 0 R >>
+endobj
+2 0 obj
+<< /Type /Outlines /Count 0 >>
+endobj
+3 0 obj
+<< /Type /Pages
+/Kids [6 0 R
+15 0 R
+17 0 R
+]
+/Count 3
+/Resources <<
+/ProcSet 4 0 R
+/Font << 
+/F1 8 0 R
+/F2 9 0 R
+/F3 10 0 R
+>>
+>>
+/MediaBox [0.000 0.000 595.280 841.890]
+ >>
+endobj
+4 0 obj
+[/PDF /Text ]
+endobj
+5 0 obj
+<<
+/Creator (DOMPDF)
+/CreationDate (D:20191216153642+00'00')
+/ModDate (D:20191216153642+00'00')
+>>
+endobj
+6 0 obj
+<< /Type /Page
+/Parent 3 0 R
+/Annots [ 11 0 R 13 0 R ]
+/Contents 7 0 R
+>>
+endobj
+7 0 obj
+<<
+/Length 5617 >>
+stream
+
+0.000 0.000 0.000 rg
+BT 34.016 784.354 Td /F1 12.0 Tf  [(Document number: P1990R0)] TJ ET
+BT 34.016 769.954 Td /F1 12.0 Tf  [(Project: Programming Language C++)] TJ ET
+BT 34.016 755.669 Td /F1 12.0 Tf  [(Audience: LEWGI, LEWG, LWG)] TJ ET
+BT 34.016 729.413 Td /F1 12.0 Tf  [(Daniil Goncharov )] TJ ET
+0.000 0.000 0.800 rg
+BT 123.332 729.413 Td /F1 12.0 Tf  [(neargye@gmail.com)] TJ ET
+0.000 0.000 0.800 RG
+0.6 w 0 J [  ] 0 d
+123.332 726.713 m 223.364 726.713 l S
+0.000 0.000 0.000 rg
+BT 34.016 703.157 Td /F1 12.0 Tf  [(Antony Polukhin )] TJ ET
+0.000 0.000 0.800 rg
+BT 119.360 703.157 Td /F1 12.0 Tf  [(antoshkka@gmail.com)] TJ ET
+0.6 w 0 J [  ] 0 d
+119.360 700.457 m 230.072 700.457 l S
+0.000 0.000 0.000 rg
+BT 34.016 676.901 Td /F1 12.0 Tf  [(Date: 2019-12-16)] TJ ET
+BT 34.016 635.161 Td /F2 24.0 Tf  [(Add operator[] to std::initializer_list)] TJ ET
+BT 34.016 596.271 Td /F2 18.0 Tf  [(I. Introduction and Motivation)] TJ ET
+BT 34.016 565.649 Td /F3 12.0 Tf  [(std::initializer_list)] TJ ET
+BT 185.216 565.649 Td /F1 12.0 Tf  [( s a lightweight proxy object that provides access to an array of objects of )] TJ ET
+BT 34.016 551.393 Td /F1 12.0 Tf  [(type )] TJ ET
+BT 57.680 551.393 Td /F3 12.0 Tf  [(const T)] TJ ET
+BT 108.080 551.393 Td /F1 12.0 Tf  [(, but access to objects by index in the current version is difficult. Therefore, it is proposed to )] TJ ET
+BT 34.016 537.137 Td /F1 12.0 Tf  [(add an )] TJ ET
+BT 68.672 537.137 Td /F3 12.0 Tf  [(operator[])] TJ ET
+BT 140.672 537.137 Td /F1 12.0 Tf  [( to )] TJ ET
+BT 156.008 537.137 Td /F3 12.0 Tf  [(std::initializer_list)] TJ ET
+BT 307.208 537.137 Td /F1 12.0 Tf  [(.)] TJ ET
+BT 34.016 510.881 Td /F1 12.0 Tf  [(Consider the simple example:)] TJ ET
+0.000 0.000 0.000 RG
+0.75 w 0 J [  ] 0 d
+41.891 487.780 m 317.591 487.780 l S
+0.75 w 0 J [  ] 0 d
+42.266 488.155 m 42.266 457.399 l S
+BT 50.141 468.803 Td /F2 12.0 Tf  [(Before)] TJ ET
+0.75 w 0 J [  ] 0 d
+316.841 487.780 m 587.741 487.780 l S
+0.75 w 0 J [  ] 0 d
+317.216 488.155 m 317.216 457.399 l S
+0.75 w 0 J [  ] 0 d
+587.366 488.155 m 587.366 457.399 l S
+BT 325.091 468.803 Td /F2 12.0 Tf  [(After)] TJ ET
+0.75 w 0 J [  ] 0 d
+41.891 457.774 m 317.591 457.774 l S
+0.75 w 0 J [  ] 0 d
+42.266 458.149 m 42.266 235.249 l S
+BT 50.141 420.619 Td /F3 8.0 Tf  [(struct Vector3 {)] TJ ET
+BT 50.141 411.019 Td /F3 8.0 Tf  [(  int x, y, z;)] TJ ET
+BT 50.141 391.819 Td /F3 8.0 Tf  [(  Vector3\(std::initializer_list<int> il\) {)] TJ ET
+BT 50.141 382.219 Td /F3 8.0 Tf  [(    std::size_t idx = 0;)] TJ ET
+BT 50.141 372.619 Td /F3 8.0 Tf  [(    for \(auto i : il\) {)] TJ ET
+BT 50.141 363.019 Td /F3 8.0 Tf  [(      if \(idx == 0\) {)] TJ ET
+BT 50.141 353.419 Td /F3 8.0 Tf  [(        x = i;)] TJ ET
+BT 50.141 343.819 Td /F3 8.0 Tf  [(      } else if \(idx == 1\) {)] TJ ET
+BT 50.141 334.219 Td /F3 8.0 Tf  [(        y = i;)] TJ ET
+BT 50.141 324.619 Td /F3 8.0 Tf  [(      } else if \(idx == 2\) {)] TJ ET
+BT 50.141 315.019 Td /F3 8.0 Tf  [(        z = i;)] TJ ET
+BT 50.141 305.419 Td /F3 8.0 Tf  [(      })] TJ ET
+BT 50.141 295.819 Td /F3 8.0 Tf  [(      ++idx;)] TJ ET
+BT 50.141 286.219 Td /F3 8.0 Tf  [(    })] TJ ET
+BT 50.141 276.619 Td /F3 8.0 Tf  [(  })] TJ ET
+BT 50.141 267.019 Td /F3 8.0 Tf  [(  ...)] TJ ET
+BT 50.141 257.419 Td /F3 8.0 Tf  [(};)] TJ ET
+0.75 w 0 J [  ] 0 d
+316.841 457.774 m 587.741 457.774 l S
+0.75 w 0 J [  ] 0 d
+317.216 458.149 m 317.216 235.249 l S
+0.75 w 0 J [  ] 0 d
+587.366 458.149 m 587.366 235.249 l S
+BT 325.091 382.219 Td /F3 8.0 Tf  [(struct Vector3 {)] TJ ET
+BT 325.091 372.619 Td /F3 8.0 Tf  [(  int x, y, z;)] TJ ET
+BT 325.091 353.419 Td /F3 8.0 Tf  [(  Vector3\(std::initializer_list<int> il\) {)] TJ ET
+BT 325.091 343.819 Td /F3 8.0 Tf  [(    x = il[0];)] TJ ET
+BT 325.091 334.219 Td /F3 8.0 Tf  [(    y = il[1];)] TJ ET
+BT 325.091 324.619 Td /F3 8.0 Tf  [(    z = il[2];)] TJ ET
+BT 325.091 315.019 Td /F3 8.0 Tf  [(  })] TJ ET
+BT 325.091 305.419 Td /F3 8.0 Tf  [(  ...)] TJ ET
+BT 325.091 295.819 Td /F3 8.0 Tf  [(};)] TJ ET
+0.75 w 0 J [  ] 0 d
+41.891 235.624 m 317.591 235.624 l S
+0.75 w 0 J [  ] 0 d
+41.891 85.474 m 317.591 85.474 l S
+0.75 w 0 J [  ] 0 d
+42.266 235.999 m 42.266 85.099 l S
+BT 50.141 186.469 Td /F3 8.0 Tf  [(class MultiIndexVector {)] TJ ET
+BT 50.141 176.869 Td /F3 8.0 Tf  [(  using index_t = std::initializer_list<std::size_t>;)] TJ ET
+BT 50.141 167.269 Td /F3 8.0 Tf  [(  ...)] TJ ET
+BT 50.141 157.669 Td /F3 8.0 Tf  [(  auto operator[]\(index_t idx\) {)] TJ ET
+BT 50.141 148.069 Td /F3 8.0 Tf  [(    return std::make_tuple\(data1[*\(idx.begin\(\) + 0\)],)] TJ ET
+BT 50.141 138.469 Td /F3 8.0 Tf  [(                           data2[*\(idx.begin\(\) + 1]\)\);)] TJ ET
+BT 50.141 128.869 Td /F3 8.0 Tf  [(  })] TJ ET
+BT 50.141 119.269 Td /F3 8.0 Tf  [(  ...)] TJ ET
+BT 50.141 109.669 Td /F3 8.0 Tf  [(};)] TJ ET
+0.75 w 0 J [  ] 0 d
+316.841 235.624 m 587.741 235.624 l S
+0.75 w 0 J [  ] 0 d
+316.841 85.474 m 587.741 85.474 l S
+0.75 w 0 J [  ] 0 d
+317.216 235.999 m 317.216 85.099 l S
+0.75 w 0 J [  ] 0 d
+587.366 235.999 m 587.366 85.099 l S
+BT 325.091 184.069 Td /F3 8.0 Tf  [(class MultiIndexVector {)] TJ ET
+BT 325.091 174.469 Td /F3 8.0 Tf  [(  using index_t = std::initializer_list<std::size_t>;)] TJ ET
+BT 325.091 164.869 Td /F3 8.0 Tf  [(  ...)] TJ ET
+BT 325.091 155.269 Td /F3 8.0 Tf  [(  auto operator[]\(index_t idx\) {)] TJ ET
+BT 325.091 145.669 Td /F3 8.0 Tf  [(    return std::make_tuple\(data1[idx[0]],)] TJ ET
+BT 325.091 136.069 Td /F3 8.0 Tf  [(                           data2[idx[1]]\);)] TJ ET
+BT 325.091 126.469 Td /F3 8.0 Tf  [(  })] TJ ET
+BT 325.091 116.869 Td /F3 8.0 Tf  [(  ...)] TJ ET
+BT 325.091 107.269 Td /F3 8.0 Tf  [(};)] TJ ET
+endstream
+endobj
+8 0 obj
+<< /Type /Font
+/Subtype /Type1
+/Name /F1
+/BaseFont /Times-Roman
+/Encoding /WinAnsiEncoding
+>>
+endobj
+9 0 obj
+<< /Type /Font
+/Subtype /Type1
+/Name /F2
+/BaseFont /Times-Bold
+/Encoding /WinAnsiEncoding
+>>
+endobj
+10 0 obj
+<< /Type /Font
+/Subtype /Type1
+/Name /F3
+/BaseFont /Courier
+/Encoding /WinAnsiEncoding
+>>
+endobj
+11 0 obj
+<< /Type /Annot
+/Subtype /Link
+/A 12 0 R
+/Border [0 0 0]
+/H /I
+/Rect [ 123.3317 728.3335 223.3637 740.2135 ]
+>>
+endobj
+12 0 obj
+<< /Type /Action
+/S /URI
+/URI (mailto:neargye@gmail.com)
+>>
+endobj
+13 0 obj
+<< /Type /Annot
+/Subtype /Link
+/A 14 0 R
+/Border [0 0 0]
+/H /I
+/Rect [ 119.3597 702.0775 230.0717 713.9575 ]
+>>
+endobj
+14 0 obj
+<< /Type /Action
+/S /URI
+/URI (mailto:antoshkka@gmail.com)
+>>
+endobj
+15 0 obj
+<< /Type /Page
+/Parent 3 0 R
+/Contents 16 0 R
+>>
+endobj
+16 0 obj
+<<
+/Length 3165 >>
+stream
+
+0.000 0.000 0.000 rg
+0.000 0.000 0.000 RG
+0.75 w 0 J [  ] 0 d
+BT 34.016 775.827 Td /F2 18.0 Tf  [(II. Impact on the Standard)] TJ ET
+BT 34.016 745.205 Td /F1 12.0 Tf  [(This proposal is a pure library extension. It proposes changes to existing header )] TJ ET
+BT 419.288 745.205 Td /F3 12.0 Tf  [(<initializer_list>)] TJ ET
+BT 34.016 730.949 Td /F1 12.0 Tf  [(such that the changes do not break existing code and do not degrade performance. It does not require any )] TJ ET
+BT 34.016 716.693 Td /F1 12.0 Tf  [(changes in the core language in simple cases of non assembly optimized Standard Library, and it could be )] TJ ET
+BT 34.016 702.437 Td /F1 12.0 Tf  [(implemented in standard C++.)] TJ ET
+BT 34.016 667.539 Td /F2 18.0 Tf  [(III. Proposed wording relative to n4835)] TJ ET
+BT 34.016 636.917 Td /F1 12.0 Tf  [(Modifications to )] TJ ET
+BT 116.684 636.917 Td /F1 12.0 Tf  [(")] TJ ET
+BT 121.580 636.917 Td /F1 12.0 Tf  [(27.10 Initializer lists)] TJ ET
+BT 220.580 636.917 Td /F1 12.0 Tf  [(")] TJ ET
+BT 225.476 636.917 Td /F1 12.0 Tf  [( [support.initlist])] TJ ET
+BT 34.016 610.661 Td /F1 12.0 Tf  [(All the additions to the Standard are marked with )] TJ ET
+0.000 0.502 0.000 rg
+BT 273.656 610.661 Td /F1 12.0 Tf  [(green)] TJ ET
+0.000 0.000 0.000 rg
+BT 300.308 610.661 Td /F1 12.0 Tf  [(.)] TJ ET
+BT 34.016 582.467 Td /F2 14.0 Tf  [(A. Modifications to )] TJ ET
+BT 152.570 582.467 Td /F2 14.0 Tf  [(")] TJ ET
+BT 160.362 582.467 Td /F2 14.0 Tf  [(17.10.1 Header <initializer_list> synopsis)] TJ ET
+BT 406.090 582.467 Td /F2 14.0 Tf  [(")] TJ ET
+BT 413.882 582.467 Td /F2 14.0 Tf  [( [initializer.list.syn])] TJ ET
+BT 34.016 555.726 Td /F1 12.0 Tf  [(namespace std {)] TJ ET
+BT 34.016 529.355 Td /F1 12.0 Tf  [(template<class E> class initializer_list {)] TJ ET
+BT 34.016 514.955 Td /F1 12.0 Tf  [(public:)] TJ ET
+BT 34.016 500.555 Td /F1 12.0 Tf  [(using value_type = E;)] TJ ET
+BT 34.016 486.155 Td /F1 12.0 Tf  [(using reference = const E&;)] TJ ET
+BT 34.016 471.755 Td /F1 12.0 Tf  [(using const_reference = const E&;)] TJ ET
+BT 34.016 457.355 Td /F1 12.0 Tf  [(using size_type = size_t;)] TJ ET
+BT 34.016 442.955 Td /F1 12.0 Tf  [(using iterator = const E*;)] TJ ET
+BT 34.016 428.670 Td /F1 12.0 Tf  [(using const_iterator = const E*;)] TJ ET
+BT 34.016 402.414 Td /F1 12.0 Tf  [(constexpr initializer_list\(\) noexcept;)] TJ ET
+BT 34.016 376.158 Td /F1 12.0 Tf  [(constexpr size_t size\(\) const noexcept;)] TJ ET
+BT 34.016 349.787 Td /F1 12.0 Tf  [(constexpr const E* begin\(\) const noexcept;)] TJ ET
+BT 34.016 335.502 Td /F1 12.0 Tf  [(constexpr const E* end\(\) const noexcept;)] TJ ET
+0.000 0.502 0.000 rg
+BT 34.016 309.131 Td /F1 12.0 Tf  [(constexpr const E& operator[]\(size_type idx\) const;)] TJ ET
+0.000 0.000 0.000 rg
+BT 34.016 294.846 Td /F1 12.0 Tf  [(};)] TJ ET
+BT 34.016 268.475 Td /F1 12.0 Tf  [(// 17.10.4, initializer list range access)] TJ ET
+BT 34.016 254.075 Td /F1 12.0 Tf  [(template<class E> constexpr const E* begin\(initializer_list<E> il\) noexcept;)] TJ ET
+BT 34.016 239.790 Td /F1 12.0 Tf  [(template<class E> constexpr const E* end\(initializer_list<E> il\) noexcept;)] TJ ET
+BT 34.016 213.534 Td /F1 12.0 Tf  [(})] TJ ET
+endstream
+endobj
+17 0 obj
+<< /Type /Page
+/Parent 3 0 R
+/Annots [ 19 0 R ]
+/Contents 18 0 R
+>>
+endobj
+18 0 obj
+<<
+/Length 3453 >>
+stream
+
+0.000 0.000 0.000 rg
+0.000 0.000 0.000 RG
+0.75 w 0 J [  ] 0 d
+BT 34.016 782.531 Td /F2 14.0 Tf  [(B. Modifications to )] TJ ET
+BT 151.797 782.531 Td /F2 14.0 Tf  [(")] TJ ET
+BT 159.590 782.531 Td /F2 14.0 Tf  [(17.10.3 Initializer list access)] TJ ET
+BT 326.104 782.531 Td /F2 14.0 Tf  [(")] TJ ET
+BT 333.896 782.531 Td /F2 14.0 Tf  [( [support.initlist.access])] TJ ET
+BT 34.016 755.675 Td /F1 12.0 Tf  [(constexpr const E* begin\(\) const noexcept;)] TJ ET
+BT 34.016 741.390 Td /F1 12.0 Tf  [(1 Returns: A pointer to the beginning of the array. If size\(\) == 0 the values of begin\(\) and end\(\) are )] TJ ET
+BT 34.016 727.134 Td /F1 12.0 Tf  [(unspecified but they shall be identical.)] TJ ET
+BT 34.016 700.763 Td /F1 12.0 Tf  [(constexpr const E* end\(\) const noexcept;)] TJ ET
+BT 34.016 686.478 Td /F1 12.0 Tf  [(2 Returns: begin\(\) + size\(\).)] TJ ET
+BT 34.016 660.107 Td /F1 12.0 Tf  [(constexpr size_t size\(\) const noexcept;)] TJ ET
+BT 34.016 645.707 Td /F1 12.0 Tf  [(3 Returns: The number of elements in the array.)] TJ ET
+BT 34.016 631.422 Td /F1 12.0 Tf  [(4 Complexity: Constant time.)] TJ ET
+0.000 0.502 0.000 rg
+BT 34.016 605.051 Td /F1 12.0 Tf  [(constexpr const E& operator[]\(size_type idx\) const;)] TJ ET
+BT 34.016 590.651 Td /F1 12.0 Tf  [(5 Preconditions: idx < size\(\) is true.)] TJ ET
+BT 34.016 576.251 Td /F1 12.0 Tf  [(6 Returns: *\(begin\(\) + idx\).)] TJ ET
+BT 34.016 561.851 Td /F1 12.0 Tf  [(7 Throws: Nothing.)] TJ ET
+0.000 0.000 0.000 rg
+BT 34.016 533.627 Td /F2 14.0 Tf  [(C. Modify to )] TJ ET
+BT 113.566 533.627 Td /F2 14.0 Tf  [(")] TJ ET
+BT 121.359 533.627 Td /F2 14.0 Tf  [(17.3.2 Header )] TJ ET
+BT 207.929 533.627 Td /F2 14.0 Tf  [( synopsis)] TJ ET
+BT 261.380 533.627 Td /F2 14.0 Tf  [(")] TJ ET
+BT 269.172 533.627 Td /F2 14.0 Tf  [( [version.syn])] TJ ET
+0.000 0.502 0.000 rg
+BT 34.016 506.886 Td /F1 12.0 Tf  [(#define __cpp_lib_initializer_list )] TJ ET
+BT 196.676 506.886 Td /F1 12.0 Tf  [(DATE OF ADOPTION)] TJ ET
+0.000 0.502 0.000 RG
+0.6 w 0 J [  ] 0 d
+196.676 504.186 m 311.324 504.186 l S
+0.000 0.000 0.000 rg
+BT 34.016 471.988 Td /F2 18.0 Tf  [(IV. Revision History)] TJ ET
+BT 34.016 441.366 Td /F1 12.0 Tf  [(Revision 0:)] TJ ET
+0.000 0.000 0.000 RG
+57.816 418.215 m 
+57.816 418.765 57.589 419.311 57.201 419.700 c
+56.812 420.089 56.266 420.315 55.716 420.315 c
+55.166 420.315 54.620 420.089 54.231 419.700 c
+53.842 419.311 53.616 418.765 53.616 418.215 c
+53.616 417.665 53.842 417.119 54.231 416.730 c
+54.620 416.342 55.166 416.115 55.716 416.115 c
+56.266 416.115 56.812 416.342 57.201 416.730 c
+57.589 417.119 57.816 417.665 57.816 418.215 c f
+BT 64.016 415.110 Td /F1 12.0 Tf  [(Initial proposal)] TJ ET
+BT 34.016 380.212 Td /F2 18.0 Tf  [(V. References:)] TJ ET
+57.816 352.695 m 
+57.816 353.245 57.589 353.791 57.201 354.180 c
+56.812 354.569 56.266 354.795 55.716 354.795 c
+55.166 354.795 54.620 354.569 54.231 354.180 c
+53.842 353.791 53.616 353.245 53.616 352.695 c
+53.616 352.145 53.842 351.599 54.231 351.210 c
+54.620 350.822 55.166 350.595 55.716 350.595 c
+56.266 350.595 56.812 350.822 57.201 351.210 c
+57.589 351.599 57.816 352.145 57.816 352.695 c f
+BT 64.016 349.590 Td /F1 12.0 Tf  [([N4835] Working Draft, Standard for Programming Language C++. Available online at )] TJ ET
+0.000 0.000 0.800 rg
+BT 64.016 335.334 Td /F1 12.0 Tf  [(https://github.com/cplusplus/draft/raw/master/papers/n4835.pdf)] TJ ET
+0.000 0.000 0.800 RG
+0.6 w 0 J [  ] 0 d
+64.016 332.634 m 370.004 332.634 l S
+endstream
+endobj
+19 0 obj
+<< /Type /Annot
+/Subtype /Link
+/A 20 0 R
+/Border [0 0 0]
+/H /I
+/Rect [ 64.0157 334.2544 370.0037 346.1344 ]
+>>
+endobj
+20 0 obj
+<< /Type /Action
+/S /URI
+/URI (https://github.com/cplusplus/draft/raw/master/papers/n4835.pdf)
+>>
+endobj
+xref
+0 21
+0000000000 65535 f 
+0000000009 00000 n 
+0000000074 00000 n 
+0000000120 00000 n 
+0000000309 00000 n 
+0000000338 00000 n 
+0000000452 00000 n 
+0000000541 00000 n 
+0000006210 00000 n 
+0000006319 00000 n 
+0000006427 00000 n 
+0000006533 00000 n 
+0000006661 00000 n 
+0000006737 00000 n 
+0000006865 00000 n 
+0000006943 00000 n 
+0000007008 00000 n 
+0000010226 00000 n 
+0000010310 00000 n 
+0000013816 00000 n 
+0000013943 00000 n 
+trailer
+<<
+/Size 21
+/Root 1 0 R
+/Info 5 0 R
+>>
+startxref
+14057
+%%EOF
