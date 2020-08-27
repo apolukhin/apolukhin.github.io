@@ -35,7 +35,7 @@
     <address>Alexey Gorgurov &lt;<a href="mailto:leha-bot@yandex.ru">leha-bot@yandex.ru</a>&gt;, &lt;<a href="mailto:no-vista@yandex.ru">no-vista@yandex.ru</a>&gt;</address>
     <address>Antony Polukhin, Yandex.Taxi Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2020-08-25</address>
+    <address>Date: 2020-08-27</address>
     <h1>A Proposal to add stacktrace library</h1>
 
     <p class="changed-added">Significant changes since last LWG review are marked with blue.</p><p>
@@ -394,8 +394,7 @@ namespace std {
   // 20.?.5, non-member functions
   template&lt;class Allocator&gt;
   void swap(basic_stacktrace&lt;Allocator&gt;&amp; a, basic_stacktrace&lt;Allocator&gt;&amp; b)<span class="changed-added">
-        noexcept(allocator_traits&lt;Allocator&gt;::propagate_on_container_swap::value ||
-        allocator_traits&lt;Allocator&gt;::is_always_equal::value)</span>;
+        noexcept(noexcept(a.swap(b)))</span>;
 
   template&lt;class Allocator&gt;
   string to_string(const basic_stacktrace&lt;Allocator&gt;&amp; st);
@@ -682,8 +681,7 @@ const_iterator crend() const noexcept;</pre>
 </div>
     <pre>template&lt;class Allocator&gt;
 void swap(basic_stacktrace&lt;Allocator&gt;&amp; a, basic_stacktrace&lt;Allocator&gt;&amp; b)<span class="changed-added">
-        noexcept(allocator_traits&lt;Allocator&gt;::propagate_on_container_swap::value ||
-        allocator_traits&lt;Allocator&gt;::is_always_equal::value)</span>;</pre>
+        noexcept(noexcept(a.swap(b)))</span>;</pre>
     <div class="desc"><i>Effects:</i> Equivalent to <code>a.swap(b)</code>.</div>
 
     <pre>template&lt;class Allocator&gt;
