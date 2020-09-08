@@ -35,7 +35,7 @@
     <address>Alexey Gorgurov &lt;<a href="mailto:leha-bot@yandex.ru">leha-bot@yandex.ru</a>&gt;, &lt;<a href="mailto:no-vista@yandex.ru">no-vista@yandex.ru</a>&gt;</address>
     <address>Antony Polukhin, Yandex.Taxi Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2020-09-07</address>
+    <address>Date: 2020-09-08</address>
     <h1>A Proposal to add stacktrace library</h1>
 
     <p class="changed-added">Significant changes since last LWG review are marked with blue.</p><p>
@@ -444,7 +444,7 @@ namespace std {
   };
 }
         </pre>
-    <p>An object of <span class="changed-deleted">class</span><span class="changed-added">type</span> <code>stacktrace_entry</code> <span class="changed-added">is either empty,</span> or represents a stacktrace entry and provides operations for querying information about it.<span class="changed-added"> <code>stacktrace_entry</code> models <code>regular</code> [concepts.object].</span></p>
+    <p>An object of <span class="changed-deleted">class</span><span class="changed-added">type</span> <code>stacktrace_entry</code> <span class="changed-added">is either empty,</span> or represents a stacktrace entry and provides operations for querying information about it.<span class="changed-added"> <code>stacktrace_entry</code> models <code>regular</code> [concepts.object] and <code>three_way_comparable&lt;strong_ordering&gt;</code> [cmp.concept].</span></p>
 
 
     <h3>20.?.3.1 Construct<span class="changed-added">or</span> <span class="right">[stacktrace.entry.cons]</span></h3>
@@ -455,7 +455,7 @@ namespace std {
     <h3>20.?.3.2 Observers <span class="right">[stacktrace.entry.obs]</span></h3>
     <pre>constexpr native_handle_type native_handle() const noexcept;</pre>
     <div class="desc changed-deleted"><i>Returns:</i> An unspecified representation of the evaluation represented by <code>*this</code>.</div>
-    <div class="desc changed-added">The sematnics of this function is implementation-defined.</div>
+    <div class="desc changed-added">The semantics of this function is implementation-defined.</div>
     <div class="desc"><i>Remarks:</i> Successive invocations of the <code>native_handle()</code> function for <span class="changed-deleted">the same</span><span class="changed-added">an unchanged</span> <code>stacktrace_entry</code> object return identical values.</div>
 
     <pre>constexpr explicit operator bool() const noexcept;</pre>
@@ -482,9 +482,8 @@ namespace std {
     <pre>friend constexpr bool operator==(const stacktrace_entry&amp; x, const stacktrace_entry&amp; y) noexcept;</pre>
     <div class="desc"><i>Returns:</i> <code>true</code> if and only if <code>x</code> and <code>y</code> represent the same stacktrace entry or <span class="changed-deleted">neither <code>x</code> nor <code>y</code> represent a stacktrace entry</span><span class="changed-added">both <code>x</code> and <code>y</code> are empty</span>.</div>
 
-    <pre>friend constexpr strong_ordering operator&lt;=&gt; (const stacktrace_entry&amp; x, const stacktrace_entry&amp; y) noexcept;</pre>
+    <pre class="changed-deleted">friend constexpr strong_ordering operator&lt;=&gt; (const stacktrace_entry&amp; x, const stacktrace_entry&amp; y) noexcept;</pre>
     <div class="desc changed-deleted"><i>Returns:</i> A value such that <code>operator&lt;=&gt;</code> is a total ordering as described in [alg.sorting].</div>
-    <div class="desc changed-added"><code>stacktrace_entry</code> models <code>three_way_comparable&lt;strong_ordering&gt;</code> [cmp.concept].</div>
 
     <h3>20.?.4 Class template <code>basic_stacktrace</code> <span class="right">[stacktrace.basic.template]</span></h3>
     <pre>
