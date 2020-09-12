@@ -35,7 +35,7 @@
     <address>Alexey Gorgurov &lt;<a href="mailto:leha-bot@yandex.ru">leha-bot@yandex.ru</a>&gt;, &lt;<a href="mailto:no-vista@yandex.ru">no-vista@yandex.ru</a>&gt;</address>
     <address>Antony Polukhin, Yandex.Taxi Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2020-09-08</address>
+    <address>Date: 2020-09-12</address>
     <h1>A Proposal to add stacktrace library</h1>
 
     <p class="changed-added">Significant changes since last LWG review are marked with blue.</p><p>
@@ -365,11 +365,12 @@ conversion; string contents are implementation defined.
     <p class="notes"><i><b>[Note for editor: </b></i>Add the header &lt;stacktrace&gt; into the Table 19 in [headers] <i><b> - end note]</b></i></p>
 
     <h3>20.? Stacktrace <span class="right">[stacktrace]</span></h3>
+    <h3 class="changed-added">20.?.1 General <span class="right">[stacktrace.general]</span></h3>
 
-    <p>This subclause describes components that C++ programs may use to store the stacktrace of the current thread of execution and
+    <p><span class="changed-deleted">This subclause</span><span class="changed-added">Subclause [stacktrace]</span> describes components that C++ programs may use to store the stacktrace of the current thread of execution and
     query information about the stored stacktrace at runtime.</p>
 
-    <h3>20.?.1 Stacktrace definition<span class="right">[stacktrace.def]</span></h3>
+    <h3>20.?.2 Stacktrace definition<span class="right">[stacktrace.def]</span></h3>
 
 
     <p>The <i>invocation sequence</i> of the current evaluation <code>x<sub>0</sub></code> in the current thread of execution is a sequence <code>(x<sub>0</sub>, ..., x<sub>n</sub>)</code> of evaluations such that, for <code>i >= 0</code>, <code>x<sub>i</sub></code> is within the function invocation <code>x<sub>i+1</sub></code> (6.8.1 [intro.execution]).</p>
@@ -378,20 +379,20 @@ conversion; string contents are implementation defined.
 
 
 
-    <h3>20.?.2 Header &lt;stacktrace&gt; synopsis <span class="right">[stacktrace.syn]</span></h3>
+    <h3>20.?.3 Header &lt;stacktrace&gt; synopsis <span class="right">[stacktrace.syn]</span></h3>
     <pre>
 namespace std {
-  // 20.?.3, class stacktrace_entry
+  // 20.?.4, class stacktrace_entry
   class stacktrace_entry;
 
-  // 20.?.4, class basic_stacktrace
+  // 20.?.5, class basic_stacktrace
   template&lt;class Allocator&gt;
   class basic_stacktrace;
 
   // basic_stacktrace typedef names
   using stacktrace = basic_stacktrace&lt;allocator&lt;stacktrace_entry&gt;&gt;;
 
-  // 20.?.5, non-member functions
+  // 20.?.6, non-member functions
   template&lt;class Allocator&gt;
   void swap(basic_stacktrace&lt;Allocator&gt;&amp; a, basic_stacktrace&lt;Allocator&gt;&amp; b)
         noexcept(noexcept(a.swap(b)));
@@ -407,7 +408,7 @@ namespace std {
   template&lt;class charT, class traits, class Allocator&gt;
   basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(basic_ostream&lt;charT, traits&gt;&amp; os, const basic_stacktrace&lt;Allocator&gt;&amp; st);
 
-  // 20.?.6, hash support
+  // 20.?.7, hash support
   template&lt;class T&gt; struct hash;
   template&lt;&gt; struct hash&lt;stacktrace_entry&gt;;
   template&lt;class Allocator&gt; struct hash&lt;basic_stacktrace&lt;Allocator&gt;&gt;;
@@ -415,54 +416,53 @@ namespace std {
         </pre>
 
 
-    <h3>20.?.3 Class stacktrace_entry <span class="right">[stacktrace.entry]</span></h3>
+    <h3>20.?.4 Class stacktrace_entry <span class="right">[stacktrace.entry]</span></h3>
+    <h3 class="changed-added">20.?.4.1 Overview <span class="right">[stacktrace.entry.overview]</span></h3>
     <pre>
 namespace std {
   class stacktrace_entry {
   public:
     using native_handle_type = <i>implementation-defined</i>;
 
-    // 20.?.3.1, constructors
+    // 20.?.4.2, constructors
     constexpr stacktrace_entry() noexcept;
     constexpr stacktrace_entry(const stacktrace_entry&amp; other) noexcept;
     constexpr stacktrace_entry&amp; operator=(const stacktrace_entry&amp; other) noexcept;
 
     ~stacktrace_entry();
 
-    // 20.?.3.2, observers
-    constexpr <i class="changed-deleted">implementation-defined</i><span class="changed-added">native_handle_type</span> native_handle() const noexcept;
+    // 20.?.4.3, observers
+    constexpr native_handle_type native_handle() const noexcept;
     constexpr explicit operator bool() const noexcept;
 
-    // 20.?.3.3, query
+    // 20.?.4.4, query
     string description() const;
     string source_file() const;
     uint_least32_t source_line() const;
 
-    // 20.?.3.4, comparison
+    // 20.?.4.5, comparison
     friend constexpr bool operator==(const stacktrace_entry&amp; x, const stacktrace_entry&amp; y) noexcept;
     friend constexpr strong_ordering operator&lt;=&gt;(const stacktrace_entry&amp; x, const stacktrace_entry&amp; y) noexcept;
   };
 }
         </pre>
-    <p>An object of <span class="changed-deleted">class</span><span class="changed-added">type</span> <code>stacktrace_entry</code> <span class="changed-added">is either empty,</span> or represents a stacktrace entry and provides operations for querying information about it.<span class="changed-added"> <code>stacktrace_entry</code> models <code>regular</code> [concepts.object] and <code>three_way_comparable&lt;strong_ordering&gt;</code> [cmp.concept].</span></p>
+    <p>An object of type <code>stacktrace_entry</code> is either empty, or represents a stacktrace entry and provides operations for querying information about it. <code>stacktrace_entry</code> models <code>regular</code> [concepts.object] and <code>three_way_comparable&lt;strong_ordering&gt;</code> [cmp.concept].</p>
 
 
-    <h3>20.?.3.1 Construct<span class="changed-added">or</span> <span class="right">[stacktrace.entry.cons]</span></h3>
+    <h3>20.?.4.2 Constructor <span class="right">[stacktrace.entry.cons]</span></h3>
     <pre>constexpr stacktrace_entry() noexcept;</pre>
-    <div class="desc changed-deleted"><i>Effects:</i> Constructs a <code>stacktrace_entry</code> object that does not represent a stacktrace entry.</div>
-    <div class="desc changed-added"><i>Postconditions:</i> <code>*this</code> is empty.</div>
+    <div class="desc"><i>Postconditions:</i> <code>*this</code> is empty.</div>
 
-    <h3>20.?.3.2 Observers <span class="right">[stacktrace.entry.obs]</span></h3>
+    <h3>20.?.4.3 Observers <span class="right">[stacktrace.entry.obs]</span></h3>
     <pre>constexpr native_handle_type native_handle() const noexcept;</pre>
-    <div class="desc changed-deleted"><i>Returns:</i> An unspecified representation of the evaluation represented by <code>*this</code>.</div>
-    <div class="desc changed-added">The semantics of this function is implementation-defined.</div>
-    <div class="desc"><i>Remarks:</i> Successive invocations of the <code>native_handle()</code> function for <span class="changed-deleted">the same</span><span class="changed-added">an unchanged</span> <code>stacktrace_entry</code> object return identical values.</div>
+    <div class="desc">The semantics of this function <span class="changed-deleted">is</span><span class="changed-added">are</span> implementation-defined.</div>
+    <div class="desc"><i>Remarks:</i> Successive invocations of the <code>native_handle()</code> function for an unchanged <code>stacktrace_entry</code> object return identical values.</div>
 
     <pre>constexpr explicit operator bool() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code>true</code> if and only if <code>*this</code> <span class="changed-deleted">represents a stacktrace entry</span><span class="changed-added">is empty</span>.</div>
+    <div class="desc"><i>Returns:</i> <code class="changed-deleted">true</code><code class="changed-added">false</code> if and only if <code>*this</code> is empty.</div>
 
 
-    <h3>20.?.3.3 Query <span class="right">[stacktrace.entry.query]</span></h3>
+    <h3>20.?.4.4 Query <span class="right">[stacktrace.entry.query]</span></h3>
     <p><i>[Note:</i> All the <code>stacktrace_entry</code> query functions treat errors other than memory allocation errors as "no information available"
     and do not throw in that case. <i>- end note]</i></p>
 
@@ -478,14 +478,12 @@ namespace std {
     <div class="desc"><i>Returns:</i> <code>0</code>, or a 1-based line number that lexically relates to the evaluation represented by <code>*this</code>. If <code>source_file</code> returns the presumed name of the source file, returns the presumed line number; if <code>source_file</code> returns the actual name of the source file, returns the actual line number.</div>
     <div class="desc"><i>Throws:</i> <code>bad_alloc</code> if memory for the internal data structures cannot be allocated.</div>
 
-    <h3>20.?.3.4 Comparison <span class="right">[stacktrace.entry.cmp]</span></h3>
+    <h3>20.?.4.5 Comparison <span class="right">[stacktrace.entry.cmp]</span></h3>
     <pre>friend constexpr bool operator==(const stacktrace_entry&amp; x, const stacktrace_entry&amp; y) noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code>true</code> if and only if <code>x</code> and <code>y</code> represent the same stacktrace entry or <span class="changed-deleted">neither <code>x</code> nor <code>y</code> represent a stacktrace entry</span><span class="changed-added">both <code>x</code> and <code>y</code> are empty</span>.</div>
+    <div class="desc"><i>Returns:</i> <code>true</code> if and only if <code>x</code> and <code>y</code> represent the same stacktrace entry or both <code>x</code> and <code>y</code> are empty.</div>
 
-    <pre class="changed-deleted">friend constexpr strong_ordering operator&lt;=&gt; (const stacktrace_entry&amp; x, const stacktrace_entry&amp; y) noexcept;</pre>
-    <div class="desc changed-deleted"><i>Returns:</i> A value such that <code>operator&lt;=&gt;</code> is a total ordering as described in [alg.sorting].</div>
-
-    <h3>20.?.4 Class template <code>basic_stacktrace</code> <span class="right">[stacktrace.basic.template]</span></h3>
+    <h3>20.?.5 Class template <code>basic_stacktrace</code> <span class="right">[stacktrace.basic<span class="changed-deleted">.template</span>]</span></h3>
+    <h3 class="changed-added">20.?.5.1 Overview <span class="right">[stacktrace.basic.overview]</span></h3>
     <pre>
 namespace std {
   template&lt;class Allocator&gt;
@@ -502,7 +500,7 @@ namespace std {
     using size_type = <i>implementation-defined</i>;
     using allocator_type = Allocator;
 
-    // 20.?.4.1, construct/copy/destroy
+    // 20.?.5.2, <span class="changed-deleted">construct/copy/destroy</span><span class="changed-added">creation and assignment</span>
     static basic_stacktrace current(const allocator_type&amp; alloc = allocator_type()) noexcept;
     static basic_stacktrace current(size_type skip, const allocator_type&amp; alloc = allocator_type()) noexcept;
     static basic_stacktrace current(size_type skip, size_type max_depth, const allocator_type&amp; alloc = allocator_type()) noexcept;
@@ -515,13 +513,13 @@ namespace std {
     basic_stacktrace(const basic_stacktrace&amp; other, const allocator_type&amp; alloc);
     basic_stacktrace(basic_stacktrace&amp;&amp; other, const allocator_type&amp; alloc);
     basic_stacktrace&amp; operator=(const basic_stacktrace&amp; other);
-    basic_stacktrace&amp; operator=(basic_stacktrace&amp;&amp; other)<span class="changed-added">
+    basic_stacktrace&amp; operator=(basic_stacktrace&amp;&amp; other)
         noexcept(allocator_traits&lt;Allocator&gt;::propagate_on_container_move_assignment::value ||
-        allocator_traits&lt;Allocator&gt;::is_always_equal::value)</span>;
+        allocator_traits&lt;Allocator&gt;::is_always_equal::value);
 
     ~basic_stacktrace();
 
-    // 20.?.4.2, observers
+    // 20.?.5.3, observers
     allocator_type get_allocator() const noexcept;
 
     const_iterator begin() const noexcept;
@@ -541,13 +539,13 @@ namespace std {
     const_reference operator[](size_type ) const;
     const_reference at(size_type ) const;
 
-    // 20.?.4.3, comparisons
+    // 20.?.5.4, comparisons
     template &lt;class Allocator2&gt;
     friend bool operator==(const basic_stacktrace&amp; x, const basic_stacktrace&lt; Allocator2 &gt;&amp; y) noexcept;
     template &lt;class Allocator2&gt;
     friend strong_ordering operator&lt;=&gt;(const basic_stacktrace&amp; x, const basic_stacktrace&lt; Allocator2 &gt;&amp; y) noexcept;
 
-    // 20.?.4.4, modifiers
+    // 20.?.5.5, modifiers
     void swap(basic_stacktrace&amp; other)
         noexcept(allocator_traits&lt;Allocator&gt;::propagate_on_container_swap::value ||
         allocator_traits&lt;Allocator&gt;::is_always_equal::value);
@@ -558,51 +556,50 @@ namespace std {
 
 }
         </pre>
-    <p>The <code>basic_stacktrace</code> template class stores the stacktrace of the current thread of execution on construction and provides access to the stored stacktrace.</p>
+    <p class="changed-deleted">The <code>basic_stacktrace</code> template class stores the stacktrace of the current thread of execution on construction and provides access to the stored stacktrace.</p>
 
     <p>The class template <code>basic_stacktrace</code> satisfies the requirements of an allocator-aware container, of a sequence
     container and reversible container (21.2.1, 21.2.3) except that</p>
     <ul>
       <li>only move, assignment, swap and operations defined for const-qualified sequence containers are supported</li>
-      <li>and that the semantics of comparison functions and default constructor are different from those required for a container.</li>
+      <li>and that the semantics of comparison functions <span class="changed-deleted">and default constructor</span> are different from those required for a container.</li>
     </ul>
 
-    <h3>20.?.4.1 Construct/copy/destroy <span class="right">[stacktrace.basic.cons]</span></h3>
+    <h3>20.?.5.2 <span class="changed-deleted">Construct/copy/destroy</span><span class="changed-added">Creation and assignment</span> <span class="right">[stacktrace.basic.cons]</span></h3>
     <pre>static basic_stacktrace current(const allocator_type&amp; alloc = allocator_type()) noexcept;</pre>
-    <div class="desc"><i>Returns:</i> A <code>basic_stacktrace</code> object with <code>frames_</code> storing the stacktrace of the current evaluation in the current thread of execution, or an empty <code>basic_stacktrace</code> object if <code>frames_</code> initialization failed. <code>alloc</code> is passed to the constructor of the <code class="changed-deleted">basic_stacktrace</code><code class="changed-added">frames_</code> object.</div>
+    <div class="desc"><i>Returns:</i> A <code>basic_stacktrace</code> object with <code>frames_</code> storing the stacktrace of the current evaluation in the current thread of execution, or an empty <code>basic_stacktrace</code> object if <code>frames_</code> initialization failed. <code>alloc</code> is passed to the constructor of the <code>frames_</code> object.</div>
     <div class="desc"><i>[Note:</i> If the stacktrace was successfully obtained, then <code>frames_.front()</code> is the <code>stacktrace_entry</code> representing approximately the current evaluation, and <code>frames_.back()</code> is the <code>stacktrace_entry</code> representing approximately the initial function of the current thread of execution.<i> - end note]</i></div>
 
     <pre>static basic_stacktrace current(size_type skip, const allocator_type&amp; alloc = allocator_type()) noexcept;</pre>
     <div class="desc">Let <code>t</code> be a stacktrace as-if obtained via <code>basic_stacktrace::current(alloc)</code>. Let <code>n</code> be <code>t.size()</code>.</div>
-    <div class="desc"><i>Returns:</i> <code>basic_stacktrace</code> object with direct-non-list-initialized <code>frames_</code> from arguments <code>t.begin() + min(n, skip)</code>, <code>t.end()</code><span class="changed-added"> and <code>alloc</code></span>, or an empty <code>basic_stacktrace</code> object if <code>frames_</code> initialization failed.</div>
+    <div class="desc"><i>Returns:</i> <code>basic_stacktrace</code> object with direct-non-list-initialized <code>frames_</code> from arguments <code>t.begin() + min(n, skip)</code>, <code>t.end()</code> and <code>alloc</code>, or an empty <code>basic_stacktrace</code> object if <code>frames_</code> initialization failed.</div>
 
     <pre>static basic_stacktrace current(size_type skip, size_type max_depth, const allocator_type&amp; alloc = allocator_type()) noexcept;</pre>
     <div class="desc">Let <code>t</code> be a stacktrace as-if obtained via <code>basic_stacktrace::current(alloc)</code>. Let <code>n</code> be <code>t.size()</code>.</div>
     <div class="desc"><i>Preconditions:</i> <code>skip &lt;= skip + max_depth</code>.</div>
-    <div class="desc"><i>Returns:</i> <code>basic_stacktrace</code> object with direct-non-list-initialized <code>frames_</code> from arguments <code>t.begin() + min(n, skip)</code>, <code>t.begin() + min(n, skip + max_depth)</code><span class="changed-added"> and <code>alloc</code></span>, or an empty <code>basic_stacktrace</code> object if <code>frames_</code> initialization failed.</div>
+    <div class="desc"><i>Returns:</i> <code>basic_stacktrace</code> object with direct-non-list-initialized <code>frames_</code> from arguments <code>t.begin() + min(n, skip)</code>, <code>t.begin() + min(n, skip + max_depth)</code> and <code>alloc</code>, or an empty <code>basic_stacktrace</code> object if <code>frames_</code> initialization failed.</div>
 
 
     <pre>basic_stacktrace() noexcept(is_nothrow_default_constructible_v&lt;allocator_type&gt;);</pre>
-    <div class="desc changed-deleted"><i>Effects:</i> Constructs an empty <code>basic_stacktrace</code>.</div>
     <div class="desc"><i>Postconditions:</i> <code>empty()</code> is <code>true</code>.</div>
 
     <pre>explicit basic_stacktrace(const allocator_type&amp; alloc) noexcept;</pre>
-    <div class="desc"><i>Effects:</i> <span class="changed-deleted">Constructs an empty <code>basic_stacktrace</code>. </span><code>alloc</code> is passed to the <code>frames_</code> constructor.</div>
+    <div class="desc"><i>Effects:</i> <code>alloc</code> is passed to the <code>frames_</code> constructor.</div>
     <div class="desc"><i>Postconditions:</i> <code>empty()</code> is <code>true</code>.</div>
 
     <pre>basic_stacktrace(const basic_stacktrace&amp; other);
 basic_stacktrace(const basic_stacktrace&amp; other, const allocator_type&amp; alloc);
 basic_stacktrace(basic_stacktrace&amp;&amp; other, const allocator_type&amp; alloc);
 basic_stacktrace&amp; operator=(const basic_stacktrace&amp; other);
-basic_stacktrace&amp; operator=(basic_stacktrace&amp;&amp; other)<span class="changed-added">
+basic_stacktrace&amp; operator=(basic_stacktrace&amp;&amp; other)
         noexcept(allocator_traits&lt;Allocator&gt;::propagate_on_container_move_assignment::value ||
-        allocator_traits&lt;Allocator&gt;::is_always_equal::value)</span>;</pre>
+        allocator_traits&lt;Allocator&gt;::is_always_equal::value);</pre>
     <div class="desc"><i>Remarks:</i> Implementations may strengthen the exception specification for those functions [res.on.exception.handling] by ensuring that <code>empty()</code> is <code>true</code> on failed allocation.</div>
 
-    <h3>20.?.4.2 Observers <span class="right">[stacktrace.basic.obs]</span></h3>
+    <h3>20.?.5.3 Observers <span class="right">[stacktrace.basic.obs]</span></h3>
     <pre>using const_iterator = implementation-defined;</pre>
     <div class="desc">The type models random_access_iterator [iterator.concept.random.access] and meets the <i>Cpp17RandomAccessIterator</i> requirements
-[random.access.iterators].<span class="changed-deleted"> All requirements on container iterators [container.requirements] apply to <code><span class="changed-added">const_</span>iterator</code>.</span></div>
+[random.access.iterators].</div>
     <pre>allocator_type get_allocator() const noexcept;</pre>
     <div class="desc"><i>Returns:</i> <code>frames_.get_allocator()</code>.</div>
 
@@ -615,13 +612,13 @@ same value as <code>end()</code>.</div>
 const_iterator cend() const noexcept;</pre>
     <div class="desc"><i>Returns:</i> The end iterator.</div>
 
-    <pre>const_<span class="changed-added">reverse_</span>iterator rbegin() const noexcept;
-const_<span class="changed-added">reverse_</span>iterator crbegin() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code>reverse_iterator(<span class="changed-deleted">this-&gt;</span>cend())</code>.</div>
+    <pre>const_reverse_iterator rbegin() const noexcept;
+const_reverse_iterator crbegin() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>reverse_iterator(cend())</code>.</div>
 
-    <pre>const_<span class="changed-added">reverse_</span>iterator rend() const noexcept;
-const_<span class="changed-added">reverse_</span>iterator crend() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code>reverse_iterator(<span class="changed-deleted">this-&gt;</span>cbegin())</code>.</div>
+    <pre>const_reverse_iterator rend() const noexcept;
+const_reverse_iterator crend() const noexcept;</pre>
+    <div class="desc"><i>Returns:</i> <code>reverse_iterator(cbegin())</code>.</div>
 
     <pre>[[nodiscard]] bool empty() const noexcept;</pre>
     <div class="desc"><i>Returns:</i> <code>frames_.empty()</code>.</div>
@@ -638,11 +635,11 @@ const_<span class="changed-added">reverse_</span>iterator crend() const noexcept
     <div class="desc"><i>Throws:</i> Nothing.</div>
 
     <pre>const_reference at(size_type frame_no) const;</pre>
-    <div class="desc"><i>Throws:</i> <code>out_of_range</code> if <code>frame_no &gt;= size()</code>.</div>
     <div class="desc"><i>Returns:</i> <code>frames_[frame_no]</code>.</div>
+    <div class="desc"><i>Throws:</i> <code>out_of_range</code> if <code>frame_no &gt;= size()</code>.</div>
 
 
-    <h3>20.?.4.3 Comparisons <span class="right">[stacktrace.basic.comp]</span></h3>
+    <h3>20.?.5.4 Comparisons <span class="right">[stacktrace.basic.comp]</span></h3>
     <pre>template &lt;class Allocator2&gt;
 friend bool operator==(const basic_stacktrace&amp; x, const basic_stacktrace&lt; Allocator2 &gt;&amp; y) noexcept;</pre>
     <div class="desc"><i>Returns:</i> <code>equal(x.begin(), x.end(), y.begin(), y.end())</code></div>
@@ -651,14 +648,14 @@ friend strong_ordering operator&lt;=&gt;(const basic_stacktrace&amp; x, const ba
     <div class="desc"><i>Returns:</i> <code>x.size() &lt;=&gt; y.size()</code> if <code>x.size() != y.size()</code>.
     <code>lexicographical_compare_3way(x.begin(), x.end(), y.begin(), y.end())</code> otherwise.</div>
 
-    <h3>20.?.4.4 Modifiers <span class="right">[stacktrace.basic.mod]</span></h3>
+    <h3>20.?.5.5 Modifiers <span class="right">[stacktrace.basic.mod]</span></h3>
     <pre>void swap(basic_stacktrace&amp; other)
         noexcept(allocator_traits&lt;Allocator&gt;::propagate_on_container_swap::value ||
         allocator_traits&lt;Allocator&gt;::is_always_equal::value);</pre>
     <div class="desc"><i>Effects:</i> Exchanges the contents of <code>*this</code> and <code>other</code>.</div>
 
 
-    <h3>20.?.5 Non-member functions <span class="right">[stacktrace.nonmembers]</span></h3>
+    <h3>20.?.6 Non-member functions <span class="right">[stacktrace.nonmembers]</span></h3>
     <pre>template&lt;class Allocator&gt;
 void swap(basic_stacktrace&lt;Allocator&gt;&amp; a, basic_stacktrace&lt;Allocator&gt;&amp; b)
         noexcept(noexcept(a.swap(b)));</pre>
@@ -671,23 +668,21 @@ void swap(basic_stacktrace&lt;Allocator&gt;&amp; a, basic_stacktrace&lt;Allocato
     <pre>template&lt;class Allocator&gt;
 string to_string(const basic_stacktrace&lt;Allocator&gt;&amp; st);</pre>
     <div class="desc"><i>Returns:</i> A string with a description of <code>st</code>.</div>
-    <div class="desc"><i>[Note:</i> <span class="changed-added">The n</span>umber of lines is not guaranteed to be equal to <code>st.size()</code>.<i> - end note]</i></div>
+    <div class="desc"><i>[Note:</i> The number of lines is not guaranteed to be equal to <code>st.size()</code>.<i> - end note]</i></div>
 
   <pre>template&lt;class charT, class traits&gt;
 basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(basic_ostream&lt;charT, traits&gt;&amp; os, const stacktrace_entry&amp; f);</pre>
-    <div class="desc"><i class="changed-deleted">Returns:</i><i class="changed-added">Effects:</i> Equivalent to: <code><span class="changed-added">return </span>os &lt;&lt; to_string(f)</code>.</div>
-    <div class="desc changed-deleted"><i>Returns:</i> <code>os</code>.</div>
+    <div class="desc"><i>Effects:</i> Equivalent to: <code>return os &lt;&lt; to_string(f)</code>.</div>
 
     <pre>template&lt;class charT, class traits, class Allocator&gt;
 basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(basic_ostream&lt;charT, traits&gt;&amp; os, const basic_stacktrace&lt;Allocator&gt;&amp; st);</pre>
-    <div class="desc"><i>Effects:</i> Equivalent to: <code><span class="changed-added">return </span>os &lt;&lt; to_string(st);</code></div>
-    <div class="desc changed-deleted"><i>Returns:</i> <code>os</code>.</div>
+    <div class="desc"><i>Effects:</i> Equivalent to: <code>return os &lt;&lt; to_string(st);</code></div>
 
 
-    <h3>20.?.6 Hash support <span class="right">[stacktrace.hash]</span></h3>
+    <h3>20.?.7 Hash support <span class="right">[stacktrace.hash]</span></h3>
     <pre>template&lt;&gt; struct hash&lt;stacktrace_entry&gt;;
 template&lt;class Allocator&gt; struct hash&lt;basic_stacktrace&lt;Allocator&gt;&gt;;</pre>
-    <div class="desc">The specialization<span class="changed-added">s are</span> <span class="changed-deleted">is </span>enabled (23.14.15).</div>
+    <div class="desc">The specializations are enabled (23.14.15).</div>
 
 
     <h3>Header &lt;version&gt; synopsis <span class="right">[version.syn]</span></h3>
@@ -698,7 +693,7 @@ template&lt;class Allocator&gt; struct hash&lt;basic_stacktrace&lt;Allocator&gt;
 
 
 
-    <h2>VI. Acknowledgements</h2>
+    <h2>VI. Acknowledgments</h2>
     <p>Many thanks to Jens Maurer, JF Bastien, Marshall Clow and Tim Song for pointing out many issues in the early wordings.</p>
     <p>Special thanks to Jens Maurer for doing the core wordings.</p>
     <p>Many many thanks to all the people who participated in the LWG meeting on 20th of August and reviewed early version of the wording.</p>
