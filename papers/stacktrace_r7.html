@@ -28,18 +28,18 @@
     </style>
 </head>
 <body bgcolor="#ffffff">
-    <address>Document number: D0881R7</address>
+    <address>Document number: P0881R7</address>
     <address>Project: Programming Language C++</address>
-    <address>Audience: Library Working Group, Core Working Group</address>
+    <!--address>Audience: Library Working Group, Core Working Group</address-->
     <address>&nbsp;</address>
     <address>Alexey Gorgurov &lt;<a href="mailto:leha-bot@yandex.ru">leha-bot@yandex.ru</a>&gt;, &lt;<a href="mailto:no-vista@yandex.ru">no-vista@yandex.ru</a>&gt;</address>
     <address>Antony Polukhin, Yandex.Taxi Ltd, &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2020-09-12</address>
+    <address>Date: 2020-09-16</address>
     <h1>A Proposal to add stacktrace library</h1>
 
-    <p class="changed-added">Significant changes since last LWG review are marked with blue.</p><p>
-    </p><p><input type="checkbox" id="show_deletions_d" onchange="show_hide_deleted_d()"> Show deleted lines since last LWG review.</p>
+    <!--p class="changed-added">Significant changes since last LWG review are marked with blue.</p><p>
+    </p><p><input type="checkbox" id="show_deletions_d" onchange="show_hide_deleted_d()"> Show deleted lines since last LWG review.</p-->
 
         <h2>I. Motivation</h2>
 	<p>In the current working draft [<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/n4741.pdf">N4741</a>] there is no way to get, store and decode the current call sequence.
@@ -348,15 +348,15 @@ conversion; string contents are implementation defined.
     <h2>IV. Wording Intent</h2>
     <p>Key features that should be preserved by implementations:</p>
     <ul>
-    <li>All the functions are lazy and do not query the pointer information if there was no explicit request.</li>
+    <li>All the functions are lazy and do not query the stacktrace entry information if there was no explicit request.</li>
     <li>No fixed max size for trace - all the available invokers must be stored in a <code>stacktrace</code>.</li>
     <li>Implementations should allow to disable/enable gathering stacktraces by a link-time switch.</li>
     <li>Stacktracing does not prevent any of the optimizations.</li>
-    <li>No info for a pointer is OK (it's not an error, do not throw!).</li>
+    <li>No info for a stacktrace entry is OK (it's not an error, do not throw!).</li>
     <li><code>stacktrace_entry::description()</code> should return a demangled function signature if possible.</li>
     <li><code>to_string(stacktrace)</code> should query information from debug symbols, symbol export tables and any other sources, returning demangled signatures if possible.</li>
     <li>Providing information about inlined functions that have no separate stacktrace entries is welcomed in <code>to_string(stacktrace)</code>.</li>
-    <li>Detecting inlined functions and doing other heavy operations is not welcomed in basic_stacktrace constructors.</li>
+    <li>Detecting inlined functions and doing other heavy operations is not welcomed in basic_stacktrace constructors or <code>stacktrace_entry::current</code>.</li>
     <li><code>stacktrace</code> should be usable in contract violation handler, coroutines, handler functions [handler.functions], parallel algorithms, etc.</li>
 </ul>
 
@@ -365,9 +365,9 @@ conversion; string contents are implementation defined.
     <p class="notes"><i><b>[Note for editor: </b></i>Add the header &lt;stacktrace&gt; into the Table 19 in [headers] <i><b> - end note]</b></i></p>
 
     <h3>20.? Stacktrace <span class="right">[stacktrace]</span></h3>
-    <h3 class="changed-added">20.?.1 General <span class="right">[stacktrace.general]</span></h3>
+    <h3>20.?.1 General <span class="right">[stacktrace.general]</span></h3>
 
-    <p><span class="changed-deleted">This subclause</span><span class="changed-added">Subclause [stacktrace]</span> describes components that C++ programs may use to store the stacktrace of the current thread of execution and
+    <p>Subclause [stacktrace] describes components that C++ programs may use to store the stacktrace of the current thread of execution and
     query information about the stored stacktrace at runtime.</p>
 
     <h3>20.?.2 Stacktrace definition<span class="right">[stacktrace.def]</span></h3>
@@ -417,7 +417,7 @@ namespace std {
 
 
     <h3>20.?.4 Class stacktrace_entry <span class="right">[stacktrace.entry]</span></h3>
-    <h3 class="changed-added">20.?.4.1 Overview <span class="right">[stacktrace.entry.overview]</span></h3>
+    <h3>20.?.4.1 Overview <span class="right">[stacktrace.entry.overview]</span></h3>
     <pre>
 namespace std {
   class stacktrace_entry {
@@ -455,11 +455,11 @@ namespace std {
 
     <h3>20.?.4.3 Observers <span class="right">[stacktrace.entry.obs]</span></h3>
     <pre>constexpr native_handle_type native_handle() const noexcept;</pre>
-    <div class="desc">The semantics of this function <span class="changed-deleted">is</span><span class="changed-added">are</span> implementation-defined.</div>
+    <div class="desc">The semantics of this function are implementation-defined.</div>
     <div class="desc"><i>Remarks:</i> Successive invocations of the <code>native_handle()</code> function for an unchanged <code>stacktrace_entry</code> object return identical values.</div>
 
     <pre>constexpr explicit operator bool() const noexcept;</pre>
-    <div class="desc"><i>Returns:</i> <code class="changed-deleted">true</code><code class="changed-added">false</code> if and only if <code>*this</code> is empty.</div>
+    <div class="desc"><i>Returns:</i> <code>false</code> if and only if <code>*this</code> is empty.</div>
 
 
     <h3>20.?.4.4 Query <span class="right">[stacktrace.entry.query]</span></h3>
@@ -482,8 +482,8 @@ namespace std {
     <pre>friend constexpr bool operator==(const stacktrace_entry&amp; x, const stacktrace_entry&amp; y) noexcept;</pre>
     <div class="desc"><i>Returns:</i> <code>true</code> if and only if <code>x</code> and <code>y</code> represent the same stacktrace entry or both <code>x</code> and <code>y</code> are empty.</div>
 
-    <h3>20.?.5 Class template <code>basic_stacktrace</code> <span class="right">[stacktrace.basic<span class="changed-deleted">.template</span>]</span></h3>
-    <h3 class="changed-added">20.?.5.1 Overview <span class="right">[stacktrace.basic.overview]</span></h3>
+    <h3>20.?.5 Class template <code>basic_stacktrace</code> <span class="right">[stacktrace.basic]</span></h3>
+    <h3>20.?.5.1 Overview <span class="right">[stacktrace.basic.overview]</span></h3>
     <pre>
 namespace std {
   template&lt;class Allocator&gt;
@@ -500,7 +500,7 @@ namespace std {
     using size_type = <i>implementation-defined</i>;
     using allocator_type = Allocator;
 
-    // 20.?.5.2, <span class="changed-deleted">construct/copy/destroy</span><span class="changed-added">creation and assignment</span>
+    // 20.?.5.2, creation and assignment
     static basic_stacktrace current(const allocator_type&amp; alloc = allocator_type()) noexcept;
     static basic_stacktrace current(size_type skip, const allocator_type&amp; alloc = allocator_type()) noexcept;
     static basic_stacktrace current(size_type skip, size_type max_depth, const allocator_type&amp; alloc = allocator_type()) noexcept;
@@ -556,16 +556,14 @@ namespace std {
 
 }
         </pre>
-    <p class="changed-deleted">The <code>basic_stacktrace</code> template class stores the stacktrace of the current thread of execution on construction and provides access to the stored stacktrace.</p>
-
     <p>The class template <code>basic_stacktrace</code> satisfies the requirements of an allocator-aware container, of a sequence
     container and reversible container (21.2.1, 21.2.3) except that</p>
     <ul>
       <li>only move, assignment, swap and operations defined for const-qualified sequence containers are supported</li>
-      <li>and that the semantics of comparison functions <span class="changed-deleted">and default constructor</span> are different from those required for a container.</li>
+      <li>and that the semantics of comparison functions are different from those required for a container.</li>
     </ul>
 
-    <h3>20.?.5.2 <span class="changed-deleted">Construct/copy/destroy</span><span class="changed-added">Creation and assignment</span> <span class="right">[stacktrace.basic.cons]</span></h3>
+    <h3>20.?.5.2 Creation and assignment <span class="right">[stacktrace.basic.cons]</span></h3>
     <pre>static basic_stacktrace current(const allocator_type&amp; alloc = allocator_type()) noexcept;</pre>
     <div class="desc"><i>Returns:</i> A <code>basic_stacktrace</code> object with <code>frames_</code> storing the stacktrace of the current evaluation in the current thread of execution, or an empty <code>basic_stacktrace</code> object if <code>frames_</code> initialization failed. <code>alloc</code> is passed to the constructor of the <code>frames_</code> object.</div>
     <div class="desc"><i>[Note:</i> If the stacktrace was successfully obtained, then <code>frames_.front()</code> is the <code>stacktrace_entry</code> representing approximately the current evaluation, and <code>frames_.back()</code> is the <code>stacktrace_entry</code> representing approximately the initial function of the current thread of execution.<i> - end note]</i></div>
