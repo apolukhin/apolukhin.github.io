@@ -1,0 +1,479 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+    <title>Stacktrace from exception</title>
+    <meta content="http://schemas.microsoft.com/intellisense/ie5" name="vs_targetSchema">
+    <meta http-equiv="Content-Language" content="en-us">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <style type="text/css">
+        .addition { color: green; }
+        .right { float:right }
+        .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+        .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+        .changed-added { background-color: #CFF0FC ;}
+        .notes { background-color: gold ;}
+        pre { line-height: 1.2; margin-top: 25px; }
+        .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal;}
+        body {max-width: 1024px; margin-left: 25px; font-size: 12pt; }
+        del { background-color: red; }
+        ins { background-color: lightgreen; }
+        .sub { vertical-align: sub; }
+        .lmargin50{margin-left: 50px;}
+        .width_third{width: 33%;}
+        .cppkeyword { color: blue; }
+        .asmcostly { color: red; }
+        .cppcomment { color: green; }
+        .cppcomment > .cppkeyword{ color: green; }
+        .cppaddition { background-color: #CFC; }
+        .cppdeletion {  text-decoration: line-through; background-color: #FCC; }
+        .stdquote { background-color: #ECECEC; font-family: Consolas,monospace; }
+    </style>
+    </head>
+    <body bgcolor="#ffffff">
+    <address>Document number: P2370R2</address>
+    <address>Project: Programming Language C++</address>
+    <address>Audience: LEWG Incubator, LEWG, LWG</address>
+    <address>&nbsp;</address>
+    <address>Andrei Nekrashevich &lt;<a href="mailto:axolm13@gmail.com">axolm13@gmail.com</a>&gt;</address>
+    <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+    <address>&nbsp;</address>
+    <address>Date: 2022-01-11</address>
+    <h1>Stacktrace from exception</h1>
+    <p>Changes from previous revision are in <span class="changed-added">blue</span>, wording additions are in <span class="cppaddition">green</span>.</p>
+
+    <h2>I. Introduction and Motivation</h2>
+    <p>Quite often Standard Library exceptions do not provide enough information to diagnose the error. Consider the example:</p>
+    <pre>
+#include &lt;iostream&gt;
+#include &lt;stdexcept&gt;
+#include &lt;string_view&gt;
+
+void foo(std::string_view key);
+void bar(std::string_view key);
+
+int main() {
+  try {
+    foo("test1");
+    bar("test2");
+  } catch (const std::exception& exc) {
+    std::cerr << "Caught exception: " << exc.what() << '\n';
+  }
+}
+</pre>
+    <p>The output of the above sample may be the following:</p>
+    <pre>
+Caught exception: map::at
+</pre>
+
+    <p>That output is quite useless because it does not help the developer to understand in what function the error happened.</p>
+
+    <p>This paper proposes to add an ability to get stacktrace of a caught exception, namely to add static method <code>std::stacktrace::from_current_exception()</code>:</p>
+    <pre>
+#include &lt;iostream&gt;
+#include &lt;stdexcept&gt;
+#include &lt;string_view&gt;
+#include &lt;stacktrace&gt;   // &lt;---
+
+void foo(std::string_view key);
+void bar(std::string_view key);
+
+int main() {
+  try {
+    foo("test1");
+    bar("test2");
+  } catch (const std::exception& exc) {
+    std::stacktrace trace = std::stacktrace::from_current_exception();  // &lt;---
+    std::cerr << "Caught exception: " << exc.what() << ", trace:\n" << trace;
+  }
+}
+</pre>
+    <p>The output of the above sample may be the following:</p>
+    <pre>
+Caught exception: map::at, trace:
+ 0# get_data_from_config(std::string_view) at /home/axolm/basic.cpp:600
+ 1# bar(std::string_view) at /home/axolm/basic.cpp:6
+ 2# main at /home/axolm/basic.cpp:17
+</pre>
+    <p>That output is quite useful! Without a debugger we can locate the source file and the function that has thrown the exception.</p>
+
+    <p>More production log examples where stacktraces would help to diagnose the problem faster:</p>
+    <ul>
+      <li><code>Serializing 'UserData' failed: bad optional access</code> &mdash; a trace would show that the exception is from <code>NormalizePhone</code> function; further logs analysis will show that the phone is missing.</li>
+      <li><code>ERROR    [/order-search] exception in 'handler-search-cab-orders' handler in handle_request: _Map_base::at (std::out_of_range)</code> &mdash; a trace would show that the exception is from <code>GetOrganization</code> function; reading the code would show that the function has issues with concurrent updates</li>
+      <li><code>Failed to process 'POST' request to '/v1/order-a-cab': bad any_cast</code> &mdash; a trace would show that the exception is from authorization function; wrong context is passed to the authorization function.</li>
+      <li><code>Fatal: Missing a colon after a name of object member.</code> &mdash; a trace would show that the exception is from a function that parses JSON dictionary of configuration variables.</li>
+    </ul>
+
+    <p>Here's another motivation example. It allows the developer to diagnose <code>std::terminate</code> calls because of throws in <code>noexcept</code> function:</p>
+<pre>
+#include &lt;iostream&gt;
+#include &lt;stacktrace&gt;
+#include &lt;stdexcept&gt;
+#include &lt;unordered_map&gt;
+
+void broken_function() noexcept {
+  std::unordered_map&lt;std::string, int&gt; m;
+  [[maybe_unused]] auto value = m.at("non-existing-key");
+}
+
+int main() {
+  std::set_terminate([] {
+    auto trace = std::stacktrace::from_current_exception();
+    if (trace) {
+        std::cerr << "Terminate was called with an active exception:\n"
+                  << trace << std::endl;
+    }
+  });
+
+  broken_function();
+}
+</pre>
+    <p>Output:</p>
+<pre>
+Exception trace:
+ 0# std::__throw_out_of_range(char const*) at /build/gcc/src/gcc/libstdc++-v3/src/c++11/functexcept.cc:82
+ 1# std::__detail::_Map_base&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator ...
+ 2# std::unordered_map&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt; ...
+ 3# broken_function() at /home/axolm/terminate.cpp:8
+ 4# main at /home/axolm/terminate.cpp:17
+</pre>
+    <p><i>Disclaimer: may not produce traces on all platforms</i></p>
+
+    <p>Finally, an ability to extract stacktraces from exceptions addresses feature requests from "2021 Annual C++ Developer Survey". In it some people
+    were complaining that in their projects exceptions are restricted due to lack of stacktraces.</p>
+
+    <h2>II. Implementation and ABI stability</h2>
+    <p>Majority of the popular platforms have special functions to allocate/throw/deallocate exceptions: <code>__cxa_allocate_exception</code>, <code>__cxa_throw</code>, <code>__CxxThrowException</code>...
+    To embed a trace into an exception an underlying implementation may be changed, to gather the trace at the point where the exception is thrown.</p>
+
+    <p>This can be done without breaking the ABI. Here's a prototype <a href="https://github.com/axolm/libsfe">libsfe</a> that replaces those functions and adds a stacktrace into each exception.
+    Application can switch between exceptions with traces and without via adding and removing a <code>LD_PRELOAD=/usr/local/lib/libsfe_preload.so</code>.</p>
+
+    <p>To implement the functionality on Windows platform a new version of the <code>__CxxThrowException</code> function may be provided by the compiler runtime and to represent an exception with trace a new <code>dwExceptionCode</code> code may be reserved for the <code>RaiseException</code> [<a href="#MSVCExceptions">MSVCExceptions</a>]:</p> <pre>
+[[noreturn]] void __stdcall __CxxThrowException(void* pObj, _ThrowInfo* pInfo) {
+  if (std::this_thread::get_capture_stacktraces_at_throw()) {
+    struct ParamsNew { unsigned int magic; void* object, _ThrowInfo* info, std::stacktrace* trace; };
+    std::stacktrace trace = std::stacktrace::current();
+    ParamsNew throwParams = { ?????, pObj, pInfo, &amp;trace };
+    RaiseException(0xE06D7364 /*!new dwExceptionCode code!*/, 1, 4, (const ULONG_PTR*)&amp;throwParams);
+  }
+
+  struct ParamsOld { unsigned int magic; void* object, _ThrowInfo* info };
+  ParamsOld throwParams = { ?????, pObj, pInfo };
+  RaiseException(0xE06D7363, 1, 3, (const ULONG_PTR*)&amp;throwParams);
+}
+    </pre>
+    <p class="changed-added">P2490R0 shows more implementation techniques for
+    getting the stacktraces from exceptions without an ABI break.</p>
+
+    <h2>III. Use cases</h2>
+    <p>The table bellow shows std::stacktrace related techniques to use in different cases</p>
+    <table border=1>
+    <tr>
+      <th>Case</th>
+      <th>HowTo</th>
+      <th>Proposal</th>
+    </tr>
+    <tr>
+      <td>Need a way to get diagnostic info for an unrecoverable errors. For example for failed assert checks</td>
+      <td>Just log the trace and abort: <pre>std::cerr &lt;&lt; std::stacktrace::current();
+std::abort();
+</pre></td>
+      <td><a href="https://wg21.link/P0881">P0881</a></td>
+    </tr>
+    <tr>
+      <td>Need to get stacktraces from some code paths and you have control over the throw site.</td>
+      <td>Manually embed the stacktrace into the exception: <pre>template &lt;class Base&gt;
+struct TracedException: Base, std::stacktrace {
+  TracedException(): Base(), std::stacktrace(std::stacktrace::current()) {}
+};
+// ...
+throw TracedException&lt;std::bad_any_cast&gt;();
+</pre>
+    Extract it at the catch site: <pre>catch (const std::exception& e) {
+    if (auto ptr = dynamic_cast&lt;const std::stacktrace*&gt;(&amp;e); ptr) {
+        std::cerr << *ptr;
+    }
+    // ...
+}</pre>
+    </td>
+      <td><a href="https://wg21.link/P0881">P0881</a></td>
+    </tr>
+    <tr>
+      <td>Need a trace from the throw site to simplify diagnoses of failed tests.</td>
+      <td>Use <code>stacktrace::from_current_exception</code> in your testing macro to get the trace: <pre>EXPECT_NO_THROW(search_engine_impl("42"));</pre></td>
+      <td>This proposal</td>
+    </tr>
+    <tr>
+      <td>Need a way to diagnose a running application in production.</td>
+      <td>Turn on <code>stacktrace::from_current_exception</code> in your error handling logic: <pre>
+try {
+    std::this_thread::set_capture_stacktraces_at_throw(trace_exceptions_var);
+    process_request(request);
+} catch (const std::exception& e) {
+    if (auto trace = std::stacktrace::from_current_exception(); trace)
+        LOG_PROD_DEBUG() &lt;&lt; e.what() &lt;&lt; " at " &lt;&lt; trace;
+    }
+}</pre></td>
+      <td>This proposal</td>
+    </tr>
+    </table>
+
+    <p>To sum up: you need functionality from this paper when you have no control over the throw site or changing all the throw sites is time consuming.</p>
+
+<div class="changed-added">
+    <h2>IV. P2490 "Zero-overhead exception stacktraces"</h2>
+    <p>P2490 proposes to capture the stacktrace at entering the <code>catch</code> block rather than at the <code>throw</code> side.
+    In our opinion the approach is interesting, but some of the P2490 preferred design choices have disadvantages.</p>
+    
+    <h3>1. Disadvantages</h3>
+    <h4>A. No way to disable stacktrace capturing at runtime in some of the proposed syntaxes</h4>
+    <p>The P2490 proposal does not provide a runtime way to disable capturing stacktraces at entering the
+    <code>catch</code> block in "2.1. Special function":</p>
+
+<pre>std::atomic&lt;bool&gt; g_debug{false};
+// ...
+try {
+    process_request(request);
+} catch (const std::exception& e) {
+    some_function();
+    if (g_debug) {
+      std::cerr &lt;&lt; e.what() &lt;&lt; " at " &lt;&lt; std::stacktrace::from_current_exception();
+    }
+}</pre>
+
+    <p>In the above sample there is no compile time information to understand
+    if <code>std::stacktrace::from_current_exception()</code> is invoked at runtime or not. So 
+    the stacktrace is always captured and stored, even if it is not used.</p>
+
+    <p>This proposal P2370 provides a way to disable captures and it does not add
+    any noticeable overhead: <a href="https://quick-bench.com/q/ChuNETMjGDgYCS6iYQ1V7Ns9qDw">online benchmark</a>,
+    reports 4087 ticks for <code>throw+catch</code> vs 4068 ticks for <code>throw+catch</code> with thread local
+    variable modification. The difference is totally lost in noise
+    even for the case with no destructor invocations for local variables and for 0-1 unwinding depth.</p>
+
+    <h4>B. Stacktraces are lost at <code>throw;</code></h4>
+<pre>void process(std::string_view request) { // third party library code
+  try {
+    auto parsed = ParseRequest(request);   // may throw SomeException
+    Authorize(parsed);                     // may throw AuthException
+    auto response = MakeResponse(parsed);  // may throw SomeException
+    Send(response);                        // may throw SomeException
+  } catch (...) {
+    CloseConnection();
+    throw;
+  }
+}
+
+// Users code:
+
+try {
+    process(request);
+} catch (const SomeException&amp; ) {
+  std::cerr &lt;&lt; std::stacktrace::from_current_exception();
+} catch (const AuthException&amp; ) {
+}</pre>
+
+    <p>According to the P2490 the rethrown <code>SomeException</code>
+    would give stacktrace starting from <code>process()</code> which is probably not what the user wished for.
+    There is no way to get the whole trace without changing the code of the <code>process()</code> function
+    which may be a third party code that the user has no control of.</p>
+    
+    <p>Moreover, <code>std::rethrow_exception</code> produces stacktrace from the rethrow point,
+    stacktraces from <code>std::exception_ptr</code> lose the most important part of the trace.</p>
+
+    <p>For a debugging facility that tends to be usable without code modifications such behavior
+    is not the best default.</p>
+
+    <h4>C. Does not work with zero overhead exceptions</h4>
+    <p>Zero overhead exceptions are close to returning <code>std::expected</code>. They reuse the return paths,
+    so when an exception reaches the <code>catch</code> block there is no stacktrace left, all the frames were
+    cleaned up. This proposal P2370 may work with zero overhead exceptions if the stacktrace is stored within <code>std::expected</code>
+    at <code>throw</code>.</p>
+
+    <h3>2. Middle ground with P2490</h3>
+    <p>To deal with disadvantage "A" <code>this_thread::get_capture_stacktraces_at_throw()</code> is still required. P2490 is against that,
+    however as was shown above the performance impact of such decision is unnoticeable.</p>
+
+    <p>To deal with disadvantage "B" use the P2490 "mechanisms to alleviate" by default. If there is a <code>throw;</code>
+    in the <code>catch</code> block and <code>this_thread::get_capture_stacktraces_at_throw()</code>
+    returns <code>true</code> then the stacktrace for exception is captured and its frames appended to
+    some storage associated with the exception.</p>
+    
+    <p>With the above changes in mind revision 2 of this proposal does a minor wording tweaking to
+    make P2490 based implementations conform to the wording of this proposal.</p>
+    
+    <p>As a result, where to capture the traces (at <code>throw exception</code> or at <code>catch</code>
+    block) is now a Quality of Implementation issue. Implementations that prefer
+    to capture stacktraces at the <code>catch</code>
+    block conform to the wording and still may have the following optimizations:</p>
+
+<pre>try {
+    throw std::runtime_error("sample");
+} catch (const std::exception& e) {
+    // do nothing
+}</pre>
+
+    <p>In the above sample there is no <code>throw;</code>
+    or <code>from_current_exception()</code>. The code could be optimized to totally skip the
+    <code>this_thread::get_capture_stacktraces_at_throw()</code> checks and stacktrace captures.
+
+<pre>try {
+    throw std::runtime_error("sample");
+} catch (const std::exception& e) {
+  std::cerr &lt;&lt; std::stacktrace::from_current_exception();
+}</pre>
+
+    <p>In the above sample there is a potential use of
+    <code>from_current_exception()</code>. If a <code>this_thread::get_capture_stacktraces_at_throw()</code>
+    call returns <code>false</code> then the stacktrace capturing is skipped.
+
+<pre>try {
+    throw std::runtime_error("sample");
+} catch (const std::exception& e) {
+  throw;
+}</pre>
+    <p>In the above sample there is a potential use of
+    <code>throw;</code>, if a <code>this_thread::get_capture_stacktraces_at_throw()</code>
+    call returns <code>false</code> then the stacktrace capturing is skipped.
+</div>
+
+    <h2>V. Design decisions</h2>
+    <h3>A. Recommend to turn off by default</h3>
+    <p>As was noted in mailing list discussion the proposed functionality increases memory consumption by exceptions. Moreover, it adds noticeable overhead on some platforms.</p>
+    <p>Because of that we recommend to disable the functionality by default in release builds and enable in debug. To enable the stacktrace capturing on exception object construction for the current thread user would have to use <code>std::this_thread::set_capture_stacktraces_at_throw(bool enable) noexcept;</code>.</p>
+
+    <h3>B. Safety</h3>
+    <p>Proposed <code>std::stacktrace::from_current_exception()</code> function is a diagnostic facility. It would be used in error processing and other places that are rarely tested.
+    Because of that it follows the <code>std::stacktrace</code> design: do not report missing traces as errors, do not throw and treat all the internal errors as a missing trace.</p>
+
+    <h3>C. Link time flag from std::stacktrace</h3>
+    <p>"A Proposal to add stacktrace library" <a href="https://wg21.link/P0881">P0881</a> encouraged implementations to provide a link time flag to disable or enable traces. With disabled tracing
+    <code>std::stacktrace::from_current_exception()</code> may be called at runtime and it returns default constructed <code>std::stacktrace</code>.</p>
+
+    <h3>D. Per thread ability to enable</h3>
+    <p>Consider some server under heavy load with 5 different executors. Something goes wrong with one of the executors. Capturing of stacktraces on exception object construction and symbolizing them for all the executors could slow down the server significantly while only traces for 1 executor are needed. So the option should be thread specific.</p>
+    <p>Such approach scales well to coroutines. Call the <code>std::this_thread::set_capture_stacktraces_at_throw(bool enable) noexcept;</code> after context switch and you have per coroutine ability to enable or disable stacktrace capturing at the exception object construction.</p>
+
+<div class="changed-added">
+    <h3>E. Allow stacktrace capturing at the catch block</h3>
+    <p>P2490 shows that there my be different techniques to capture the trace. The wording
+    tends to allow different implementations, and because of that calling the
+    <code>set_capture_stacktraces_at_throw</code> during stack unwinding may
+    produce empty stacktraces.</p>
+</div>
+
+
+    <h2>VI. Wording</h2>
+      <p>Add to the [stacktrace.syn]:</p>
+<pre>
+  // [stacktrace.basic], class template basic_stacktrace
+  template&lt;class Allocator&gt;
+    class basic_stacktrace;
+
+<span class="cppaddition">  namespace this_thread {
+    void set_capture_stacktraces_at_throw(bool enable = true) noexcept;
+    bool get_capture_stacktraces_at_throw() noexcept;
+  }</span>
+
+  // basic_stacktrace typedef names
+  using stacktrace = basic_stacktrace&lt;allocator&lt;stacktrace_entry&gt;;&gt;;
+</pre>
+      <p>Add to the [stacktrace.basic.overview]:</p>
+<pre>
+    static basic_stacktrace current(size_type skip, size_type max_depth,
+                                    const allocator_type&amp; alloc = allocator_type()) noexcept;
+
+<span class="cppaddition">    static basic_stacktrace from_current_exception(
+                                    const allocator_type&amp; alloc = allocator_type()) noexcept;</span>
+
+    basic_stacktrace() noexcept(is_nothrow_default_constructible_v&lt;allocator_type&gt;);
+</pre>
+
+      <p>Add to the [stacktrace.basic.ctor] after the description of <code>current()</code> functions:</p>
+<div class="cppaddition">
+    <pre>static basic_stacktrace from_current_exception(const allocator_type&amp; alloc = allocator_type()) noexcept;</pre>
+        <div class="desc"><i>Effects:</i> Returns a <code>basic_stacktrace</code> object with <code>frames_</code> containing a stacktrace
+        <span class="changed-added">as if</span> captured at the point where the currently handled exception was thrown by its initial <code>throw-expression</code> (i.e. not a rethrow),
+        or an empty <code>basic_stacktrace</code> object if:
+          <ul>
+              <li>the initialization of <code>frames_</code> failed, or</li>
+              <li>stacktrace captures are not enabled for the throwing thread, or</li>
+              <li class="changed-added">stacktrace captures for the throwing thread were changed during stack unwinding or exception handling, or</li>
+              <li>no exception is being handled, or</li>
+              <li>due to implementation-defined reasons.</li>
+          </ul>
+        <code>alloc</code> is passed to the constructor of the <code>frames_</code> object.</div>
+        <div class="desc">Rethrowing an exception using a <code>throw-expression</code> with no operand does not alter the captured stacktrace.</div>
+</div>
+
+      <p>Add section [stacktrace.thread.this] before the [stacktrace.basic.mod] section:</p>
+      <h3 class="cppaddition">Namespace this_thread <span class="right">[stacktrace.thread.this]</span></h3>
+<div class="cppaddition">
+    <pre>void this_thread::set_capture_stacktraces_at_throw(bool enable = true) noexcept;</pre>
+        <div class="desc"><i>Effects:</i> Invoking the function with the <code>enable</code> parameter equal to <code>true</code> enables capturing of stacktraces by the current thread of execution at exception object construction, disables otherwise. It is implementation-defined whether the capturing of stacktraces by the current thread of execution is enabled if <code>set_capture_stacktraces_at_throw</code> has not been invoked in the current thread of execution.</div>
+</div><div class="cppaddition">
+    <pre>bool this_thread::get_capture_stacktraces_at_throw() noexcept;</pre>
+        <div class="desc"><i>Returns:</i> whether the capturing of stacktraces by the current thread of execution is enabled and <code>from_current_exception</code> may return a non empty <code>basic_stacktrace</code>.</div>
+</div>
+      <p>Adjust value of the <code class="cppaddition">__cpp_­lib_­stacktrace</code> macro in [version.syn] to the date of adoption.</p>
+
+    <h2>VII. Revision History</h2>
+    <p class="changed-added">Revision 2:</p>
+    <ul class="changed-added">
+        <li>Analysis of P2490.</li>
+        <li>Tweaked the wording to allow P2490 implementation.</li>
+    </ul>
+    <p>Revision 1:</p>
+    <ul>
+        <li>Renamed <code>capture_stacktraces_at_throw</code> into <code>set_capture_stacktraces_at_throw</code>, added <code>get_capture_stacktraces_at_throw</code> function.</li>
+        <li>Consistent usage of "exception object" and "capturing of stacktraces".</li>
+        <li>Added an implementation idea for Windows.</li>
+        <li>Minor wording clarifications, feature test macro notes and cleanups.</li>
+    </ul>
+    <p>Revision 0:</p>
+    <ul>
+        <li>Initial proposal.</li>
+    </ul>
+    
+    <h2>VIII. Acknowledgements</h2>
+    <p>Many thanks to all the people who helped with the paper! Special thanks to Jens Maurer and Ville Voutilainen for numerous comments and suggestions.</p>
+
+    <h2>IX. References</h2>
+    <p>[<a name="libsfe">libsfe</a>] Proof of concept implementation. Available online at <a href="https://github.com/axolm/libsfe">https://github.com/axolm/libsfe</a>.</p>
+    
+    <p>[<a name="MSVCExceptions">MSVCExceptions</a>] <a href="https://www.codeproject.com/Articles/175482/Compiler-Internals-How-Try-Catch-Throw-are-Interpr">"Compiler Internals - How Try/Catch/Throw are Interpreted by the Microsoft Compiler"</a> by Yanick Salzmann.</p>
+
+    <p>[<a name="P2490R0">P2490R0</a>] <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2021/p2490r0.html">Zero-overhead exception stacktraces</a> by Ed Catmur.</p>
+
+    <p>[<a name="ThrowCatchBenchmark">ThrowCatchBenchmark</a>] <a href="https://quick-bench.com/q/ChuNETMjGDgYCS6iYQ1V7Ns9qDw">Measure execution time of throw+catch without and
+    with modification of a thread local variable</a>.</p>
+
+<script type="text/javascript">
+    function colorize_texts(texts) {
+    for (var i = 0; i < texts.length; ++i) {
+        var text = texts[i].innerHTML;
+        text = text.replace(/namespace|if |using|async|do\n|while|resumable|co_await|co_yield|co_return|await|yield|try |throw |sizeof|long|enum|void|constexpr|extern|noexcept|bool|template|class |struct |auto|const |typename|explicit|public|private|operator|#include|inline|catch|typedef|static_assert|int|throw;| return|union|static_cast|static |dynamic_cast/g,"<span class='cppkeyword'>$&<\/span>");
+        text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+        texts[i].innerHTML = text;
+    }
+    }
+
+    colorize_texts(document.getElementsByTagName("pre"));
+    colorize_texts(document.getElementsByTagName("code"));
+
+    function show_hide_deleted() {
+    var to_change = document.getElementsByClassName('changed-deleted');
+    for (var i = 0; i < to_change.length; ++i) {
+        to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
+    }
+    }
+    show_hide_deleted()
+
+    initial_text = document.getElementById('diff').innerHTML
+    function on_input_change(self) {
+        document.getElementById('diff').innerHTML = initial_text.replace(/async/g, self.value);
+    }
+</script>
+</body></html>
+
