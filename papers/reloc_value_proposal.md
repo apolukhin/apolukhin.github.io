@@ -103,13 +103,15 @@ T foo() {
 }
 ```
 
-`relocate`ed objects do not bind to lvalue/const lvalue/rvalue/const rvalue/... references, object
-could be relocated only into an automatic storage duration object:
+`relocate`ed objects "decay" to prvalue value category, so they could be bound and lifetime extended::
 
 ```cpp
 void foo() {
   T x;
-  const T& tmp = relocate x;  // Ill formed
+  const T& tmp = relocate x;  // lifetime extended
+
+  T y;
+  T& tmp = relocate y;  // Ill formed
 }
 ```
 
@@ -159,8 +161,8 @@ unique_ptr::unique_ptr(unique_ptr&& other)
 }
 
 unique_ptr sample(unique_ptr up) {
-  return std::move(up);   // Calls unique_ptr(unique_ptr&& other)
-  // destructor of `~up` is called if no copy-elision happened 
+  return up;   // Calls unique_ptr(unique_ptr&& other)
+  // destructor of `~up` is called 
 }
 ```
 
@@ -171,6 +173,7 @@ relocate unique_ptr::unique_ptr(unique_ptr other) {
   ptr_ = relocate other.ptr_;
   deleter_ = relocate other.deleter_;
 
+  // no `other.ptr_ = nullptr;` see below
   // Destructor of `other` is not called
 }
 
@@ -212,25 +215,25 @@ struct S {
 }
 ```
 
-The relocation constructor code:
+The relocation constructor code. Lifetime of a member starts on first `=`:
 ```cpp
 relocate S::S(S src) {
   auto index = src.d_it - src.d_v.begin();
   d_v = relocate src.d_v;     // Starts the lifetime of d_v
-  d_it(d_v.begin() + idx);    // Starts the lifetime of d_it
+  d_it = small_vector<T>::iterator(d_v.begin() + idx);    // Starts the lifetime of d_it
   relocate src.d_it;
   // no `~src` call
 }
 ```
 
-Some examples of ill formed relocation constructor of that type:
+Some examples of ill formed relocation constructor for that type:
 
 1.
 ```cpp
 relocate S::S(S src) {
   auto index = src.d_it - src.d_v.begin();
   d_v = relocate src.d_v;
-  d_it(d_v.begin() + idx);
+  d_it = small_vector<T>::iterator(d_v.begin() + idx);
 
   // Ill formed, `src.d_it` was not explicitly relocated
 }
@@ -241,7 +244,6 @@ relocate S::S(S src) {
 relocate S::S(S src) {
   d_it = relocate src.d_it;   // Ill formed, lifetime of `d_it` started before the lifetime of `d_v`
   d_v = relocate src.d_v;     
-  
 }
 ```
 
@@ -321,7 +323,6 @@ cases:
 struct fast_mutex {
   void lock()   { futex_wait(reinterpret_cast<std::uintprt_t>(this), LOCK); }
   void unlock() { futex_wait(reinterpret_cast<std::uintprt_t>(this), UNLOCK); }
-
 };
 ```  
 
