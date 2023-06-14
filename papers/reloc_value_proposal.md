@@ -39,7 +39,7 @@ To have a strong guarantee and avoid the `assert(r)` there should be
 a way to avoid an empty state, while still be able to relocate the object.
  
 
-This could be achieved by by introducing a `relocate` semantics and an optional
+This could be achieved by introducing a `relocate` semantics and an optional
 customization of that relocation:
 
 ```cpp
