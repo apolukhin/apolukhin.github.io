@@ -24,7 +24,7 @@ building could stand a breeze.
 ## Introduction
 
 Move semantic allows to transfer ownership of a resource. However it leaves the
-moved-from value in scope and is could be accessed. Also, the moved-from value
+moved-from value in scope and it could be accessed. Also, the moved-from value
 provokes the type to have some 'empty state' and default constructor.
 That may not match the domain problem:
 
