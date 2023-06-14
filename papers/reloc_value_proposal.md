@@ -304,7 +304,7 @@ relocate T::T(allocator_type alloc, T src) {
 When the compiler sees constructor invocation with a relocate variable of the type being
 constructed (for example, `T v; T x(42, 14, relocate v)` then the compiler does the
 overload resolution only on constructors that were marked as `relocate`, treating
-all the variables as prvalue. If no
+all the relocate variables as prvalue. If no
 constructor found - the program is ill formed. Otherwise, constructors marked
 with `relocate` do not participate in overload resolution.
 
