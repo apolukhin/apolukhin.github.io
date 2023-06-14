@@ -164,7 +164,7 @@ unique_ptr sample(unique_ptr up) {
 }
 ```
 
-With relocation constructor we can safe some CPU cycles:
+With relocation constructor we can save some CPU cycles:
 
 ```cpp
 relocate unique_ptr::unique_ptr(unique_ptr other) {
