@@ -29,7 +29,9 @@ provokes the type to have some 'empty state' and default constructor.
 That may not match the domain problem:
 
 ```cpp
-void do_something(resource r) {
+void do_something() {
+  resource r = get_resource();
+  foo(r);
   assert(r);  // no way to guarantee non empty state at compile time
   // ...
 }
@@ -58,12 +60,11 @@ private:
   handle h_;
 };
 
-
-void example() {
-  resource r{42, 100500};
-
-  do_something(relocate r);   // Proposed
-  // attempt to use `r` results in ill-formed program
+void do_something() {
+  resource r = get_resource();
+  foo(r);
+  // `r` is just can not be empty
+  // ...
 }
 ```
 
@@ -115,7 +116,6 @@ void foo() {
 Some of the examples from P2785 apply:
 
 ```cpp
-void foo(std::string str);
 std::string get_string();
 std::pair<std::string, std::string> get_strings();
 
@@ -124,14 +124,14 @@ std::string gStr = "static string";
 void bar(void)
 {
 	std::string str = "test string";
-	foo(reloc str); // OK: relocation will happen given that std::string has a reloc ctor
-	foo(reloc gStr); // ill-formed: gStr does not have local storage
+	auto a = relocate str; // OK: relocation will happen given that std::string has a reloc ctor
+	auto b = relocate gStr; // ill-formed: gStr does not have local storage
 
 	std::pair p{std::string{}, std::string{}};
-	foo(reloc p.first); // ill-formed: p.first is not a complete object, and not the name of variable
+	auto c = relocate p.first; // ill-formed: p.first is not a complete object, and not the name of variable
 
-	foo(reloc get_string()); // ill-formed: not the name of variable
-	foo(reloc get_strings().first); // ill-formed: not a complete object, and not the name of variable
+	auto d = relocate get_string(); // ill-formed: not the name of variable
+	auto e = relocate get_strings().first; // ill-formed: not a complete object, and not the name of variable
 }
 ```
 
@@ -347,6 +347,45 @@ for proposals that propose `std::is_trivially_relocatable` like traits. The
 latter could check for relocate constructors triviality from this paper, and
 provide an answer depending on that.
 
+
+### `relocate` of function parameters
+
+Some calling conventions destroy the object outside of the function:
+
+```cpp
+class Sample;
+void foo(Sample s);
+// ...
+
+void destruction_intro() {
+  foo(Sample{}); // Constructs Sample{}
+  // destructor of previously constructed Sample{} is called
+  // `foo` can not take over ownership of temprotaty Sample, because
+  // it has no control ower the destructor call
+}
+```
+
+However, the solution is quite straitforward and not scary for the feature user:
+
+```cpp
+void foo(Sample s) {
+  auto x = relocate s;
+  // Compiler message ^: Ill formed, declare function as `void foo(relocate Sample
+  // s)` to be able to move from function parameter `s`
+}
+```
+Fixed varsion:
+
+
+```cpp
+void foo(relocate Sample s) {
+  auto x = relocate s; // Fine
+}
+```
+
+What is happening under the hood:
+* compiler sees the `void foo(relocate Sample s)`
+* calling convention changes to not emit a destructor call for `s`, the `foo` now takes care of it
 
 ### `relocate` in libraries
 
