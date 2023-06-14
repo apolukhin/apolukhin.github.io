@@ -63,7 +63,7 @@ void example() {
   resource r{42, 100500};
 
   do_something(relocate r);   // Proposed
-  // attempt to use `r` result in ill-formed program
+  // attempt to use `r` results in ill-formed program
 }
 ```
 
@@ -85,7 +85,7 @@ T new_own_value = relocate own_value;  // Calls `relocate T(T)`, `own_value` cou
 
 
 It limits lifetime analysis to the current function only, avoiding the
-double-desctruction issue of P2839R0:
+double-destruction issue of P2839R0:
 
 ```cpp
 void foo(T& value) {
