@@ -146,7 +146,7 @@ Thus we avoid the problem of partial destruction of an object.
 ### `relocate` constructor
 
 The idea of the `relocate` constructor is that it ends the lifetime of an
-initial object, this giving the full power over optimizing the relocation:
+initial object, thus giving the full power over optimizing the relocation.
 
 Consider the simplified move constructor of std::unique_ptr:
 
