@@ -1,3 +1,5 @@
+# THIS PAPER IS BROKEN, THE IDEA DOES NOT WORK. DO NOT READ IT
+
 # Minimal Language Relocation
 
 ## TL;DR:
