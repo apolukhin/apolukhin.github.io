@@ -1,3 +1,5 @@
+# THIS PAPER IS BROKEN, THE IDEA DOES NOT WORK. DO NOT READ IT
+
 # Minimal Language Relocation
 
 ## TL;DR:
@@ -29,7 +31,9 @@ provokes the type to have some 'empty state' and default constructor.
 That may not match the domain problem:
 
 ```cpp
-void do_something(resource r) {
+void do_something() {
+  resource r = get_resource();
+  foo(r);
   assert(r);  // no way to guarantee non empty state at compile time
   // ...
 }
@@ -58,12 +62,11 @@ private:
   handle h_;
 };
 
-
-void example() {
-  resource r{42, 100500};
-
-  do_something(relocate r);   // Proposed
-  // attempt to use `r` results in ill-formed program
+void do_something() {
+  resource r = get_resource();
+  foo(r);
+  // `r` is just can not be empty
+  // ...
 }
 ```
 
@@ -102,20 +105,21 @@ T foo() {
 }
 ```
 
-`relocate`ed objects do not bind to lvalue/const lvalue/rvalue/const rvalue/... references, object
-could be relocated only into an automatic storage duration object:
+`relocate`ed objects "decay" to prvalue value category, so they could be bound and lifetime extended::
 
 ```cpp
 void foo() {
   T x;
-  const T& tmp = relocate x;  // Ill formed
+  const T& tmp = relocate x;  // lifetime extended
+
+  T y;
+  T& tmp = relocate y;  // Ill formed
 }
 ```
 
 Some of the examples from P2785 apply:
 
 ```cpp
-void foo(std::string str);
 std::string get_string();
 std::pair<std::string, std::string> get_strings();
 
@@ -124,14 +128,14 @@ std::string gStr = "static string";
 void bar(void)
 {
 	std::string str = "test string";
-	foo(reloc str); // OK: relocation will happen given that std::string has a reloc ctor
-	foo(reloc gStr); // ill-formed: gStr does not have local storage
+	auto a = relocate str; // OK: relocation will happen given that std::string has a reloc ctor
+	auto b = relocate gStr; // ill-formed: gStr does not have local storage
 
 	std::pair p{std::string{}, std::string{}};
-	foo(reloc p.first); // ill-formed: p.first is not a complete object, and not the name of variable
+	auto c = relocate p.first; // ill-formed: p.first is not a complete object, and not the name of variable
 
-	foo(reloc get_string()); // ill-formed: not the name of variable
-	foo(reloc get_strings().first); // ill-formed: not a complete object, and not the name of variable
+	auto d = relocate get_string(); // ill-formed: not the name of variable
+	auto e = relocate get_strings().first; // ill-formed: not a complete object, and not the name of variable
 }
 ```
 
@@ -159,8 +163,8 @@ unique_ptr::unique_ptr(unique_ptr&& other)
 }
 
 unique_ptr sample(unique_ptr up) {
-  return std::move(up);   // Calls unique_ptr(unique_ptr&& other)
-  // destructor of `~up` is called if no copy-elision happened 
+  return up;   // Calls unique_ptr(unique_ptr&& other)
+  // destructor of `~up` is called 
 }
 ```
 
@@ -171,6 +175,7 @@ relocate unique_ptr::unique_ptr(unique_ptr other) {
   ptr_ = relocate other.ptr_;
   deleter_ = relocate other.deleter_;
 
+  // no `other.ptr_ = nullptr;` see below
   // Destructor of `other` is not called
 }
 
@@ -212,25 +217,25 @@ struct S {
 }
 ```
 
-The relocation constructor code:
+The relocation constructor code. Lifetime of a member starts on first `=`:
 ```cpp
 relocate S::S(S src) {
   auto index = src.d_it - src.d_v.begin();
   d_v = relocate src.d_v;     // Starts the lifetime of d_v
-  d_it(d_v.begin() + idx);    // Starts the lifetime of d_it
+  d_it = small_vector<T>::iterator(d_v.begin() + idx);    // Starts the lifetime of d_it
   relocate src.d_it;
   // no `~src` call
 }
 ```
 
-Some examples of ill formed relocation constructor of that type:
+Some examples of ill formed relocation constructor for that type:
 
 1.
 ```cpp
 relocate S::S(S src) {
   auto index = src.d_it - src.d_v.begin();
   d_v = relocate src.d_v;
-  d_it(d_v.begin() + idx);
+  d_it = small_vector<T>::iterator(d_v.begin() + idx);
 
   // Ill formed, `src.d_it` was not explicitly relocated
 }
@@ -241,7 +246,6 @@ relocate S::S(S src) {
 relocate S::S(S src) {
   d_it = relocate src.d_it;   // Ill formed, lifetime of `d_it` started before the lifetime of `d_v`
   d_v = relocate src.d_v;     
-  
 }
 ```
 
@@ -321,7 +325,6 @@ cases:
 struct fast_mutex {
   void lock()   { futex_wait(reinterpret_cast<std::uintprt_t>(this), LOCK); }
   void unlock() { futex_wait(reinterpret_cast<std::uintprt_t>(this), UNLOCK); }
-
 };
 ```  
 
@@ -347,6 +350,45 @@ for proposals that propose `std::is_trivially_relocatable` like traits. The
 latter could check for relocate constructors triviality from this paper, and
 provide an answer depending on that.
 
+
+### `relocate` of function parameters
+
+Some calling conventions destroy the object outside of the function:
+
+```cpp
+class Sample;
+void foo(Sample s);
+// ...
+
+void destruction_intro() {
+  foo(Sample{}); // Constructs Sample{}
+  // destructor of previously constructed Sample{} is called
+  // `foo` can not take over ownership of temprotaty Sample, because
+  // it has no control ower the destructor call
+}
+```
+
+However, the solution is quite straitforward and not scary for the feature user:
+
+```cpp
+void foo(Sample s) {
+  auto x = relocate s;
+  // Compiler message ^: Ill formed, declare function as `void foo(relocate Sample
+  // s)` to be able to move from function parameter `s`
+}
+```
+Fixed varsion:
+
+
+```cpp
+void foo(relocate Sample s) {
+  auto x = relocate s; // Fine
+}
+```
+
+What is happening under the hood:
+* compiler sees the `void foo(relocate Sample s)`
+* calling convention changes to not emit a destructor call for `s`, the `foo` now takes care of it
 
 ### `relocate` in libraries
 
