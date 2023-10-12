@@ -1,0 +1,610 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+    <title>Aggregates are named tuples</title>
+    <meta http-equiv="Content-Language" content="en-us">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <style type="text/css">
+        .addition { color: green; }
+        .right { float:right }
+        .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+        .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+        .changed-added { background-color: #CFF0FC ;}
+        .notes { background-color: gold ;}
+        pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
+        .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; font-family:monospace }
+        body {max-width: 1024px; margin-left: 25px;}
+        del { background-color: red; }
+        ins { background-color: lightgreen; text-decoration: none; display: block; }
+        .sub { vertical-align: sub; }
+        .sup { vertical-align: sup; }
+        .lmargin50{margin-left: 50px;}
+        .width_third{width: 33%;}
+        .cppkeyword { color: blue; }
+        .asmcostly { color: red; }
+        .cppcomment { color: green; }
+        .cppcomment > .cppkeyword{ color: green; }
+        .cpptext { color: #2E8B57; }
+        .cppaddition { background-color: #CFC; }
+        .cppdeletion {  text-decoration: line-through; background-color: #FCC; }
+        .stdquote { background-color: #ECECEC; font-family: Consolas,monospace; }
+    </style>
+    </head>
+    <body bgcolor="#ffffff">
+    <address>Document number: P2141R1</address>
+    <address>Project: Programming Language C++</address>
+    <address>Audience: LEWG</address>
+    <address>&nbsp;</address>
+    <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+    <address>&nbsp;</address>
+    <address>Date: 2023-05-03</address>
+    <h1>Aggregates are named tuples</h1>
+
+<p align="right">“Call him Voldemort, Harry. Always use the proper name for things.”</p>
+<p align="right"><i>―  J.K. Rowling, Harry Potter and the Sorcerer's Stone </i></p>
+
+
+    <h2>O. Changelog</h2>
+    <p>R1:</p>
+    <ul>
+      <li>Addressed LEWG feedback in "V. Design decisions and LEWG questions"</li>
+      <li>Switched to using <code>std::element_count</code> rather than specializing <code>std::tuple_size</code></li>
+      <li>Prototype with tests for libstdc++: <a href="https://github.com/apolukhin/gcc/pull/3">PR</a></li>
+      <li><a href="https://godbolt.org/z/rEcxd6dnz">Online Playground at Godbolt</a></li>
+    </ul>
+    <p>R0:</p>
+    <ul>
+      <li>Initial version</li>
+      <li>"EWG agrees that this is a valid library feature, and LEWG should consider P2141. EWG does not believe this conflicts with any language facilities, current or proposed." SF:9 	F:16 	N:1 	A:0 	SA: 0</li>
+      <li>"LEWG are interested in P2141R0 but want to see standard library implementation experience due to the additional overload of std::get." SF:13 	F:8 	N:1 	A:0 	SA: 0</li>
+    </ul>
+
+    <h2>I. Quick Introduction</h2>
+    <p>In C++ we have:</p>
+    <ul>
+      <li>tuples - types that provide access to members by index. Those are useful for generic programming</li>
+      <li>aggregates - types with named fields. Those are just easy to use.</li>
+    </ul>
+    <p>This paper was inspired by multiple years of experience with <a href="https://github.com/apolukhin/magic_get">PFR/magic_get library</a>. The core idea of this paper is to add functionality to some aggregates so that they could behave as tuples.</p>
+
+    <h2>II. Motivation and Examples</h2>
+    <p><code>std::tuple</code> and <code>std::pair</code> are great for generic programming, however they have disadvantages. First of all, code that uses them becomes barely readable. Consider two definitions:</p>
+<pre>
+struct auth_info_aggregate {
+    std::int64_t id;
+    std::int64_t session_id;
+    std::int64_t source_id;
+    std::time_t valid_till;
+};
+
+using auth_info_tuple = std::tuple<
+    std::int64_t,
+    std::int64_t,
+    std::int64_t,
+    std::time_t
+>;</pre>
+    <p>Definition via structure is much more clear. Same story with usages: <code>return std::get&lt;1&gt;(value);</code> vs. <code>return value.session_id;</code> </p>
+
+    <p>Another advantage of aggregates is a more efficient copy, move construction and assignments:</p>
+
+<pre>
+template &lt;class T&gt;
+constexpr bool validate() {
+    static_assert(std::is_trivially_move_constructible_v&lt;T&gt;);
+    static_assert(std::is_trivially_copy_constructible_v&lt;T&gt;);
+    static_assert(std::is_trivially_move_assignable_v&lt;T&gt;);
+    static_assert(std::is_trivially_copy_assignable_v&lt;T&gt;);
+    return true;
+}
+
+constexpr bool tuples_fail = validate&lt;auth_info_tuple&gt;(); // Fails majority of checks
+constexpr bool aggregates_are_ok = validate&lt;auth_info_aggregate&gt;();
+</pre>
+
+    <p>Because of the above issues many coding guidelines <b>recommend to use aggregates instead of tuples</b>.</p>
+    <p>However at the moment aggregates fail when it comes to the functional like programming:</p>
+
+<pre>
+namespace impl {
+    template &lt;class Stream, class Result, std::size_t... I>
+    void fill_fields(Stream&amp; s, Result&amp; res, std::index_sequence&lt;I...&gt;) {
+        (s &gt;&gt; ... &gt;&gt; std::get&lt;I&gt;(res));
+    }
+}
+
+template &lt;class T&gt;
+T ExecuteSQL(std::string_view statement) {
+    std::stringstream stream;
+    // some logic that feeds data into stream
+
+    T result;
+    impl::fill_fields(stream, result, std::make_index_sequence&lt;std::tuple_size_v&lt;T&gt;&gt;());
+    return result;
+}
+
+constexpr std::string_view query = "SELECT id, session_id, source_id, valid_till FROM auth";
+const auto tuple_result = ExecuteSQL&lt;auth_info_tuple&gt;(query);
+const auto aggregate_result = ExecuteSQL&lt;auth_info_aggregate&gt;(query); // does not compile
+
+// Playground https://godbolt.org/z/y49lya
+</pre>
+
+    <p>By bringing the functionality of tuples into aggregates we get all the advantages of tuples without loosing advantages of aggregates. We get <b>named tuples</b>.</p>
+
+
+    <h2>III. The Idea</h2>
+    <p>Make <code>std::get</code>, <code>std::tuple_element</code> and <code>std::tuple_size/std::element_count</code> work with aggregates. This also makes <code>std::tuple_element_t</code>, <code>std::apply</code>, <code>std::tuple_cat</code> and <code>std::make_from_tuple</code> usable with aggregates.</p>
+
+
+    <h2>IV. Interaction with other papers</h2>
+    <p><a href="https://wg21.link/P1061">P1061 "Structured Bindings can introduce a Pack"</a> makes it really simple to implement the ideas proposed in this paper. For example elements count detection could be implemented as:</p>
+<pre>
+template &lt;class T>
+constexpr std::size_t fields_count() {
+    auto [...x] = T();
+    return sizeof...(x);
+}
+</pre>
+    <p><a href="https://wg21.link/P1061">P1061</a> is not a requirement for this paper acceptance. Same logic could be implemented as a compiler built-in or even via some metaprogramming tricks, as in <a href="https://github.com/apolukhin/magic_get">PFR/magic_get library</a>.</p>
+
+    <p>There may be concerns, that proposed functionality may hurt <a href="https://wg21.link/N4818">N4818 "C++ Extensions for Reflection"</a> adoption, as some of functionality becomes available without reflection. Experience with <a href="https://github.com/apolukhin/magic_get">PFR/magic_get library</a> shows that <code>std::get</code> and <code>std::tuple_size</code> functions cover only very basic cases of reflection. we still need reflection for trivial things, like serialization to JSON, because only reflection gives us field names of the structure.</p>
+
+
+    <p>Parts of <a href="https://wg21.link/P1858R1">P1858R1 "Generalized pack declaration and usage"</a> address some of the ideas of this paper on a language level and give
+    simple to use tools to implement ideas of this paper. However this paper brings capabilities symmetry to the standard library, shows another approach to deal with field access by index and allows existing user code to work out-of-the-box with aggregates:</p>
+
+    <table border=1>
+      <tr><th>C++20</th><th>This paper</th><th>P1858</th></tr>
+      <tr><td>
+<pre>
+// Works only with tuples
+// 
+int foo(auto value) {
+    if (!std::get&lt;10&gt;(value)) {
+        return 0;
+    }
+
+    return std::apply(function, value);
+}
+</pre>
+      </td><td>
+<pre>
+// Works with tuples and aggregates
+// No code change required
+int foo(auto value) {
+    if (!std::get&lt;10&gt;(value)) {
+        return 0;
+    }
+
+    return std::apply(function, value);
+}
+</pre>
+      </td><td>
+<pre>
+// Works with tuples and aggregates
+// Users are forced to rewrite code
+int foo(auto value) {
+    if (!value::[10]) {
+        return 0;
+    }
+
+    return std::invoke(function, value::[:]);
+}
+</pre>
+      </td></tr>
+
+
+      <tr><td>
+<pre>
+template &lt;class T&gt;
+auto portable_function(const T&amp; value) {
+    // Works with tuples since C++11
+    return std::get&lt;2&gt;(value);
+}
+</pre>
+      </td><td>
+<pre>
+template &lt;class T&gt;
+auto portable_function(const T&amp; value) {
+    // Works with tuples since C++11 and with aggregates
+    return std::get&lt;2&gt;(value);
+}
+</pre>
+      </td><td>
+<pre>
+template &lt;class T&gt;
+auto portable_function(const T&amp; value) {
+  #ifdef __cpp_generalized_packs
+    // Works with tuples and aggregates
+    return value::[2];
+  #else
+    // Works with tuples since C++11
+    return std::get&lt;2&gt;(value);
+  #endif
+}
+</pre>
+      </td></tr>
+    </table>
+
+    <h2>V. Design decisions and LEWG questions.</h2>
+    <h3>A. LEWG: Does it affect the user-customized structured bindings?</h3>
+    <p>Good news: no, it does not affect the user-customized structured bindings.
+    The user already specialized the <code>std::tuple_size</code> for its type,
+    std::tuple_size specialization from this proposal is less specialized.
+    Online playground: <a href="https://godbolt.org/z/Pxnvbcv6v">https://godbolt.org/z/Pxnvbcv6v</a>.</p>
+
+    <p>Bad news: R0 of the proposal does affect all the non-customized structured bindings <a href="https://godbolt.org/z/dro9nGEd7">https://godbolt.org/z/dro9nGEd7</a>.
+    It is because R0 of the proposal specializes the <code>std::tuple_size</code> and the [dcl.struct.bind] p4 uses <code>std::tuple_size</code> to distinguish between "customized" and
+    "compiler implemented" [dcl.struct.bind] p5 structured bindings.
+    </p>
+
+    <p>The solution is to either adjust the [dcl.struct.bind] p4 to not take
+    into account the added specialization of <code>std::tuple_size</code> or to not specialize
+    the <code>std::tuple_size</code> and use a separate function for getting the elements count from an aggregate.</p>
+    <p>See the "X. To specialize or not to specialize <code>std::tuple_size</code>" below for more discussion.</p>
+
+    <h3>B. LEWG: does it change the meaning of code with usages of tuple_cat on string literals?</h3>
+    <p><code>std::tuple_cat</code> could be used with parameters that satisfy the <i>tuple-like</i> concept.
+    According to [tuple.like] the concept is not satisfied for string literals in C++23. So the meaning does not
+    change because string literals can not be used right now with <code>std::tuple_cat</code>.
+    Godbolt playground: <a href="https://godbolt.org/z/cxc8s5qeG">https://godbolt.org/z/cxc8s5qeG</a>.</p>
+
+    <p>With this proposal code like <code>std::tuple_cat(aggreaget1{"foo"}, aggreaget2{"bar", "baz"})</code>
+    would produce <code>std::tuple&lt;const char*, const char*, const char*&gt;{"foo", "bar", "baz"}</code>
+    if <code>aggregate1</code> and <code>aggregate2</code> have <code>const char*</code> elements,
+    or would fail to compile because <code>std::tuple&lt;char[4], char[4], char[4]&gt;</code>
+    could not be constructed. Godbolt playground: <a href="https://godbolt.org/z/fxM8za3WG">https://godbolt.org/z/fxM8za3WG</a>.
+    </p>
+
+    <h3>C. LEWG: Null termination of string literals can lead to surprising tuple_cat behavior</h3>
+    <p><code>std::tuple_cat("a", "b")</code> would produce a <code>std::tuple&lt;char, char, char, char&gt;{'a', '\0', 'b', '\0'}</code>.
+    That might be surprising for first time, but that's what the code asked for: treat two parameters as tuples and concatenate those.
+    If that behavior is undesired, then it could be disabled by prohibiting arrays in <i>tuple-like</i>.
+    </p>
+
+    <h3>D. LEWG: Does it change the behavior of user tuple_flatten-like functions?</h3>
+    <p>Consider the following snippet:</p>
+    <pre>
+int main() {
+    std::tuple&lt;
+        std::tuple&lt;std::tuple&lt;Noisy, Noisy&gt;&gt;,
+        std::tuple&lt;std::tuple&lt;Noisy&gt;&gt;
+    &gt; t;        
+
+    auto x = tuple_flatten(t);
+    static_assert(std::is_same_v&lt;decltype(x), std::tuple&lt;Noisy, Noisy, Noisy&gt;&gt;);
+    static_assert(!std::is_same_v&lt;decltype(x), std::tuple&lt;int, short, int, short, int, short&gt;&gt;);
+}
+    </pre>
+    <p>Implementation of the <code>tuple_flatten</code> could use one of the following mechanics to decide when to stop flattening:</p>
+    <ol>
+      <li>Internals of the <code>tuple_flatten</code> accept only <code>std::tuple</code>, so the <code>tuple_flatten</code> works only with <code>std::tuple</code>.</li>
+      <li>Internals of the <code>tuple_flatten</code> use <i>tuple-like</i> concept.</li>
+      <li>Internals of the <code>tuple_flatten</code> SFINAE on <code>std::tuple_size&lt;T&gt;::value</code></li>
+    </ol>
+
+    <p><i>tuple-like</i> concept is exposition only, users should not use it.</p>
+
+    <p>So the behavior changes if we specialize the <code>std::tuple_size</code> and users SFINAE on <code>std::tuple_size</code> or <code>std::tuple_size_v</code>.
+    In many cases such behavior change would be detected at compile time, however may be some cases when the compilation would succeed and the code silently changes behavior.
+    </p>
+
+    <p>See the "X. To specialize or not to specialize <code>std::tuple_size</code>" below for more discussion.</p>
+
+    <h3>E. What about customization?</h3>
+    <p>The intent of this proposal it to follow the structured bindings behavior and customizations. So if the user customized
+    that the aggregate with three elements of type <code>int</code> has 2 elements of type <code>short</code> - the <code>std::get</code> should follow.</p>
+
+    <p>The alternative is to skip all the customizations and just do the aggregate reflection as is. This contradicts the Reflections, as the
+    main steam is the "value based reflection" rather than template based.</p>
+
+    <h3>F. Why not just use structured bindings?</h3>
+    <ol>
+      <li>There is no way to SFINAE on structured binding which is important for implementing generic functions. Some kind of <code>std::element_count</code>, or <code>std::tuple_size</code>
+      specializations or public concept is required.</li>
+      <li>There is no simple and fast way to get elements count. Some kind of <code>std::element_count</code> function
+      is required or <a href="https://wg21.link/P1061">P1061 "Structured Bindings can introduce a Pack"</a>.</li>
+      <li>No ready to use functions to work with aggregates as with tuples, like <code>std::tuple_cat</code>. <i>tuple-like</i> should be adjusted or new functions should be provided.</li>
+      <li>Existing user and standard library implementations of algorithms rely on <code>std::get</code>. To ease the migration from <code>std::tuple</code> to aggregates those functions should be also provided.</li>
+    </ol>
+    <p>In other words: for smooth use of structured binding in a generic programming we need something close to the changes proposed in this paper.</p>
+
+
+    <h3>G. Impact on the Standard Library</h3>
+    <ol>
+      <li><code>std::tuple</code> becomes constructible and assignable from aggregates of the matching elements count.</li>
+      <li><code>std::pair</code> becomes constructible and assignable from aggregates of 2 elements.</li>
+      <li><code>std::tuple_cat</code> can concatenate elements of aggregates into <code>std::tuple</code>.</li>
+      <li><code>std::apply</code> can apply elements of an aggregate to a function.</li>
+      <li><code>std::make_from_tuple&lt;T&gt;</code> can construct type <code>T</code> from aggregate.</li>
+      <li><code>std::tuple</code> becomes comparable with aggregates of matching elements count.</li>
+    </ol>
+    <p>Functions that explicitly require instance of std::tuple or std::pair are not affected (basic_common_reference, common_type, format_kind, 'm' <i>range-type</i> specifier).</p>
+
+
+    <h3>X. To specialize or not to specialize <code>std::tuple_size</code></h3>
+    <table border=1>
+      <tr><th></th><th>Specialize <code>std::tuple_size</code></th><th>Provide a separate <code>std::element_count</code></th></tr>
+      <tr><td>Does not affect the user-customized structured bindings</td><td>✓</td><td>✓</td></tr>
+      <tr><td>Does not change the meaning of code with <code>std::tuple_cat</code></td><td>✓</td><td>✓</td></tr>
+      <tr><td>Does not change the behavior of user <code>tuple_flatten</code>-like functions</td><td>❌</td><td>✓</td></tr>
+      <tr><td>User tuple-code works with aggregates out of the box</td><td>✓ if SFINAEs on <code>std::tuple_size</code></td><td>❌ (requires explicit <code>std::element_count</code> usage)</td></tr>
+      <tr><td>Gives a way to explicitly allow reflection of aggregates</td><td>✓ (SFINAE on <code>std::is_aggregate_v</code>)</td><td>✓ (SFINAE on <code>std::tuple_size</code>)</td></tr>
+      <tr><td>Is it customizeable?</td><td>✓</td><td>✓</td></tr>
+    </table>
+
+    <p>Assuming that the <code>tuple_flatten</code>-like functions are common and could lead to silent behavior change this revision concentrates on <code>std::element_count</code> approach.
+    If LEWG decides that the paper should proceed with <code>std::tuple_size</code> specialization, the structured binding wording [dcl.struct.bind] p4 should be changed to something like the following:
+    </p>
+<pre>Otherwise, if the qualified-id std​::​tuple_­size&lt;E&gt; names a complete class type
+<ins style="display: inline">not inherited from <code>std::element_count&lt;E&gt;</code> and</ins> with a member named value, the
+expression std​::​tuple_­size&lt;E&gt;​::​value shall be a well-formed integral constant expression and the number of ele-
+ments in the identifier-list shall be equal to the value of that expression.
+</pre>
+
+
+    <h2>VII. Wording</h2>
+    <p>After adjusting yyyymm (below) so as to denote this proposal’s month of adoption, insert the
+following line among the similar directives following [version.syn]/2:</p>
+
+<pre>
+<ins>#define __cpp_lib_aggregate_as_tuple yyyymmL // also in &lt;utility&gt;, &lt;tuple&gt;</ins>
+</pre>
+
+    <p>Add to the bottom of [utility.syn], right before the last closing bracket:</p>
+
+
+<pre>
+<ins>  // [utility.aggregate], tuple-like access to aggregate
+  template&lt;<i>tuple-like</i> T&gt;
+    using element_count = <i>see below</i>;
+
+  template&lt;<i>tuple-like</i> T&gt;
+    constexpr size_t element_count_v = element_count&lt;T&gt;::value;
+
+  template&lt;size_t I, <i>tuple-like</i> T&gt; struct tuple_element;
+
+  template&lt;size_t I, <i>tuple-like</i> T&gt;
+    constexpr tuple_element_t&lt;I, T&gt;&amp; get(T&amp;) noexcept;
+  template&lt;size_t I, <i>tuple-like</i> T&gt;
+    constexpr tuple_element_t&lt;I, T&gt;&amp;&amp; get(T&amp;&amp;) noexcept;
+  template&lt;size_t I, <i>tuple-like</i> T&gt;
+    constexpr tuple_element_t&lt;I, const T&gt;&amp; get(const T&amp;) noexcept;
+  template&lt;size_t I, <i>tuple-like</i> T&gt;
+    constexpr tuple_element_t&lt;I, const T&gt;&amp;&amp; get(const T&amp;&amp;) noexcept;
+
+  template&lt;class T, <i>tuple-like</i> TupleLike&gt;
+    constexpr T&amp; get(TupleLike&amp;) noexcept;
+  template&lt;class T, <i>tuple-like</i> TupleLike&gt;
+    constexpr T&amp;&amp; get(TupleLike&amp;&amp;) noexcept;
+  template&lt;class T, <i>tuple-like</i> TupleLike&gt;
+    constexpr const T&amp; get(const TupleLike&amp;) noexcept;
+  template&lt;class T, <i>tuple-like</i> TupleLike&gt;
+    constexpr const T&amp;&amp; get(const TupleLike&amp;&amp;) noexcept;
+</ins>}
+</pre>
+
+    <p>Add after [pair.piecewise]:</p>
+<ins><h2>22.3.6 Tuple-like access to aggregate [utility.aggregate]</h2>
+<pre>
+  template&lt;<i>tuple-like</i> T&gt;
+    using element_count = <i>see below</i>;
+      The element_count meets the Cpp17UnaryTypeTrait requirements ([meta.rqmts]) with a base
+      characteristic of integral_constant&lt;size_t, N&gt; for N being <code>tuple_size&lt;T&gt;::value</code>
+      if <code>tuple_size&lt;remove_cv_ref_t&lt;T&gt;&gt;</code> names a complete class type with a member named <code>value</code>; otherwise N is the number of
+      non static data members in <code>remove_cv_ref_t&lt;T&gt;</code>.
+
+  template&lt;size_t I, <i>tuple-like</i> T&gt; struct tuple_element;
+      Let TE denote the type of the I<span class="sup">th</span> aggregate element of <code>T</code>, where indexing is zero-based.
+      Specialization meets the Cpp17TransformationTrait
+      requirements ([meta.rqmts]) with a member typedef <code>type</code> that names the type <code>TE</code>.
+
+  template&lt;size_t I, <i>tuple-like</i> T&gt;
+    constexpr tuple_element_t&lt;I, T&gt;&amp; get(T&amp; t) noexcept;
+  template&lt;size_t I, <i>tuple-like</i> T&gt;
+    constexpr tuple_element_t&lt;I, T&gt;&amp;&amp; get(T&amp;&amp; t) noexcept;
+  template&lt;size_t I, <i>tuple-like</i> T&gt;
+    constexpr tuple_element_t&lt;I, const T&gt;&amp; get(const T&amp; t) noexcept;
+  template&lt;size_t I, <i>tuple-like</i> T&gt;
+    constexpr tuple_element_t&lt;I, const T&gt;&amp;&amp; get(const T&amp;&amp; t) noexcept;
+      Let <i>v<span class="sub">0</span>, ..., v<span class="sub">n-1</span></i> be the identifiers introduced by structured binding declaration
+      <code>auto [<i>v<span class="sub">0</span>, ..., v<span class="sub">n-1</span></i>] = std::forward&lt;decltype(t)&gt;(t);</code>,
+      where <i><span class="sub">n</span></i> is equal to <code>element_count&lt;T&gt;::value</code>.
+      Mandates: <code>I &lt; element_count&lt;T&gt;::value</code>.
+      Returns: A reference to the <i>v<span class="sub">I</span></i>.
+
+  template&lt;class T, <i>tuple-like</i> TupleLike&gt;
+    constexpr T&amp; get(TupleLike&amp; t) noexcept;
+  template&lt;class T, <i>tuple-like</i> TupleLike&gt;
+    constexpr T&amp;&amp; get(TupleLike&amp;&amp; t) noexcept;
+  template&lt;class T, <i>tuple-like</i> TupleLike&gt;
+    constexpr const T&amp; get(const TupleLike&amp; t) noexcept;
+  template&lt;class T, <i>tuple-like</i> TupleLike&gt;
+    constexpr const T&amp;&amp; get(const TupleLike&amp;&amp; t) noexcept;
+      Let <i>v<span class="sub">0</span>, ..., v<span class="sub">n-1</span></i> be the identifiers introduced by structured binding declaration
+      <code>auto [<i>v<span class="sub">0</span>, ..., v<span class="sub">n-1</span></i>] = std::forward&lt;decltype(t)&gt;(t);</code>,
+      where <i><span class="sub">n</span></i> is equal to <code>element_count&lt;T&gt;::value</code>.
+      Mandates: Exactly one of the <i>v<span class="sub">0</span>, ..., v<span class="sub">n-1</span></i> identifiers has type <code>T</code>.
+      Returns: A reference to the identifier corresponding to the type <code>T</code>.
+</pre></ins>
+
+    <p>Adjust [tuple.like]:</p>
+<pre>
+  template&lt;class T&gt;
+    concept <i>tuple-like</i> = <i>see below</i>;           // exposition only
+      A type <code>T</code> models and satisfies the exposition-only concept <i>tuple-like</i>
+      if <del><code>remove_­cvref_­t&lt;T&gt;</code> is
+      a specialization of <code>array</code>, <code>pair</code>, <code>tuple</code>, or <code>ranges​::​subrange</code></del>
+      <ins style="display: inline">the structured binding declaration <code>auto [<i>v<span class="sub">0</span>, ..., v<span class="sub">N-1</span></i>] = declval&lt;T&gt;();</code> would be well formed for some <i>N</i>
+      and none of the <i>v<span class="sub">0</span>, ..., v<span class="sub">N-1</span></i> refers to a bitfield</ins>.
+</pre>
+
+    <p>Change the <code>tuple_size_v</code> usages to <code>element_count_v</code>:</p>
+
+    <p>[tuple.syn]:</p>
+<pre>
+  template&lt;class T&gt;
+    concept pair-like =                     // exposition only
+      tuple-like&lt;T&gt; && <ins style="display: inline">element_count_v&lt;T&gt;</ins><del style="display: inline">tuple_size_v&lt;remove_cvref_t&lt;T&gt;&gt;</del> == 2;
+</pre>
+
+    <p>[tuple.cnstr]:</p>
+<pre>template&lt;tuple-like UTuple&gt;
+  constexpr explicit(see below) tuple(UTuple&amp;&amp; u);
+
+    Let I be the pack 0, 1, …, (sizeof...(Types) - 1).
+    Constraints:
+       - different-from&lt;UTuple, tuple&gt; ([range.utility.helpers]) is true,
+       - remove_­cvref_­t&lt;UTuple&gt; is not a specialization of ranges​::​subrange,
+       - sizeof...(Types) equals <ins style="display: inline">element_count_v&lt;UTuple&gt;</ins><del style="display: inline">tuple_size_v&lt;remove_cvref_t&lt;UTuple&gt;&gt;</del>,
+</pre>
+
+    <p>[tuple.assign]:</p>
+<pre>template&lt;tuple-like UTuple&gt;
+  constexpr tuple& operator=(UTuple&amp;&amp; u);
+
+    Constraints:
+      - different-from&lt;UTuple, tuple&gt; ([range.utility.helpers]) is true,
+      - remove_­cvref_­t&lt;UTuple&gt; is not a specialization of ranges​::​subrange,
+      - sizeof...(Types) equals <ins style="display: inline">element_count_v&lt;UTuple&gt;</ins><del style="display: inline">tuple_size_v&lt;remove_cvref_t&lt;UTuple&gt;&gt;</del>, and,
+      - is_­assignable_­v&lt;Ti&amp;, decltype(get&lt;i&gt;(std​::​forward&lt;UTuple&gt;(u)))> is true for all i.
+
+    Effects: For all i, assigns get&lt;i&gt;(std​::​forward&lt;UTuple&gt;(u)) to get&lt;i&gt;(*this).
+    Returns: *this.
+
+template&lt;tuple-like UTuple&gt;
+  constexpr const tuple& operator=(UTuple&amp;&amp; u) const;
+
+    Constraints:
+      - different-from&lt;UTuple, tuple&gt; ([range.utility.helpers]) is true,
+      - remove_­cvref_­t&lt;UTuple&gt; is not a specialization of ranges​::​subrange,
+      - sizeof...(Types) equals <ins style="display: inline">element_count_v&lt;UTuple&gt;</ins><del style="display: inline">tuple_size_v&lt;remove_cvref_t&lt;UTuple&gt;&gt;</del>, and,
+</pre>
+
+    <p>[tuple.creation]:</p>
+<pre>template&lt;tuple-like... Tuples&gt;
+  constexpr tuple&lt;CTypes...&gt; tuple_cat(Tuples&amp;&amp;... tpls);
+
+    Let n be sizeof...(Tuples).
+    For every integer 0≤i&lt;n:
+      - Let Ti be the ith type in Tuples.
+      - Let Ui be remove_­cvref_­t&lt;Ti&gt;.
+      - Let tpi be the ith element in the function parameter pack tpls.
+      - Let Si be <del style="display: inline">tuple_size_v</del><ins style="display: inline">element_count_v</ins>&lt;Ui&gt;.
+</pre>
+
+    <p>[tuple.apply]:</p>
+<pre>template&lt;class F, tuple-like Tuple&gt;
+  constexpr decltype(auto) apply(F&amp;&amp; f, Tuple&amp;&amp; t) noexcept(see below);
+    Effects: Given the exposition-only function:
+      namespace std {
+        template&lt;class F, tuple-like Tuple, size_t... I&gt;
+        constexpr decltype(auto) apply-impl(F&amp;&amp; f, Tuple&amp;&amp; t, index_sequence&lt;I...&gt;) {
+                                                                          // exposition only
+            return INVOKE(std::forward&lt;F&gt;(f), get&lt;I&gt;(std::forward&lt;Tuple&gt;(t))...);     // see [func.require]
+          }
+      }
+
+    Equivalent to:
+      return apply-impl(std::forward&lt;F&gt;(f), std::forward&lt;Tuple&gt;(t),
+                        make_index_sequence&lt;<ins style="display: inline">element_count_v&lt;Tuple&gt;</ins><del style="display: inline">tuple_size_v&lt;remove_reference_t&lt;Tuple&gt;&gt;</del>&gt;{});
+
+    Remarks: Let I be the pack 0, 1, ..., (<ins style="display: inline">element_count_v&lt;Tuple&gt;</ins><del style="display: inline">tuple_size_v&lt;remove_­reference_­t&lt;Tuple&gt;&gt;</del> - 1).
+    The exception specification is equivalent to:
+      noexcept(invoke(std::forward&lt;F&gt;(f), get&lt;I&gt;(std::forward&lt;Tuple&gt;(t))...))
+
+
+template&lt;class T, tuple-like Tuple&gt;
+  constexpr T make_from_tuple(Tuple&& t);
+    Mandates: If <ins style="display: inline">element_count_v&lt;Tuple&gt;</ins><del style="display: inline">tuple_size_v&lt;remove_­reference_­t&lt;Tuple&gt;&gt;</del> is 1, then
+    reference_­constructs_­from_­temporary_­v&lt;T, decltype(get&lt;0&gt;(declval&lt;Tuple&gt;()))&gt; is false.
+
+    Effects: Given the exposition-only function:
+      namespace std {
+        template&lt;class T, tuple-like Tuple, size_t... I&gt;
+          requires is_constructible_v&lt;T, decltype(get&lt;I&gt;(declval&lt;Tuple&gt;()))...&gt;
+        constexpr T make-from-tuple-impl(Tuple&& t, index_sequence&lt;I...&gt;) {   // exposition only
+          return T(get&lt;I&gt;(std::forward&lt;Tuple&gt;(t))...);
+        }
+      }
+
+    Equivalent to:
+      return make-from-tuple-impl&lt;T&gt;(
+               std::forward&lt;Tuple&gt;(t),
+               make_index_sequence&lt;<ins style="display: inline">element_count_v&lt;Tuple&gt;</ins><del style="display: inline">tuple_size_v&lt;remove_reference_t&lt;Tuple&gt;&gt;</del>&gt;{});
+
+</pre>
+
+    <p>[tuple.rel]:</p>
+<pre>template&lt;class... TTypes, class... UTypes&gt;
+  constexpr bool operator==(const tuple&lt;TTypes...&gt;& t, const tuple&lt;UTypes...&gt;& u);
+template&lt;class... TTypes, tuple-like UTuple&gt;
+  constexpr bool operator==(const tuple&lt;TTypes...&gt;& t, const UTuple& u);
+
+    For the first overload let UTuple be tuple&lt;UTypes...&gt;.
+    Mandates: For all i, where 0≤i&lt;sizeof...(TTypes), get&lt;i&gt;(t) == get&lt;i&gt;(u) is a valid expression.
+    sizeof...(TTypes) equals <del style="display: inline">tuple_size_v</del><ins style="display: inline">element_count_v</ins>&lt;UTuple&gt;.
+
+    Preconditions: For all i, decltype(get&lt;i&gt;(t) == get&lt;i&gt;(u)) models boolean-testable.
+
+    Returns: true if get&lt;i&gt;(t) == get&lt;i&gt;(u) for all i, otherwise false.
+    [Note 1: If sizeof...(TTypes) equals zero, returns true.
+    — end note]
+
+    Remarks:
+      - The elementary comparisons are performed in order from the zeroth index upwards.
+        No comparisons or element accesses are performed after the first equality comparison that evaluates to false.
+      - The second overload is to be found via argument-dependent lookup ([basic.lookup.argdep]) only.
+
+template&lt;class... TTypes, class... UTypes&gt;
+  constexpr common_comparison_category_t&lt;synth-three-way-result&lt;TTypes, UTypes&gt;...&gt;
+    operator&lt;=&gt;(const tuple&lt;TTypes...&gt;& t, const tuple&lt;UTypes...&gt;& u);
+template&lt;class... TTypes, tuple-like UTuple&gt;
+  constexpr common_comparison_category_t&lt;synth-three-way-result&lt;TTypes, Elems&gt;...&gt;
+    operator&lt;=&gt;(const tuple&lt;TTypes...&gt;& t, const UTuple& u);
+
+      For the second overload, Elems denotes the pack of types tuple_­element_­t&lt;0, UTuple&gt;, tuple_­element_­t&lt;1, UTuple&gt;,
+      …, tuple_­element_­t&lt;<del style="display: inline">tuple_size_v</del><ins style="display: inline">element_count_v</ins>&lt;UTuple&gt; - 1, UTuple&gt;.
+
+      Effects: Performs a lexicographical comparison between t and u.
+      If sizeof...(TTypes) equals zero, returns strong_­ordering​::​equal.
+      Otherwise, equivalent to:
+        if (auto c = synth-three-way(get&lt;0&gt;(t), get&lt;0&gt;(u)); c != 0) return c;
+        return ttail &lt;=&gt; utail;
+      where rtail for some r is a tuple containing all but the first element of r.
+
+      Remarks: The second overload is to be found via argument-dependent lookup ([basic.lookup.argdep]) only.
+</pre>
+
+
+    <h2>VI. Acknowledgments</h2>
+    <p>Many thanks to Barry Revzin for writing P1858 and providing early notes on this paper.</p>
+
+    <script type="text/javascript">
+        function colorize_texts(texts) {
+        for (var i = 0; i < texts.length; ++i) {
+            var text = texts[i].innerHTML;
+            text = text.replace(/namespace|using|async|do\n|while|resumable|co_await|co_yield|co_return|await|yield|sizeof|long|enum|void|concept |constexpr|extern|noexcept|bool|template|struct |auto|const |typename|explicit|public|private|operator|#include| char |static_assert|int |return|union|static_cast/g,"<span class='cppkeyword'>$&<\/span>");
+            text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+            //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
+            texts[i].innerHTML = text;
+        }
+        }
+
+        colorize_texts(document.getElementsByTagName("pre"));
+        colorize_texts(document.getElementsByTagName("code"));
+
+        function show_hide_deleted() {
+        var to_change = document.getElementsByClassName('changed-deleted');
+        for (var i = 0; i < to_change.length; ++i) {
+            to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
+        }
+        }
+        show_hide_deleted()
+
+        initial_text = document.getElementById('diff').innerHTML
+        function on_input_change(self) {
+            document.getElementById('diff').innerHTML = initial_text.replace(/async/g, self.value);
+        }
+    </script>
+</body></html>
