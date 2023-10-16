@@ -30,13 +30,13 @@
     </style>
     </head>
     <body bgcolor="#ffffff">
-    <address>Document number: D3006R0</address>
+    <address>Document number: P3006R0</address>
     <address>Project: Programming Language C++</address>
     <address>Audience: EWGI, EWG, CWG</address>
     <address>&nbsp;</address>
     <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2023-10-10</address>
+    <address>Date: 2023-10-16</address>
     <h1>Launder less</h1>
 
 <p align="right">“The problem is that we attempt to solve the simplest questions cleverly, thereby rendering them unusually complex. One should seek the simple solution.”</p>
@@ -57,7 +57,7 @@
 
     <p>That behavior is surprising for the language users. Moreover, popular
     compilers do not require <code>std::launder</code> call in that place
-    and produce an expected assembly without it.</p>
+    and produce the expected assembly without it.</p>
 
     <p>This proposal attempts to remove UB in that place, standardize existing
     practice and simplify language usage.</p>
@@ -67,7 +67,7 @@
     <ul>
     <li><code>boost::optional</code> uses aligned storage and placement new to store a value. Storing a pointer from placement new may increase the size of an class.</li>
     <li><a href="https://github.com/userver-framework/userver/blob/2ccab5c00cb11eed266ccb00b89e7422fa8861f0/universal/include/userver/utils/fast_pimpl.hpp#L104"><code>utils::FastPimpl</code></a>
-        from userver framework uses byte array and placement new to store a value. Storing a pointer from placement new increases the size of an class.</li>
+        from the userver framework uses byte array and placement new to store a value. Storing a pointer from placement new increases the size of an class.</li>
     <li><a href="https://github.com/ClickHouse/ClickHouse/blob/master/src/Common/HashTable/HashTable.h#L367-L396">HashTable</a> of the ClickHouse project.
         Storing a pointer from placement new increases the size of an class.</li>
     <li><a href="https://github.com/llvm/llvm-project/blob/80fa5a6377c44b3e78cddbe43abb79d209abc7e5/libcxx/include/__functional/function.h#L402-L405">libcxx</a> in function.h.</li>
@@ -77,7 +77,7 @@
     </ul>
 
     <p><code>std::launder</code> is required to fix the above cases. However it
-    is counter intuitive, decreases the code readability
+    is counterintuitive, decreases the code readability
     and requires in-depth knowledge of the Standard to realize that there is an
     issue from the point of the Standard (but in practice there is no problem!).</p>
 
@@ -92,7 +92,7 @@ Two objects a and b are pointer-interconvertible if:
 <ins>- one is an array of <code>std::byte</code>, <code>char</code> or <code>unsigned char</code>, or</ins>
 - there exists an object c such that a and c are pointer-interconvertible, and c and b are pointer-interconvertible.
 If two objects are pointer-interconvertible, then they have the same address, and it is possible to obtain a pointer to one from a pointer to the other via a reinterpret_cast ([expr.reinterpret.cast]).
-[Note 4: An array object and its first element are not pointer-interconvertible, even though they have the same address. — end note]
+[Note 4: A <ins>non <code>std::byte</code>, <code>char</code> or <code>unsigned char</code></ins> array object and its first element are not pointer-interconvertible, even though they have the same address. — end note]
 </pre>
 
 
@@ -100,6 +100,7 @@ If two objects are pointer-interconvertible, then they have the same address, an
     <p>Many thanks to Артём Колпаков (Artyom Kolpakov) for asking the question on that topic at <a href="https://lists.isocpp.org/std-discussion/2023/07/2304.php">STD discussion list</a>
     and for drawing my attention to the problem. Thanks to Brian Bi for answering the question at
     <a href="https://lists.isocpp.org/std-discussion/2023/07/2305.php">STD discussion list</a>.</p>
+    <p>Thanks to Andrey Erokhin, Timur Doumler, Roman Rusyaev and all the mailing lists members for feedback and help!</p>
 
     <script type="text/javascript">
         function colorize_texts(texts) {
