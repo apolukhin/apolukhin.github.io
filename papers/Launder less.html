@@ -36,7 +36,7 @@
     <address>&nbsp;</address>
     <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2023-10-16</address>
+    <address>Date: 2023-10-19</address>
     <h1>Launder less</h1>
 
 <p align="right">“The problem is that we attempt to solve the simplest questions cleverly, thereby rendering them unusually complex. One should seek the simple solution.”</p>
@@ -89,10 +89,10 @@ Two objects a and b are pointer-interconvertible if:
 - they are the same object, or
 - one is a union object and the other is a non-static data member of that object ([class.union]), or
 - one is a standard-layout class object and the other is the first non-static data member of that object or any base class subobject of that object ([class.mem]), or
-<ins>- one is an array of <code>std::byte</code>, <code>char</code> or <code>unsigned char</code>, or</ins>
+<ins>- one is an element of an array of <code>std::byte</code> or <code>unsigned char</code> and the other is an object for which the array provides storage, created at the address of the array element, or</ins>
 - there exists an object c such that a and c are pointer-interconvertible, and c and b are pointer-interconvertible.
 If two objects are pointer-interconvertible, then they have the same address, and it is possible to obtain a pointer to one from a pointer to the other via a reinterpret_cast ([expr.reinterpret.cast]).
-[Note 4: A <ins>non <code>std::byte</code>, <code>char</code> or <code>unsigned char</code></ins> array object and its first element are not pointer-interconvertible, even though they have the same address. — end note]
+[Note 4: A <ins>non <code>std::byte</code> or <code>unsigned char</code></ins> array object and its first element are not pointer-interconvertible, even though they have the same address. — end note]
 </pre>
 
 
@@ -101,6 +101,7 @@ If two objects are pointer-interconvertible, then they have the same address, an
     and for drawing my attention to the problem. Thanks to Brian Bi for answering the question at
     <a href="https://lists.isocpp.org/std-discussion/2023/07/2305.php">STD discussion list</a>.</p>
     <p>Thanks to Andrey Erokhin, Timur Doumler, Roman Rusyaev, Mathias Stearn and all the mailing lists members for feedback and help!</p>
+    <p>Thanks to Andrey Erokhin and Jason Merrill for the wording help!</p>
 
     <script type="text/javascript">
         function colorize_texts(texts) {
