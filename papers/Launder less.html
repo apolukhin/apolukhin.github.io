@@ -92,7 +92,7 @@ Two objects a and b are pointer-interconvertible if:
 <ins>- one is an element of an array of <code>std::byte</code> or <code>unsigned char</code> and the other is an object for which the array provides storage, created at the address of the array element, or</ins>
 - there exists an object c such that a and c are pointer-interconvertible, and c and b are pointer-interconvertible.
 If two objects are pointer-interconvertible, then they have the same address, and it is possible to obtain a pointer to one from a pointer to the other via a reinterpret_cast ([expr.reinterpret.cast]).
-[Note 4: A <ins>non <code>std::byte</code> or <code>unsigned char</code></ins> array object and its first element are not pointer-interconvertible, even though they have the same address. — end note]
+[Note 4: An array object and its first element are not pointer-interconvertible, even though they have the same address. — end note]
 </pre>
 
 
