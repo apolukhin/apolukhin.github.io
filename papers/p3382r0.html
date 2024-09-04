@@ -1,0 +1,214 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+    <title>Coarse clocks and resolutions</title>
+    <meta http-equiv="Content-Language" content="en-us">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <style type="text/css">
+        .addition { color: green; }
+        .right { float:right }
+        .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+        .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+        .changed-added { background-color: #CFF0FC ;}
+        .notes { background-color: gold ;}
+        pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
+        .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; font-family:monospace }
+        body {max-width: 1024px; margin-left: 25px;}
+        del { background-color: red; }
+        ins { background-color: lightgreen; text-decoration: none; }
+        .sub { vertical-align: sub; }
+        .lmargin50{margin-left: 50px;}
+        .width_third{width: 33%;}
+        .cppkeyword { color: blue; }
+        .asmcostly { color: red; }
+        .cppcomment { color: green; }
+        .cppcomment > .cppkeyword{ color: green; }
+        .cpptext { color: #2E8B57; }
+        .cppaddition { background-color: #CFC; }
+        .cppdeletion {  text-decoration: line-through; background-color: #FCC; }
+        .stdquote { background-color: #ECECEC; font-family: Consolas,monospace; }
+    </style>
+    </head>
+    <body bgcolor="#ffffff">
+    <address>Document number: P3382R0</address>
+    <address>Project: Programming Language C++</address>
+    <address>Audience: LWGI, LEWG, LWG</address>
+    <address>&nbsp;</address>
+    <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+    <address>&nbsp;</address>
+    <address>Date: 2024-08-28</address>
+    <h1>Coarse clocks and resolutions</h1>
+
+<p align="right">“One should always aim at being interesting, rather than exact.”</p>
+<p align="right"><i>― Voltaire</i></p>
+
+<!--p class="changed-added">Changes since <a href="https://www.open-std.org/jtc1/sc22/wg21/docs/papers/">P</a> are highlighted with blue.</p-->
+
+    <h2>I. Motivation</h2>
+    <p>Applications that perform frequent timestamp requests are affected by the CPU cost of reading the
+    clock. If the operation is repeated multiple times, the accumulated cost can have an impact on the
+    overall performance of the application.</p>
+
+    <p>Many use cases do not need high resolution clocks. For example resolution of hundreds milliseconds or even seconds is fine for the following cases:</p>
+    <ul>
+    <li>Generating HTTP Date header. One second resolution is fine.</li>
+    <li>Periodic jobs. For example doing a ping once in five minutes does not require high resolution from clock.</li>
+    <li>Big timeouts for requests. Requests to analytical databases take minutes, no need in high resolution.</li>
+    <li>Statistics. Counting response time percentiles or averages does not require high resolution.</li>
+    </ul>
+    <p>Some of the platforms provide <i>coarse</i> timers that are more than 70 times
+    faster than the existing standard library clocks [<a href="https://quick-bench.com/q/FRTUnk_aKpMX9UBYjQnpjdZ-QPM">benchmark</a>].
+    Due to such drastic performance difference
+    some code bases to minimize CPU usage already use coarse clocks. Moreover it is a common pattern to try to use a coarse clock first and than
+    fallback to precise clock if the resolution is not enough:</p>
+<pre>
+bool is_expired(std::chrono::steady_clock::time_point deadline) {
+    auto max_time = coarse_steady_clock() + coarse_steady_clock_resolution();
+    if (max_time < deadline) {
+      return false;
+    }
+    
+    return deadline < std::chrono::steady_clock::now()
+}
+</pre>
+
+    <p>Here are some projects that use coarse clocks and/or resolutions:</p>
+    <ul>
+    <li><a href="https://github.com/gabime/spdlog/blob/a3a0c9d66386962fcaf0178fcae03ac77c1e0257/include/spdlog/details/os-inl.h#L77-L83">Spdlog</a> </li>
+    <li><a href="https://github.com/userver-framework/userver/blob/bc39a7c9e808509bfca50ae041f41df744d87a3d/universal/src/utils/datetime/coarse_clock_gettime.hpp#L11-L51">🐙 userver framework</a> </li>
+    <li><a href="https://github.com/libuv/libuv/blob/5cbc82e369817adf963e7ad37f70884a6434fb0a/src/unix/linux.c#L1611-L1630">libuv</a> </li>
+    <li><a href="https://github.com/ydb-platform/ydb/blob/1e567c0ec6ae6781d874ccbad22f816478c72142/ydb/library/yql/udfs/common/clickhouse/client/src/IO/ReadBufferFromFileBase.h#L39-L40">YDB</a> </li>
+    <li><a href="https://github.com/nodejs/node/blob/4f14eb15454b9f6ae7f0145947debd2c79a2a84f/deps/uvwasi/src/clocks.c#L88-L99">NodeJS</a></li>
+    </ul>
+
+    <p>To sum up: coarse clocks are much more CPU efficient in some cases. Ability to get the coarse clock resolution makes them useful even in more cases.</p>
+
+
+    <h2>II. Design decisions</h2>
+    <h3>What to do when there's no coarse clock on the platform?</h3>
+    <p>Implementing a coarse clock by just dropping sub-seconds from a more precise clock is fine
+    and still could save a few CPU cycles due to avoiding computations of sub-seconds.</p>
+
+    <h3>Why <code>duration</code> and <code>time_point</code> types are same as in non-coarse clocks?</h3>
+    <p>Precise and coarse clocks could be used together (see example from motivation section). Same duration and timepoint types simplify
+    code writing, as less type conversions is needed. Also clock could be a template parameter so same interfaces make it easier to write generic code
+    that use different types of clocks.</p>
+
+    <h2>III. Wording</h2>
+    
+<h3>Add to the end of [time.clock.req]</h3>
+
+<div class="addition">
+<p>A type TC meets the <i>Cpp17TrivialResolutionClock</i> requirements if</p>
+<ul>
+<li>TC meets the <i>Cpp17TrivialClock</i> requirements,</li>
+<li>member function <code>resolution()</code> returns positive duration that is the minimal non zero difference between two invocations of <code>now()</code>,</li>
+<li>member function <code>resolution()</code> does not throw exceptions.</li>
+</ul>
+</div>
+
+<h3>Adjust [time.clock.general]</h3>
+<p>The types defined in [time.clock] meet the <i>Cpp17Trivial<ins>Resolution</ins>Clock</i> requirements ([time.clock.req]) unless otherwise specified.</p>
+
+
+    <h3>Adjust each clock in [time.clock.*] by adding a member function <code>resolution()</code> after function <code>now()</code>:</h3>
+<pre>
+    static time_point now() noexcept;
+    <ins>static duration resolution() noexcept;</ins>
+</pre>
+
+    <h3>Add after [time.clock.hires]:</h3>
+<div class="addition">
+<h3>Class coarse_steady_clock [time.clock.coarse_steady]</h3>
+<pre>
+namespace std::chrono {
+  class coarse_steady_clock {
+  public:
+    using rep        = steady_clock::rep;
+    using period     = steady_clock::period;
+    using duration   = steady_clock::duration;
+    using time_point = steady_clock::time_point;
+    static constexpr bool is_steady = true;
+
+    static time_point now() noexcept;
+    static duration resolution() noexcept;
+  };
+}
+</pre>
+
+<p>Objects of class <code>coarse_steady_clock</code> represent clocks for which
+values of <code>time_point</code> never decrease as physical time advances and
+for which values of <code>time_point</code> advance at a steady rate relative to
+real time. That is, the clock may not be adjusted.</p>
+
+<p>Result of <code>resolution()</code> is coarser
+then the resolution of <code>steady_clock</code>.</p>
+
+
+<h3>Class coarse_system_clock [time.clock.coarse_system]</h3>
+<pre>
+namespace std::chrono {
+  class coarse_system_clock {
+  public:
+    using rep        = system_clock::rep;
+    using period     = system_clock::period;
+    using duration   = system_clock::duration;
+    using time_point = system_clock::time_point;
+    static constexpr bool is_steady = system_clock::is_steady;
+
+    static time_point now() noexcept;
+    static duration resolution() noexcept;
+
+    // mapping to/from C type time_t
+    static time_t      to_time_t(const time_point& t) noexcept {
+      return system_clock::to_time_t(t);
+    }
+    static time_point  from_time_t(time_t t) noexcept { 
+      return system_clock::from_time_t(t);
+    }
+  };
+}
+</pre>
+
+<p>Objects of type <code>coarse_system_clock</code> represent wall clock time
+from the system-wide realtime clock and measure
+time since <code>1970-01-01 00:00:00 UTC</code> excluding leap seconds.
+This measure is commonly referred to as Unix time.
+
+<p>Result of <code>resolution()</code> is coarser
+then the resolution of <code>system_clock</code>.</p>
+
+</div>
+
+<h3>Feature test macro</h3>
+[Editor’s note: Add a new macro in &lt;version&gt;, &lt;chrono&gt;: __cpp_lib_chrono_coarse set to
+the date of adoption].
+
+    <script type="text/javascript">
+        function colorize_texts(texts) {
+        for (var i = 0; i < texts.length; ++i) {
+            var text = texts[i].innerHTML;
+            text = text.replace(/namespace|using|async|do\n|while|resumable|co_await|co_yield|co_return|await|yield|sizeof|long|enum|void|concept |constexpr|extern|noexcept|bool|template|class |struct |auto|const |typename|explicit|public|private|operator|#include|inline| char |static_assert|return|union|static_cast|static/g,"<span class='cppkeyword'>$&<\/span>");
+            text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+            //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
+            texts[i].innerHTML = text;
+        }
+        }
+
+        colorize_texts(document.getElementsByTagName("pre"));
+        colorize_texts(document.getElementsByTagName("code"));
+
+        function show_hide_deleted() {
+        var to_change = document.getElementsByClassName('changed-deleted');
+        for (var i = 0; i < to_change.length; ++i) {
+            to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
+        }
+        }
+        show_hide_deleted()
+
+        initial_text = document.getElementById('diff').innerHTML
+        function on_input_change(self) {
+            document.getElementById('diff').innerHTML = initial_text.replace(/async/g, self.value);
+        }
+    </script>
+</body></html>
