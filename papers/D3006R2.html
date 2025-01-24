@@ -1,0 +1,341 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+    <title>Launder less</title>
+    <meta http-equiv="Content-Language" content="en-us">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <style type="text/css">
+        .addition { color: green; }
+        .right { float:right }
+        .changed-deleted { background-color: #CFF0FC ; text-decoration: line-through; display: none; }
+        .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
+        .changed-added { background-color: #CFF0FC ;}
+        .notes { background-color: gold ;}
+        pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
+        .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; font-family:monospace }
+        body {max-width: 1024px; margin-left: 25px;}
+        del { background-color: red; }
+        ins { background-color: lightgreen; text-decoration: none; }
+        .sub { vertical-align: sub; }
+        .lmargin50{margin-left: 50px;}
+        .width_third{width: 33%;}
+        .cppkeyword { color: blue; }
+        .asmcostly { color: red; }
+        .cppcomment { color: green; }
+        .cppcomment > .cppkeyword{ color: green; }
+        .cpptext { color: #2E8B57; }
+        .cppaddition { background-color: #CFC; }
+        .cppdeletion {  text-decoration: line-through; background-color: #FCC; }
+        .stdquote { background-color: #ECECEC; font-family: Consolas,monospace; }
+    </style>
+    </head>
+    <body bgcolor="#ffffff">
+    <address>Document number: D3006R2</address>
+    <address>Project: Programming Language C++</address>
+    <address>Audience: EWGI, EWG, CWG</address>
+    <address>&nbsp;</address>
+    <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
+    <address>&nbsp;</address>
+    <address>Date: 2025-01-23</address>
+    <h1>Launder less</h1>
+
+<p align="right">“The problem is that we attempt to solve the simplest questions cleverly, thereby rendering them unusually complex. One should seek the simple solution.”</p>
+<p align="right"><i>― Anton Chekhov</i></p>
+
+<p class="changed-added">Changes since <a href="https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p3006r1.html">P3006R1</a> are highlighted with blue.</p>
+
+    <h2>I. Motivation</h2>
+<pre>
+    alignas(T) std::byte storage[sizeof(T)];
+    ::new (&amp;storage) T();
+    // ...
+    T *ptr_ = reinterpret_cast&lt;T*&gt;(&amp;storage);  // UB
+</pre>
+
+    <p>The object that is nested within the <code>storage</code> array is not
+    pointer-interconvertible with it <a href="http://eel.is/c++draft/basic.compound#4">[basic.compound] p4</a>.
+    According to the Standard users have to
+    call <code>std::launder</code> to avoid UB.</p>
+
+    <p>That behavior is surprising for the language users. Moreover, popular
+    compilers do not require <code>std::launder</code> call in that place
+    and produce the expected assembly without it.</p>
+
+    <p>This proposal attempts to remove UB in that place, standardize existing
+    practice and simplify language usage.</p>
+
+
+    <h2>II. More motivating examples</h2>
+    <ul>
+    <li><code>boost::optional</code> uses aligned storage and placement new to store a value. Storing a pointer from placement new may increase the size of an class.</li>
+    <li><a href="https://github.com/userver-framework/userver/blob/2ccab5c00cb11eed266ccb00b89e7422fa8861f0/universal/include/userver/utils/fast_pimpl.hpp#L104"><code>utils::FastPimpl</code></a>
+        from the userver framework uses byte array and placement new to store a value. Storing a pointer from placement new increases the size of an class.</li>
+    <li><a href="https://github.com/ClickHouse/ClickHouse/blob/master/src/Common/HashTable/HashTable.h#L367-L396">HashTable</a> of the ClickHouse project.
+        Storing a pointer from placement new increases the size of an class.</li>
+    <li><a href="https://github.com/llvm/llvm-project/blob/80fa5a6377c44b3e78cddbe43abb79d209abc7e5/libcxx/include/__functional/function.h#L402-L405">libcxx</a> in function.h.</li>
+    <li><a href="https://github.com/v8/v8/blob/1c5df5a1b8ade0f484bae1d6f98158bee348dff2/src/base/lazy-instance.h#L231-L245">V8</a> uses reinterpret casts and placement new.
+        Storing the pointer increases object size.</li>
+    <li>...</li>
+    </ul>
+
+    <p><code>std::launder</code> is required to fix the above cases. However it
+    is counterintuitive, decreases the code readability
+    and requires in-depth knowledge of the Standard to realize that there is an
+    issue from the point of the Standard (but in practice there is no problem!).</p>
+
+    <h2>III. Impact on the optimizers</h2>
+    <p>Due to many popular projects do cast storage to an object without calling
+    <code>std::launder</code> and everything works fine - there's no
+    optimization that is enabled by default and that relies on that particular
+    UB in the Standard.</p>
+
+    <p>LLVM has a <code>-fstrict-vtable-pointers</code> optimization that is
+    disabled by default. With that optimization turned on the
+    <code>std::launder</code> for polymorphic objects emits a special barrier
+    that takes over the argument, as a result it prevents some of the CSE
+    optimizations (for example - prevent removal of loads). For non polymorphic
+    types it does nothing.</p>
+
+    <p>However, note that placement new of dynamic object already emits a
+    barrier according to <a href="https://blog.llvm.org/2017/03/devirtualization-in-llvm-and-clang.html">Devirtualization in LLVM and Clang</a>.
+    So using <code>std::launder</code> on a result of <code>reinterpret_cast</code>
+    only adds an unnecessary optimization barrier.</p>
+
+
+<div class="changed-added">
+    <p>On the reflector discussion it was noted that with enabled <code>-fstrict-vtable-pointers</code> the <code>std::launder</code> is required in some cases:</p>
+    <pre>
+#include &lt;new&gt;
+#include &lt;cstdio&gt;
+
+struct A {
+  virtual const char* f() { return "A::f()"; }
+};
+struct B : A {
+  const char* f() override { return "B::f()"; }
+};
+
+void sample(unsigned char *bytes) {
+  auto* placed_a_ptr = ::new ((void *)bytes) A;
+  std::puts(reinterpret_cast&lt;A *&gt;(bytes)-&gt;f());                 // A::f() 
+  placed_a_ptr-&gt;~A();
+
+  auto* placed_b_ptr = ::new ((void *)bytes) B;
+  std::puts(reinterpret_cast&lt;B *&gt;(bytes)-&gt;f());                 // A::f() with `-fstrict-vtable-pointers` 
+  std::puts(reinterpret_cast&lt;B *&gt;(std::launder(bytes))-&gt;f());   // A::f() with `-fstrict-vtable-pointers`
+  std::puts(std::launder(reinterpret_cast&lt;B *&gt;(bytes))-&gt;f());   // B::f() 
+  placed_b_ptr-&gt;~B();
+}
+
+int main() {
+    alignas(B) unsigned char bytes[sizeof(B)];
+    sample(bytes);
+}
+    </pre>
+    <p><a href="https://godbolt.org/z/cWxGPcT3b">Online example</a></p>
+
+    <p>To make the behavior of the samples from Motivation sections well defined, the above information leads to the options:</p>
+    <ol>
+      <li>Make the behavior of <code>reinterpret_cast</code> well defined for the cases when it does not affect <code>-fstrict-vtable-pointers</code>, leaving the need in <code>std::launder</code> for the cases when the
+      storage is reused for an object of different type that is not transparently replaceable with the original object.</li>
+      <li>If users are always required to call <code>std::launder</code>, then just implicitly call it when reinterpret_casting a storage. This prevents parts of the <code>-fstrict-vtable-pointers</code> optimizations.</li>
+    </ol>
+    
+    <table border=1>
+        <tr><th>Current Wording</th><th>Option #1</th><th>Option #2</th></tr>
+        <tr>
+<td><pre>
+::new (bytes) A;
+reinterpret_cast&lt;A *&gt;(bytes)-&gt;f(); // UB 
+
+::new (bytes) B;
+reinterpret_cast&lt;B *&gt;(bytes)-&gt;f(); // UB 
+</pre></td>
+
+<td><pre>
+::new (bytes) A;
+reinterpret_cast&lt;A *&gt;(bytes)-&gt;f(); // OK 
+
+::new (bytes) B;
+reinterpret_cast&lt;B *&gt;(bytes)-&gt;f(); // UB 
+</pre></td>
+
+<td><pre>
+::new (bytes) A;
+reinterpret_cast&lt;A *&gt;(bytes)-&gt;f(); // OK 
+
+::new (bytes) B;
+reinterpret_cast&lt;B *&gt;(bytes)-&gt;f(); // OK 
+</pre></td>
+        </tr>
+
+
+        <tr>
+        <td colspan="3" style="text-align: center; "><code>optional</code> implemented via `storage + placement new`, no <code>std::launder</code>:</td>
+        </tr>
+
+
+
+        <tr>
+<td><pre>
+void a(optional&lt;Derived&gt;&amp; a) {
+  a.emplace&lt;Derived&gt;(1);
+  a-&gt;f();  // UB
+  a-&gt;f();  // UB
+
+  a.emplace&lt;Derived&gt;(2);
+  a-&gt;f();  // UB
+}</pre></td>
+
+
+<td><pre>
+void a(optional&lt;Derived&gt;&amp; a) {
+  a.emplace&lt;Derived&gt;(1);
+  a-&gt;f();  // OK, read vptr
+  a-&gt;f();  // OK, reuse vptr
+
+  a.emplace&lt;Derived&gt;(2);
+  a-&gt;f();  // OK, reuse vptr
+}</pre></td>
+
+<td><pre>
+void a(optional&lt;Derived&gt;&amp; a) {
+  a.emplace&lt;Derived&gt;(1);
+  a-&gt;f();  // OK, read vptr
+  a-&gt;f();  // OK, possible to reuse vptr
+
+  a.emplace&lt;Derived&gt;(2);
+  a-&gt;f();  // OK, possible to reuse vptr
+}</pre></td>
+        </tr>
+
+        <tr>
+<td><pre>
+void a(optional&lt;Derived&gt;&amp; a) {
+  a.emplace&lt;Derived&gt;(1);
+  a-&gt;f();  // UB
+  not_inlined();
+  a-&gt;f();  // UB
+}</pre></td>
+
+
+<td><pre>
+void a(optional&lt;Derived&gt;&amp; a) {
+  a.emplace&lt;Derived&gt;(1);
+  a-&gt;f();  // OK, read vptr
+  not_inlined();
+  a-&gt;f();  // OK, reuse vptr
+}</pre></td>
+
+<td><pre>
+void a(optional&lt;Derived&gt;&amp; a) {
+  a.emplace&lt;Derived&gt;(1);
+  a-&gt;f();  // OK, read vptr
+  not_inlined();
+  a-&gt;f();  // OK, can NOT reuse vptr
+}</pre></td>
+        </tr>
+    </table>
+
+    <p>Option 1 is more efficient and leaves UBs in some edge cases. Note that this option removes UBs from <b>majority</b>
+    of the samples from motivation sections, including <code>boost::optional</code>, <code>utils::FastPimpl</code>,
+    ClickHouse's HashTable and V8. The <code>-fstrict-vtable-pointers</code> is not specific to LLVM and other compilers may also benefit from it
+    (<a href="https://gcc.gnu.org/bugzilla/show_bug.cgi?id=118492">GCC for example</a>).</p>
+
+    <p>Option 2 (auto launder) would require an optimization pass to analyse <code>std::launder</code>s to get close to the CPU efficiency of Option 2.
+    Such optimization pass would not be as efficient as Option 2 (see last row of the above table). However, this approach removes UBs from Variant like
+    classes implemented via <i>storage+placement new</i> without <code>std::launder</code>.</p>
+</div>
+
+    <h2>IV. Wording</h2>
+    <p class="changed-added">Option 1 Wording:</p>
+    <p>Adjust [expr.static.cast] p14:</p>
+
+<pre>
+A prvalue of type “pointer to cv1 void” can be converted to a prvalue of type “pointer to cv2 T”, where T is an object
+type and cv2 is the same cv-qualification as, or greater cv-qualification than, cv1. If the original pointer value
+represents the address A of a byte in memory and A does not satisfy the alignment requirement of T, then the resulting
+pointer value is unspecified. Otherwise, if the original pointer value points to an object a, and there is an object b of
+type similar to T that is pointer-interconvertible with a, the result is a pointer to b. <ins>Otherwise, if the original
+pointer value points to an element of an array of <code>std::byte</code> or <code>unsigned char</code>, and there is an object <i>b</i> of type
+<code>T</code> for which the array provides storage, created at the address of the array element, <span class="changed-added">and the storage
+was used to store only objects transparently replaceable with <code>T</code>, </span>the result is a pointer to <i>b</i>.</ins>
+Otherwise, the pointer value is unchanged by the conversion.
+
+[Example 3: 
+  T* p1 = new T;
+  const T* p2 = static_cast&lt;const T*&gt;(static_cast&lt;void*&gt;(p1));
+  bool b = p1 == p2;  // b will have the value true.
+— end example]
+<ins>
+[Example 4: 
+  alignas(T) std::byte storage[sizeof(T)];
+  auto* p1 = ::new (&amp;storage) T();
+  auto* p2 = reinterpret_cast&lt;T*&gt;(&amp;storage);  // OK: <code>*p1</code> and <code>*p2</code> denote the same object
+— end example]
+</ins>
+</pre>
+
+
+    <p class="changed-added">Option 2 Wording:</p>
+    <p>Adjust [expr.static.cast] p14:</p>
+
+<pre>
+A prvalue of type “pointer to cv1 void” can be converted to a prvalue of type “pointer to cv2 T”, where T is an object
+type and cv2 is the same cv-qualification as, or greater cv-qualification than, cv1. If the original pointer value
+represents the address A of a byte in memory and A does not satisfy the alignment requirement of T, then the resulting
+pointer value is unspecified. Otherwise, if the original pointer value points to an object a, and there is an object b of
+type similar to T that is pointer-interconvertible with a, the result is a pointer to b. <ins>Otherwise, if the original
+pointer value points to an element of an array of <code>std::byte</code> or <code>unsigned char</code>, and there is an object <i>b</i> of type
+<code>T</code> for which the array provides storage, created at the address of the array element, the result is a pointer to <i>b</i>.</ins>
+Otherwise, the pointer value is unchanged by the conversion.
+
+[Example 3: 
+  T* p1 = new T;
+  const T* p2 = static_cast&lt;const T*&gt;(static_cast&lt;void*&gt;(p1));
+  bool b = p1 == p2;  // b will have the value true.
+— end example]
+<ins>
+[Example 4: 
+  alignas(T) std::byte storage[sizeof(T)];
+  auto* p1 = ::new (&amp;storage) T();
+  auto* p2 = reinterpret_cast&lt;T*&gt;(&amp;storage);  // OK: <code>*p1</code> and <code>*p2</code> denote the same object
+— end example]
+</ins>
+</pre>
+
+    <h2>IV. Acknowledgments</h2>
+    <p>Many thanks to Артём Колпаков (Artyom Kolpakov) for asking the question on that topic at <a href="https://lists.isocpp.org/std-discussion/2023/07/2304.php">STD discussion list</a>
+    and for drawing my attention to the problem. Thanks to Brian Bi for answering the question at
+    <a href="https://lists.isocpp.org/std-discussion/2023/07/2305.php">STD discussion list</a>.</p>
+    <p>Thanks to Andrey Erokhin, Timur Doumler, Roman Rusyaev, Mathias Stearn and all the mailing lists members for feedback and help!</p>
+    <p>Thanks to Andrey Erokhin and Jason Merrill for the wording help in R0!</p>
+
+    <script type="text/javascript">
+        function colorize_texts(texts) {
+        for (var i = 0; i < texts.length; ++i) {
+            var text = texts[i].innerHTML;
+            text = text.replace(/namespace|using|async|do\n|while|resumable|co_await|co_yield|co_return|await|yield|sizeof|long|enum|void|concept |constexpr|extern|noexcept|bool|template|class |struct |auto|const |reinterpret_cast|typename|explicit|public|private|operator|#include|inline |alignas|static_assert|int |return|union|static_cast|static/g,"<span class='cppkeyword'>$&<\/span>");
+            text = text.replace(/\/\/[\s\S]+?\n/g,"<span class='cppcomment'>$&<\/span>");
+            //text = text.replace(/\"[\s\S]+?\"/g,"<span class='cpptext'>$&<\/span>");
+            texts[i].innerHTML = text;
+        }
+        }
+
+        colorize_texts(document.getElementsByTagName("pre"));
+        colorize_texts(document.getElementsByTagName("code"));
+
+        function show_hide_deleted() {
+        var to_change = document.getElementsByClassName('changed-deleted');
+        for (var i = 0; i < to_change.length; ++i) {
+            to_change[i].style.display = (document.getElementById("show_deletions").checked ? 'block' : 'none');
+        }
+        }
+        show_hide_deleted()
+
+        initial_text = document.getElementById('diff').innerHTML
+        function on_input_change(self) {
+            document.getElementById('diff').innerHTML = initial_text.replace(/async/g, self.value);
+        }
+    </script>
+</body></html>
