@@ -137,7 +137,7 @@ int main() {
     <p>To make the behavior of the samples from Motivation sections well defined, the above information leads to the options:</p>
     <ol>
       <li>Make the behavior of <code>reinterpret_cast</code> well defined for the cases when it does not affect <code>-fstrict-vtable-pointers</code>, leaving the need in <code>std::launder</code> for the cases when the
-      storage is reused for an object of different type that is not transparently replaceable with the original object.</li>
+      storage is reused for an object of different type that is not transparently replaceable by the original object.</li>
       <li>If users are always required to call <code>std::launder</code>, then just implicitly call it when reinterpret_casting a storage. This prevents parts of the <code>-fstrict-vtable-pointers</code> optimizations.</li>
     </ol>
     
@@ -259,7 +259,7 @@ pointer value is unspecified. Otherwise, if the original pointer value points to
 type similar to T that is pointer-interconvertible with a, the result is a pointer to b. <ins>Otherwise, if the original
 pointer value points to an element of an array of <code>std::byte</code> or <code>unsigned char</code>, and there is an object <i>b</i> of type
 <code>T</code> for which the array provides storage, created at the address of the array element, <span class="changed-added">and the storage
-was used to store only objects transparently replaceable with <code>T</code>, </span>the result is a pointer to <i>b</i>.</ins>
+was used to store only objects transparently replaceable by <code>T</code>, </span>the result is a pointer to <i>b</i>.</ins>
 Otherwise, the pointer value is unchanged by the conversion.
 
 [Example 3: 
