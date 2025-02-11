@@ -248,7 +248,7 @@ void a(optional&lt;Derived&gt;&amp; a) {
 </div>
 
     <h2>IV. Wording</h2>
-    <p class="changed-added">Option 1 Wording:</p>
+    <p>(Option 1 Wording)</p>
     <p>Adjust [expr.static.cast] p14:</p>
 
 <pre>
@@ -256,11 +256,13 @@ A prvalue of type “pointer to cv1 void” can be converted to a prvalue of typ
 type and cv2 is the same cv-qualification as, or greater cv-qualification than, cv1. If the original pointer value
 represents the address A of a byte in memory and A does not satisfy the alignment requirement of T, then the resulting
 pointer value is unspecified. Otherwise, if the original pointer value points to an object a, and there is an object b of
-type similar to T that is pointer-interconvertible with a, the result is a pointer to b. <ins>Otherwise, if the original
-pointer value points to an element of an array of <code>std::byte</code> or <code>unsigned char</code>, and there is an object <i>b</i> of type
-<code>T</code> for which the array provides storage, created at the address of the array element, <span class="changed-added">and the storage
-was used to store only objects transparently replaceable by <code>T</code>, </span>the result is a pointer to <i>b</i>.</ins>
-Otherwise, the pointer value is unchanged by the conversion.
+type similar to T that is pointer-interconvertible with a, the result is a pointer to b. <ins>Otherwise, the result is a pointer to <i>b</i> if</ins></pre>
+<ul style="background-color: lightgreen; text-decoration: none; line-height: 1; font-family: Consolas,monospace; line-height: 1.2; font-size: 10pt;">
+    <li>the original pointer value points to an element of an array of <code>std::byte</code> or <code>unsigned char</code>,</li>
+    <li>and <i>b</i> of type <code>T</code> has the same address as the array element,</li>
+    <li>and that portion of array was used to provide storage only for objects transparently replaceable by <code>T</code>.</li>
+</ul>
+<pre>Otherwise, the pointer value is unchanged by the conversion.
 
 [Example 3: 
   T* p1 = new T;
@@ -271,38 +273,14 @@ Otherwise, the pointer value is unchanged by the conversion.
 [Example 4: 
   alignas(T) std::byte storage[sizeof(T)];
   auto* p1 = ::new (&amp;storage) T();
-  auto* p2 = reinterpret_cast&lt;T*&gt;(&amp;storage);  // OK: <code>*p1</code> and <code>*p2</code> denote the same object
+  auto* p2 = reinterpret_cast&lt;T*&gt;(&amp;storage);  // OK: <code>*p1</code> and <code>*p2</code> are the same pointer value
+
+  ::new (&amp;storage) U();  // <code>U</code> and <code>T</code> are neither pointer-interconvertible nor transparently replaceable
+  auto* p3 = reinterpret_cast&lt;U*&gt;(&amp;storage);  // <code>*p1</code> and <code>*p2</code> are different pointer values
 — end example]
 </ins>
 </pre>
 
-
-    <p class="changed-added">Option 2 Wording:</p>
-    <p>Adjust [expr.static.cast] p14:</p>
-
-<pre>
-A prvalue of type “pointer to cv1 void” can be converted to a prvalue of type “pointer to cv2 T”, where T is an object
-type and cv2 is the same cv-qualification as, or greater cv-qualification than, cv1. If the original pointer value
-represents the address A of a byte in memory and A does not satisfy the alignment requirement of T, then the resulting
-pointer value is unspecified. Otherwise, if the original pointer value points to an object a, and there is an object b of
-type similar to T that is pointer-interconvertible with a, the result is a pointer to b. <ins>Otherwise, if the original
-pointer value points to an element of an array of <code>std::byte</code> or <code>unsigned char</code>, and there is an object <i>b</i> of type
-<code>T</code> for which the array provides storage, created at the address of the array element, the result is a pointer to <i>b</i>.</ins>
-Otherwise, the pointer value is unchanged by the conversion.
-
-[Example 3: 
-  T* p1 = new T;
-  const T* p2 = static_cast&lt;const T*&gt;(static_cast&lt;void*&gt;(p1));
-  bool b = p1 == p2;  // b will have the value true.
-— end example]
-<ins>
-[Example 4: 
-  alignas(T) std::byte storage[sizeof(T)];
-  auto* p1 = ::new (&amp;storage) T();
-  auto* p2 = reinterpret_cast&lt;T*&gt;(&amp;storage);  // OK: <code>*p1</code> and <code>*p2</code> denote the same object
-— end example]
-</ins>
-</pre>
 
     <h2>IV. Acknowledgments</h2>
     <p>Many thanks to Артём Колпаков (Artyom Kolpakov) for asking the question on that topic at <a href="https://lists.isocpp.org/std-discussion/2023/07/2304.php">STD discussion list</a>
