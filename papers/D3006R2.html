@@ -11,7 +11,7 @@
         .addition.changed-deleted { color: green; background-color: #CFF0FC ; text-decoration: line-through; text-decoration: black double line-through; display: none; }
         .changed-added { background-color: #CFF0FC ;}
         .notes { background-color: gold ;}
-        pre { line-height: 1.2; font-size: 10pt; margin-top: 25px; }
+        pre { line-height: 1.2; font-size: 12pt; margin-top: 25px; }
         .desc { margin-left: 35px; margin-top: 10px; padding:0; white-space: normal; font-family:monospace }
         body {max-width: 1024px; margin-left: 25px;}
         del { background-color: red; }
@@ -36,7 +36,7 @@
     <address>&nbsp;</address>
     <address>Antony Polukhin &lt;<a href="mailto:antoshkka@gmail.com">antoshkka@gmail.com</a>&gt;, &lt;<a href="mailto:antoshkka@yandex-team.ru">antoshkka@yandex-team.ru</a>&gt;</address>
     <address>&nbsp;</address>
-    <address>Date: 2025-02-11</address>
+    <address>Date: 2025-02-12</address>
     <h1>Launder less</h1>
 
 <p align="right">“The problem is that we attempt to solve the simplest questions cleverly, thereby rendering them unusually complex. One should seek the simple solution.”</p>
@@ -256,10 +256,13 @@ A prvalue of type “pointer to cv1 void” can be converted to a prvalue of typ
 type and cv2 is the same cv-qualification as, or greater cv-qualification than, cv1. If the original pointer value
 represents the address A of a byte in memory and A does not satisfy the alignment requirement of T, then the resulting
 pointer value is unspecified. Otherwise, if the original pointer value points to an object a, and there is an object b of
-type similar to T that is pointer-interconvertible with a, the result is a pointer to b. <ins>Otherwise, the result is a pointer to <i>b</i> if</ins></pre>
-<ul style="background-color: lightgreen; text-decoration: none; line-height: 1; font-family: Consolas,monospace; line-height: 1.2; font-size: 10pt;">
+type similar to T that is pointer-interconvertible with a, the result is a pointer to b. <ins>Otherwise, the result is
+a pointer to <i>b</i> if</ins></pre>
+<ul style="background-color: lightgreen; text-decoration: none; line-height: 1; font-family: Consolas,monospace; line-height: 1.2; font-size: 12pt;">
     <li>the original pointer value points to an element of an array of <code>std::byte</code> or <code>unsigned char</code>,</li>
     <li>and <i>b</i> of type <code>T</code> has the same address as the array element,</li>
+    <li>and <i>b</i> is within its lifetime,</li>
+    <li>and <i>b</i> is nested within portion of the array,</li>
     <li>and that portion of array was used to provide storage only for objects transparently replaceable by <code>T</code>.</li>
 </ul>
 <pre>Otherwise, the pointer value is unchanged by the conversion.
@@ -275,8 +278,8 @@ type similar to T that is pointer-interconvertible with a, the result is a point
   auto* p1 = ::new (&amp;storage) T();
   auto* p2 = reinterpret_cast&lt;T*&gt;(&amp;storage);  // OK: <code>*p1</code> and <code>*p2</code> are the same pointer value
 
-  ::new (&amp;storage) U();  // <code>U</code> and <code>T</code> are neither pointer-interconvertible nor transparently replaceable
-  auto* p3 = reinterpret_cast&lt;U*&gt;(&amp;storage);  // <code>*p1</code> and <code>*p2</code> are different pointer values
+  auto* p3 = ::new (&amp;storage) U();  // <code>U</code> and <code>T</code> are neither pointer-interconvertible nor transparently replaceable
+  auto* p4 = reinterpret_cast&lt;U*&gt;(&amp;storage);  // <code>*p3</code> and <code>*p4</code> are different pointer values
 — end example]
 </ins>
 </pre>
@@ -288,6 +291,8 @@ type similar to T that is pointer-interconvertible with a, the result is a point
     <a href="https://lists.isocpp.org/std-discussion/2023/07/2305.php">STD discussion list</a>.</p>
     <p>Thanks to Andrey Erokhin, Timur Doumler, Roman Rusyaev, Mathias Stearn and all the mailing lists members for feedback and help!</p>
     <p>Thanks to Andrey Erokhin and Jason Merrill for the wording help in R0!</p>
+    <p>Special thanks to Hubert Tong for showing an example of code that still requires <code>std::launder</code> with <code>-fstrict-vtable-pointers</code>!</p>
+    <p>Thanks to Hubert Tong, Jens Maurer and other CWG members for the wording help!</p>
 
     <script type="text/javascript">
         function colorize_texts(texts) {
